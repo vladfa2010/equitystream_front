@@ -1,0 +1,7 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="70" r="25" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+  <path d="M55 140C55 115.147 75.147 95 100 95" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M145 140C145 115.147 124.853 95 100 95" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="140" cy="55" r="15" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  <path d="M135 55H145M140 50V60" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round"/>
+</svg>
