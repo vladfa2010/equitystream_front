@@ -1,0 +1,39 @@
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
+import Layout from '@/components/Layout';
+
+export default function MaterialsLibrary() {
+  const navigate = useNavigate();
+
+  return (
+    <Layout role="admin">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+      >
+        <button
+          onClick={() => navigate('/admin')}
+          className="flex items-center gap-2 text-[14px] mb-6 transition-colors hover:text-[#B8A14E]"
+          style={{ color: '#8A8A93' }}
+        >
+          <ArrowLeft size={16} />
+          Back to Dashboard
+        </button>
+
+        <div className="glass-panel p-12 text-center">
+          <h1 className="text-h1 mb-4" style={{ color: '#F5F5F0' }}>Materials Library</h1>
+          <p className="text-body mb-8" style={{ color: '#8A8A93' }}>
+            Centralized file/link management: upload, organize, attach to deals.
+          </p>
+          <div className="flex justify-center gap-4">
+            <button className="btn-primary" onClick={() => navigate('/admin')}>
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </Layout>
+  );
+}

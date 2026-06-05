@@ -48,6 +48,37 @@ module.exports = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        obsidian: {
+          base: '#0A0A0F',
+          surface: '#111118',
+          elevated: '#1A1A24',
+          input: '#14141C',
+        },
+        gold: {
+          DEFAULT: '#B8A14E',
+          hover: '#C9B25F',
+          dim: 'rgba(184, 161, 78, 0.12)',
+        },
+        profit: {
+          DEFAULT: '#10B981',
+          dim: 'rgba(16, 185, 129, 0.09)',
+        },
+        loss: {
+          DEFAULT: '#EF4444',
+          dim: 'rgba(239, 68, 68, 0.09)',
+        },
+        'es-text': {
+          primary: '#F5F5F0',
+          secondary: '#8A8A93',
+          tertiary: '#55555E',
+        },
+        'es-blue': '#4F6EF7',
+        'es-purple': '#8B5CF6',
+      },
+      fontFamily: {
+        display: ['"Clash Display"', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
       borderRadius: {
         xl: "calc(var(--radius) + 4px)",
@@ -58,6 +89,8 @@ module.exports = {
       },
       boxShadow: {
         xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        glass: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+        'glass-hover': '0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
       },
       keyframes: {
         "accordion-down": {
@@ -72,11 +105,29 @@ module.exports = {
           "0%,70%,100%": { opacity: "1" },
           "20%,50%": { opacity: "0" },
         },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "caret-blink": "caret-blink 1.25s ease-out infinite",
+        "shimmer": "shimmer 1.5s infinite linear",
+        "pulse-slow": "pulse-slow 3s ease-in-out infinite",
+        "float": "float 6s ease-in-out infinite",
+      },
+      backdropBlur: {
+        glass: '24px',
       },
     },
   },
