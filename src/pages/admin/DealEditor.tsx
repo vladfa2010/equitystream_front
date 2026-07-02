@@ -5,12 +5,14 @@ import {
   Building2, TrendingUp, Globe, Users, Crown, Pencil, Trash2,
   Plus, Search, X, ChevronRight, ChevronLeft, AlertTriangle,
   CheckCircle2, XCircle, Percent, Upload, Equal, Sparkles,
-  Mail, Calendar, DollarSign, Calculator
+  Mail, Calendar, DollarSign, Calculator, Loader2
 } from 'lucide-react';
 import StepIndicator from '../../components/deals/StepIndicator';
 import CurrencyInput from '../../components/deals/CurrencyInput';
 import { clients, formatCurrency as fmtCur } from '../../data/mockData';
 import type { Client } from '../../data/mockData';
+import { dealsApi } from '../../api/services/deals';
+import type { CreateDealRequest } from '../../api/types';
 
 // =============================================================================
 // TYPES
@@ -1452,6 +1454,7 @@ export default function DealEditor() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [sendEmail, setSendEmail] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
 
   const [form, setForm] = useState<CompanyForm>({
     companyName: '',
@@ -1518,8 +1521,8 @@ export default function DealEditor() {
     setStep(s => Math.max(s - 1, 0));
   }, []);
 
-  // ---- Creation ----
-  const handleCreate = useCallback((status: 'active' | 'draft') => {
+  // ---- Creation via API ----
+  const handleCreate = useCallback(async (status: 'active' | 'draft') => {
     if (!validateStep1()) {
       setStep(0);
       return;
@@ -1532,17 +1535,49 @@ export default function DealEditor() {
       return;
     }
 
-    // Generate a new deal ID
-    const newId = `d${Date.now()}`;
+    setIsCreating(true);
 
-    // Show toast
-    setToast({ message: `Deal created as ${status === 'active' ? 'Active' : 'Draft'}`, type: 'success' });
+    try {
+      const payload: CreateDealRequest = {
+        companyName: form.companyName.trim(),
+        ticker: form.ticker.trim().toUpperCase(),
+        exchange: form.exchange,
+        sector: form.sector || undefined,
+        description: form.description || undefined,
+        totalVolume: parseNum(form.totalVolume),
+        sharePrice: parseNum(form.sharePrice),
+        marketCap: form.marketCap ? parseNum(form.marketCap) : undefined,
+        website: form.website || undefined,
+        founder: form.founders || undefined,
+        logoUrl: form.logoPreview || undefined,
+        managementFeePercent: form.managementFee ? parseNum(form.managementFee) : 0,
+        targetPrice: form.targetPrice ? parseNum(form.targetPrice) : undefined,
+        timeHorizon: form.timeHorizon || undefined,
+        status,
+        clients: allocations.map(a => ({
+          clientId: a.clientId,
+          amount: parseNum(a.amount),
+          isLead: a.isLead,
+          customEntryPrice: parseNum(a.entryPrice) !== sharePriceNum ? parseNum(a.entryPrice) : undefined,
+        })),
+        sendNotifications: sendEmail,
+      };
 
-    // Navigate after short delay
-    setTimeout(() => {
-      navigate(`/admin/deals/${newId}`);
-    }, 1200);
-  }, [validateStep1, allocations, totalVolumeNum, navigate, form]);
+      const response = await dealsApi.create(payload);
+      const dealId = (response as unknown as { id: string }).id;
+
+      setToast({ message: `Deal created as ${status === 'active' ? 'Active' : 'Draft'}`, type: 'success' });
+
+      setTimeout(() => {
+        navigate(`/admin/deals/${dealId}`);
+      }, 1200);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setToast({ message: `Failed to create deal: ${msg}`, type: 'error' });
+    } finally {
+      setIsCreating(false);
+    }
+  }, [validateStep1, allocations, totalVolumeNum, navigate, form, sharePriceNum, sendEmail]);
 
   // ---- Auto-dismiss toast ----
   useEffect(() => {
@@ -1685,19 +1720,23 @@ export default function DealEditor() {
 
                   <button
                     onClick={() => handleCreate('draft')}
-                    className="px-5 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200"
+                    disabled={isCreating}
+                    className="px-5 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ color: '#F5F5F0', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+                    onMouseEnter={e => { if (!isCreating) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
                   >
+                    {isCreating ? <Loader2 size={15} className="animate-spin" /> : null}
                     Create as Draft
                   </button>
                   <button
                     onClick={() => handleCreate('active')}
-                    className="px-6 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 flex items-center gap-2"
+                    disabled={isCreating}
+                    className="px-6 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}
                   >
-                    <CheckCircle2 size={15} /> Create Deal
+                    {isCreating ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                    {isCreating ? 'Creating...' : 'Create Deal'}
                   </button>
                 </>
               )}
