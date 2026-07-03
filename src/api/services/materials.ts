@@ -1,4 +1,8 @@
-import { getAllMaterials, createMaterialLocal } from '../localDb';
+import {
+  getAllMaterials,
+  createMaterialLocal,
+  deleteMaterialLocal,
+} from '../localDb';
 import type { MaterialResponse, CreateMaterialRequest } from '../types';
 
 export const materialsApi = {
@@ -20,8 +24,7 @@ export const materialsApi = {
 
   delete: async (id: string) => {
     await new Promise(r => setTimeout(r, 200));
-    const materials = getAllMaterials().filter(m => m.id !== id);
-    localStorage.setItem('es_materials', JSON.stringify(materials));
+    deleteMaterialLocal(id);
     return { success: true };
   },
 
@@ -30,7 +33,6 @@ export const materialsApi = {
     const idx = materials.findIndex(m => m.id === materialId);
     if (idx === -1) throw new Error('Material not found');
     materials[idx].dealId = dealId;
-    localStorage.setItem('es_materials', JSON.stringify(materials));
     return materials[idx];
   },
 };

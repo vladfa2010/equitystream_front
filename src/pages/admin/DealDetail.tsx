@@ -1,89 +1,201 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, TrendingUp, TrendingDown, Users, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowLeft, TrendingUp, TrendingDown, Users, Loader2,
+  Pencil, Trash2, X, Plus, CheckCircle2, Crown,
+} from 'lucide-react';
 import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import { dealsApi, clientsApi } from '@/api';
 import type { DealResponse, ClientResponse } from '@/api';
 
-function getClientName(c: ClientResponse): string {
-  return c.fullName || c.name || 'Unknown';
+function getClientName(c: ClientResponse | any): string {
+  return c?.fullName || c?.name || 'Unknown';
 }
+
+/* ─── input style helpers ─── */
+const inpBase: React.CSSProperties = {
+  background: '#14141C',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 12,
+  padding: '12px 16px',
+  color: '#F5F5F0',
+  fontSize: 14,
+  width: '100%',
+  outline: 'none',
+  fontFamily: 'Inter, system-ui, sans-serif',
+};
+const inpFocus = {
+  onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    e.currentTarget.style.borderColor = '#B8A14E';
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(184,161,78,0.15)';
+  },
+  onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+    e.currentTarget.style.boxShadow = 'none';
+  },
+};
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [deal, setDeal] = useState<DealResponse | null>(null);
-  const [clientInvestors, setClientInvestors] = useState<ClientResponse[]>([]);
+  const [allClients, setAllClients] = useState<ClientResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  /* edit modal state */
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<DealResponse>>({});
+  const [saving, setSaving] = useState(false);
+
+  /* delete deal modal */
+  const [showDeleteDeal, setShowDeleteDeal] = useState(false);
+  const [confirmDealName, setConfirmDealName] = useState('');
+  const [deletingDeal, setDeletingDeal] = useState(false);
+
+  /* delete investment */
+  const [invToDelete, setInvToDelete] = useState<string | null>(null);
+
+  /* add client modal */
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [addAmount, setAddAmount] = useState('');
+  const [addIsLead, setAddIsLead] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  /* inline price edit */
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [newPrice, setNewPrice] = useState('');
+
+  const load = useCallback(() => {
     if (!id) { setLoading(false); return; }
     setLoading(true);
-    Promise.all([
-      dealsApi.getById(id),
-      clientsApi.getAll(),
-    ]).then(([dealData, allClients]) => {
-      setDeal(dealData);
-      if (dealData?.investments) {
-        const investorIds = dealData.investments.map((i: any) => i.clientId);
-        const investors = (allClients || []).filter((c: ClientResponse) =>
-          investorIds.includes(c.id)
-        );
-        setClientInvestors(investors);
-      }
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    Promise.all([dealsApi.getById(id), clientsApi.getAll()])
+      .then(([d, c]) => { setDeal(d); setAllClients(c || []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [id]);
 
-  if (loading) {
-    return (
-      <Layout role="admin">
-        <div className="flex items-center justify-center py-32">
-          <Loader2 size={32} className="animate-spin" style={{ color: '#B8A14E' }} />
-        </div>
-      </Layout>
-    );
-  }
+  useEffect(() => { load(); }, [load]);
 
-  if (!deal) {
-    return (
-      <Layout role="admin">
-        <div className="text-center py-20">
-          <h1 className="text-2xl font-semibold mb-4" style={{ color: '#F5F5F0' }}>Deal Not Found</h1>
-          <button className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }} onClick={() => navigate('/admin')}>
-            Back to Dashboard
-          </button>
-        </div>
-      </Layout>
-    );
-  }
+  /* ────────── open edit modal ────────── */
+  const openEdit = () => {
+    if (!deal) return;
+    setEditForm({
+      companyName: deal.companyName,
+      ticker: deal.ticker,
+      exchange: deal.exchange,
+      sector: deal.sector,
+      description: deal.description,
+      totalPackageAmount: deal.totalPackageAmount,
+      entryPrice: deal.entryPrice,
+      marketCap: deal.marketCap,
+      website: deal.website,
+      founder: deal.founder,
+      managementFeePercent: deal.managementFeePercent,
+      targetPrice: deal.targetPrice,
+      timeHorizon: deal.timeHorizon,
+      status: deal.status,
+    });
+    setShowEdit(true);
+  };
+
+  /* ────────── save edit ────────── */
+  const handleSaveEdit = async () => {
+    if (!deal || !id) return;
+    setSaving(true);
+    await new Promise(r => setTimeout(r, 400));
+    const payload: any = { ...editForm };
+    if (payload.totalPackageAmount && payload.entryPrice) {
+      payload.shareQuantity = payload.totalPackageAmount / payload.entryPrice;
+    }
+    /* API update */
+    await dealsApi.update(id, payload);
+    setSaving(false); setShowEdit(false); load();
+  };
+
+  /* ────────── delete deal ────────── */
+  const handleDeleteDeal = async () => {
+    if (!deal || confirmDealName !== deal.companyName) return;
+    setDeletingDeal(true);
+    await dealsApi.delete(deal.id);
+    setDeletingDeal(false); setShowDeleteDeal(false); setConfirmDealName('');
+    navigate('/admin/deals');
+  };
+
+  /* ────────── remove investment ────────── */
+  const handleRemoveInvestment = async (invId: string) => {
+    if (!deal || !id) return;
+    await dealsApi.removeInvestment(id, invId);
+    setInvToDelete(null);
+    load();
+  };
+
+  /* ────────── add client ────────── */
+  const handleAddClient = async () => {
+    if (!deal || !id || !selectedClientId || !addAmount) return;
+    setAdding(true);
+    const amt = parseFloat(addAmount);
+    await dealsApi.addInvestment(id, { clientId: selectedClientId, amount: amt, isLead: addIsLead });
+    /* API — investment already added above */
+    setAdding(false); setShowAddClient(false); setSelectedClientId(''); setAddAmount(''); setAddIsLead(false); load();
+  };
+
+  /* ────────── inline price update ────────── */
+  const handlePriceUpdate = async () => {
+    if (!deal || !id || !newPrice) return;
+    const price = parseFloat(newPrice);
+    await dealsApi.updatePrice(id, { price });
+    /* API price update with history */
+    const freshDeal = await dealsApi.getById(id);
+    if (freshDeal) {
+      await dealsApi.update(id, {
+        currentPrice: price,
+        priceHistory: [...(freshDeal.priceHistory || []), { id: `ph_${Date.now()}`, dealId: id, price, changedBy: 'admin', createdAt: new Date().toISOString() }],
+      });
+    }
+    setEditingPrice(false); setNewPrice(''); load();
+  };
+
+  if (loading) return <Layout role="admin"><div className="flex justify-center py-32"><Loader2 size={32} className="animate-spin" style={{ color: '#B8A14E' }} /></div></Layout>;
+  if (!deal) return <Layout role="admin"><div className="text-center py-20"><h1 className="text-2xl font-semibold mb-4" style={{ color: '#F5F5F0' }}>Deal Not Found</h1><button className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }} onClick={() => navigate('/admin')}>Back to Dashboard</button></div></Layout>;
 
   const priceChange = ((deal.currentPrice - deal.entryPrice) / deal.entryPrice) * 100;
   const totalAllocated = (deal.investments || []).reduce((s: number, i: any) => s + i.amount, 0);
   const allocationPercent = deal.totalPackageAmount > 0 ? (totalAllocated / deal.totalPackageAmount) * 100 : 0;
   const isProfit = priceChange >= 0;
 
+  /* clients not yet in deal */
+  const existingClientIds = new Set((deal.investments || []).map((i: any) => i.clientId));
+  const availableClients = allClients.filter(c => !existingClientIds.has(c.id) && c.status === 'active');
+
   return (
     <Layout role="admin">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
+        {/* ═══════ HEADER ═══════ */}
         <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => navigate('/admin')} className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+          <button onClick={() => navigate('/admin/deals')} className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
             <ArrowLeft size={20} style={{ color: '#8A8A93' }} />
           </button>
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
               <span className="px-2 py-1 rounded text-xs font-semibold" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}>{deal.ticker}</span>
               <span className="px-2 py-1 rounded text-xs" style={{ background: deal.status === 'active' ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: deal.status === 'active' ? '#10B981' : '#8A8A93' }}>{deal.status}</span>
             </div>
             <h1 className="text-3xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>{deal.companyName}</h1>
           </div>
+          <div className="flex gap-2">
+            <button onClick={openEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Pencil size={14} /> Edit
+            </button>
+            <button onClick={() => { setShowDeleteDeal(true); setConfirmDealName(''); }} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors" style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
         </div>
 
-        {/* Metrics */}
+        {/* ═══════ METRICS ═══════ */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total Package', value: formatCurrency(deal.totalPackageAmount) },
@@ -93,35 +205,45 @@ export default function DealDetail() {
           ].map((m, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="p-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
               <p className="text-xs uppercase tracking-wider mb-2" style={{ color: '#8A8A93' }}>{m.label}</p>
-              <div className="flex items-center gap-2">
-                {m.icon}
-                <p className="text-xl font-bold" style={{ color: m.color || '#F5F5F0', fontFamily: 'JetBrains Mono, monospace' }}>{m.value}</p>
-              </div>
+              <div className="flex items-center gap-2">{m.icon}<p className="text-xl font-bold" style={{ color: m.color || '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{m.value}</p></div>
             </motion.div>
           ))}
         </div>
 
-        {/* Price Info */}
+        {/* ═══════ PRICE + DETAILS ═══════ */}
         <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
-          <div className="grid grid-cols-3 gap-6 text-center">
-            <div>
-              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Entry Price</p>
-              <p className="text-2xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>${deal.entryPrice.toFixed(2)}</p>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+            <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Entry Price</p><p className="text-xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>${deal.entryPrice.toFixed(2)}</p></div>
             <div>
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Current Price</p>
-              <p className="text-2xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>${deal.currentPrice.toFixed(2)}</p>
+              {editingPrice ? (
+                <div className="flex items-center gap-2 justify-center">
+                  <input type="number" value={newPrice} onChange={e => setNewPrice(e.target.value)} className="w-24 px-2 py-1 rounded text-sm text-center" style={{ ...inpBase, padding: '6px' }} autoFocus />
+                  <button onClick={handlePriceUpdate} className="p-1 rounded" style={{ background: 'rgba(16,185,129,0.2)' }}><CheckCircle2 size={14} style={{ color: '#10B981' }} /></button>
+                  <button onClick={() => setEditingPrice(false)} className="p-1 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}><X size={14} style={{ color: '#8A8A93' }} /></button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 justify-center">
+                  <p className="text-xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>${deal.currentPrice.toFixed(2)}</p>
+                  <button onClick={() => { setNewPrice(String(deal.currentPrice)); setEditingPrice(true); }} className="p-1 rounded hover:bg-white/5"><Pencil size={12} style={{ color: '#8A8A93' }} /></button>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Share Quantity</p>
-              <p className="text-2xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{deal.shareQuantity.toFixed(2)}</p>
-            </div>
+            <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Shares</p><p className="text-xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{deal.shareQuantity.toFixed(2)}</p></div>
+            <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Fee</p><p className="text-xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{deal.managementFeePercent}%</p></div>
+            <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Target</p><p className="text-xl font-bold" style={{ color: deal.targetPrice ? '#B8A14E' : '#55555E', fontFamily: 'JetBrains Mono' }}>{deal.targetPrice ? `$${deal.targetPrice.toFixed(2)}` : '—'}</p></div>
           </div>
+          {deal.website && <p className="text-center text-xs mt-4" style={{ color: '#8A8A93' }}><a href={deal.website} target="_blank" rel="noopener noreferrer" style={{ color: '#B8A14E' }}>{deal.website}</a></p>}
+          {deal.founder && <p className="text-center text-xs mt-1" style={{ color: '#8A8A93' }}>Founder: {deal.founder}</p>}
+          {deal.description && <p className="text-center text-xs mt-1" style={{ color: '#8A8A93' }}>{deal.description}</p>}
         </div>
 
-        {/* Client Investments Table */}
+        {/* ═══════ CLIENT POSITIONS ═══════ */}
         <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
-          <h2 className="text-lg font-semibold mb-4" style={{ color: '#F5F5F0' }}>Client Positions</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold" style={{ color: '#F5F5F0' }}>Client Positions</h2>
+            <button onClick={() => setShowAddClient(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}><Plus size={14} /> Add Client</button>
+          </div>
           {(deal.investments || []).length === 0 ? (
             <p style={{ color: '#8A8A93' }}>No client investments yet.</p>
           ) : (
@@ -132,38 +254,43 @@ export default function DealDetail() {
                     <th className="text-left py-3 px-4 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Client</th>
                     <th className="text-right py-3 px-4 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Investment</th>
                     <th className="text-right py-3 px-4 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Shares</th>
-                    <th className="text-right py-3 px-4 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Entry Price</th>
+                    <th className="text-right py-3 px-4 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Entry</th>
                     <th className="text-right py-3 px-4 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>P&L</th>
+                    <th className="text-right py-3 px-4" style={{ color: '#8A8A93' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {(deal.investments || []).map((inv: any, idx: number) => {
-                    const client = clientInvestors.find(c => c.id === inv.clientId);
+                    const client = allClients.find((c: any) => c.id === inv.clientId);
                     const shares = inv.amount / inv.entryPrice;
-                    const currentValue = shares * deal.currentPrice;
-                    const pnl = currentValue - inv.amount;
+                    const pnl = (shares * deal.currentPrice) - inv.amount;
                     const pnlPercent = inv.amount > 0 ? (pnl / inv.amount) * 100 : 0;
-                    const pnlPositive = pnl >= 0;
                     return (
                       <motion.tr key={inv.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.05 }} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}>
-                              {getClientName(client || { name: inv.clientName } as any).split(' ').map((n: string) => n[0]).join('')}
+                              {getClientName(client || { name: inv.clientName }).split(' ').map((n: string) => n[0]).join('')}
                             </div>
                             <div>
-                              <p className="text-sm font-medium" style={{ color: '#F5F5F0' }}>{getClientName(client || { name: inv.clientName } as any)}</p>
-                              {inv.isLead && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}>Lead</span>}
+                              <p className="text-sm font-medium" style={{ color: '#F5F5F0' }}>{getClientName(client || { name: inv.clientName })}</p>
+                              {inv.isLead && <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 inline-flex" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}><Crown size={10} /> Lead</span>}
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right text-sm" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{formatCurrency(inv.amount)}</td>
                         <td className="py-3 px-4 text-right text-sm" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{shares.toFixed(2)}</td>
                         <td className="py-3 px-4 text-right text-sm" style={{ color: '#8A8A93', fontFamily: 'JetBrains Mono' }}>${inv.entryPrice.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right"><span className="text-sm font-medium" style={{ color: pnl >= 0 ? '#10B981' : '#EF4444', fontFamily: 'JetBrains Mono' }}>{pnl >= 0 ? '+' : ''}{formatPercent(pnlPercent)}</span></td>
                         <td className="py-3 px-4 text-right">
-                          <span className="text-sm font-medium" style={{ color: pnlPositive ? '#10B981' : '#EF4444', fontFamily: 'JetBrains Mono' }}>
-                            {pnlPositive ? '+' : ''}{formatPercent(pnlPercent)}
-                          </span>
+                          {invToDelete === inv.id ? (
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => handleRemoveInvestment(inv.id)} className="p-1 rounded" style={{ background: 'rgba(239,68,68,0.2)' }}><CheckCircle2 size={14} style={{ color: '#EF4444' }} /></button>
+                              <button onClick={() => setInvToDelete(null)} className="p-1 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}><X size={14} style={{ color: '#8A8A93' }} /></button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setInvToDelete(inv.id)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity" style={{ color: '#EF4444' }}><Trash2 size={14} /></button>
+                          )}
                         </td>
                       </motion.tr>
                     );
@@ -174,6 +301,132 @@ export default function DealDetail() {
           )}
         </div>
       </div>
+
+      {/* ════════════════════════════════════════════════
+          EDIT DEAL MODAL
+          ════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showEdit && (
+          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={() => setShowEdit(false)} />
+            <motion.div className="relative w-full max-w-[640px] max-h-[90vh] overflow-y-auto rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(24px) saturate(140%)', border: '1px solid rgba(255,255,255,0.08)' }} initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}>
+              <button onClick={() => setShowEdit(false)} className="absolute top-4 right-4 p-2" style={{ color: '#8A8A93' }}><X size={18} /></button>
+              <h2 className="text-2xl font-bold mb-1" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>Edit Deal</h2>
+              <p className="text-sm mb-6" style={{ color: '#8A8A93' }}>{deal.companyName}</p>
+
+              <div className="flex flex-col gap-4">
+                {/* Company Info */}
+                <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h3 className="text-xs uppercase tracking-wider mb-3 font-semibold" style={{ color: '#B8A14E' }}>Company Information</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Company Name *</label><input type="text" value={editForm.companyName || ''} onChange={e => setEditForm({ ...editForm, companyName: e.target.value })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Ticker *</label><input type="text" value={editForm.ticker || ''} onChange={e => setEditForm({ ...editForm, ticker: e.target.value.toUpperCase() })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Exchange</label><select value={editForm.exchange || ''} onChange={e => setEditForm({ ...editForm, exchange: e.target.value })} style={inpBase} {...inpFocus}><option>NASDAQ</option><option>NYSE</option><option>AMEX</option><option>OTC</option><option>OTHER</option></select></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Sector</label><select value={editForm.sector || ''} onChange={e => setEditForm({ ...editForm, sector: e.target.value })} style={inpBase} {...inpFocus}><option>Technology</option><option>Healthcare</option><option>Finance</option><option>Energy</option><option>Consumer</option><option>Industrial</option><option>Materials</option><option>Utilities</option><option>Real Estate</option><option>Telecom</option></select></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Status</label><select value={editForm.status || ''} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })} style={inpBase} {...inpFocus}><option value="active">Active</option><option value="pending">Pending</option><option value="closed">Closed</option><option value="draft">Draft</option></select></div>
+                    <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Description</label><textarea value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={2} style={inpBase} {...inpFocus} /></div>
+                  </div>
+                </div>
+
+                {/* Financial */}
+                <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h3 className="text-xs uppercase tracking-wider mb-3 font-semibold" style={{ color: '#B8A14E' }}>Financial Details</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Total Volume ($)</label><input type="number" value={editForm.totalPackageAmount || ''} onChange={e => setEditForm({ ...editForm, totalPackageAmount: parseFloat(e.target.value) })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Share Price ($)</label><input type="number" value={editForm.entryPrice || ''} onChange={e => setEditForm({ ...editForm, entryPrice: parseFloat(e.target.value) })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Market Cap</label><input type="number" value={editForm.marketCap || ''} onChange={e => setEditForm({ ...editForm, marketCap: parseFloat(e.target.value) || null })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Management Fee (%)</label><input type="number" step="0.01" value={editForm.managementFeePercent || ''} onChange={e => setEditForm({ ...editForm, managementFeePercent: parseFloat(e.target.value) })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Target Price ($)</label><input type="number" value={editForm.targetPrice || ''} onChange={e => setEditForm({ ...editForm, targetPrice: parseFloat(e.target.value) || null })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Time Horizon</label><input type="date" value={editForm.timeHorizon ? editForm.timeHorizon.split('T')[0] : ''} onChange={e => setEditForm({ ...editForm, timeHorizon: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
+                  </div>
+                </div>
+
+                {/* Extra */}
+                <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h3 className="text-xs uppercase tracking-wider mb-3 font-semibold" style={{ color: '#B8A14E' }}>Additional</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Website</label><input type="url" value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
+                    <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Founder(s)</label><input type="text" value={editForm.founder || ''} onChange={e => setEditForm({ ...editForm, founder: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setShowEdit(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
+                  <button onClick={handleSaveEdit} disabled={saving || !editForm.companyName || !editForm.ticker} className="flex-[2] py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F', opacity: saving ? 0.5 : 1 }}>{saving && <Loader2 size={14} className="animate-spin" />}{saving ? 'Saving...' : 'Save Changes'}</button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════
+          DELETE DEAL MODAL
+          ════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showDeleteDeal && (
+          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setShowDeleteDeal(false)} />
+            <motion.div className="relative w-full max-w-md p-6 rounded-2xl" style={{ background: '#14141C', border: '1px solid rgba(255,255,255,0.08)' }} initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></div>
+                <div><h3 className="text-lg font-semibold" style={{ color: '#F5F5F0' }}>Delete Deal</h3><p className="text-sm" style={{ color: '#8A8A93' }}>This action cannot be undone.</p></div>
+              </div>
+              <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                <p className="text-sm mb-2" style={{ color: '#F5F5F0' }}>Type the deal name to confirm:</p>
+                <p className="text-sm font-semibold" style={{ color: '#B8A14E' }}>{deal.companyName}</p>
+              </div>
+              <input type="text" value={confirmDealName} onChange={e => setConfirmDealName(e.target.value)} placeholder={`Type "${deal.companyName}"`} className="w-full px-4 py-3 rounded-xl text-sm mb-4 outline-none" style={{ background: '#0A0A0F', border: `1px solid ${confirmDealName === deal.companyName ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.08)'}`, color: '#F5F5F0' }} autoFocus />
+              <div className="flex gap-3">
+                <button onClick={() => setShowDeleteDeal(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
+                <button onClick={handleDeleteDeal} disabled={confirmDealName !== deal.companyName || deletingDeal} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ background: confirmDealName === deal.companyName && !deletingDeal ? '#EF4444' : 'rgba(239,68,68,0.2)', color: '#F5F5F0', opacity: confirmDealName === deal.companyName && !deletingDeal ? 1 : 0.4 }}>{deletingDeal ? 'Deleting...' : 'Delete Deal'}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════
+          ADD CLIENT MODAL
+          ════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showAddClient && (
+          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddClient(false)} />
+            <motion.div className="relative w-full max-w-md p-6 rounded-2xl" style={{ background: '#14141C', border: '1px solid rgba(255,255,255,0.08)' }} initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}>
+              <button onClick={() => setShowAddClient(false)} className="absolute top-4 right-4 p-2" style={{ color: '#8A8A93' }}><X size={18} /></button>
+              <h3 className="text-xl font-bold mb-1" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>Add Client</h3>
+              <p className="text-sm mb-6" style={{ color: '#8A8A93' }}>{deal.companyName}</p>
+
+              {availableClients.length === 0 ? (
+                <p style={{ color: '#8A8A93' }}>No available clients. Create a client first.</p>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Client *</label>
+                    <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} style={inpBase} {...inpFocus}>
+                      <option value="">Select client...</option>
+                      {availableClients.map(c => <option key={c.id} value={c.id}>{getClientName(c)} ({c.email})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Investment Amount ($) *</label>
+                    <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} placeholder="e.g. 50000" style={inpBase} {...inpFocus} />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => setAddIsLead(!addIsLead)} className="w-5 h-5 rounded flex items-center justify-center transition-colors" style={{ border: '1px solid rgba(255,255,255,0.2)', background: addIsLead ? '#B8A14E' : 'transparent' }}>{addIsLead && <CheckCircle2 size={14} style={{ color: '#0A0A0F' }} />}</button>
+                    <span className="text-sm" style={{ color: '#F5F5F0' }}>Lead Investor</span>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setShowAddClient(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
+                    <button onClick={handleAddClient} disabled={!selectedClientId || !addAmount || adding} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F', opacity: selectedClientId && addAmount && !adding ? 1 : 0.5 }}>{adding ? 'Adding...' : 'Add Client'}</button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }

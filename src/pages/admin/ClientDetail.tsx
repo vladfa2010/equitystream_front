@@ -192,10 +192,48 @@ export default function ClientDetail() {
   }, [client]);
 
   const handleSaveClient = useCallback(
-    (updated: ClientResponse) => {
-      setClient(updated);
+    async (updated: ClientResponse) => {
+      try {
+        await clientsApi.update(updated.id, {
+          fullName: updated.fullName,
+          nickname: updated.nickname,
+          dateOfBirth: updated.dateOfBirth || undefined,
+          role: updated.role,
+          email: updated.email,
+          phone: updated.phone || undefined,
+          telegram: updated.telegram || undefined,
+          notes: updated.notes || undefined,
+        });
+        setClient(updated);
+        // Refresh client data from storage
+        const refreshed = await clientsApi.getById(updated.id);
+        if (refreshed) setClient(refreshed);
+      } catch (err) {
+        console.error('Failed to update client:', err);
+      }
     },
-    [setClient]
+    []
+  );
+
+  const handleDeleteClient = useCallback(
+    async (clientId: string) => {
+      try {
+        // Remove client's investments from all deals first
+        const allDeals = await dealsApi.getAll();
+        for (const deal of (allDeals || [])) {
+          const clientInvs = (deal.investments || []).filter((i: any) => i.clientId === clientId);
+          for (const inv of clientInvs) {
+            await dealsApi.removeInvestment(deal.id, inv.id);
+          }
+        }
+        // Then delete the client
+        await clientsApi.delete(clientId);
+        navigate('/admin/clients');
+      } catch (err) {
+        console.error('Failed to delete client:', err);
+      }
+    },
+    [navigate]
   );
 
   const formatDate = (dateStr: string) => {
@@ -741,6 +779,7 @@ export default function ClientDetail() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSaveClient}
+        onDelete={handleDeleteClient}
         client={client || null}
       />
     </Layout>
