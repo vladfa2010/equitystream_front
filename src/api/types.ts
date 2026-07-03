@@ -97,11 +97,19 @@ export interface PriceHistoryItem {
 // ===== CLIENTS =====
 export interface ClientResponse {
   id: string;
-  name: string;
+  fullName: string;
+  name: string;              // backward compatibility
+  nickname: string;
+  dateOfBirth: string | null;
+  role: 'admin' | 'client';
   email: string;
   phone: string | null;
+  telegram: string | null;
   notes: string | null;
-  status: 'active' | 'inactive';
+  contractUrl: string | null;
+  avatarUrl: string | null;
+  idDocumentUrl: string | null;
+  status: 'active' | 'pending' | 'inactive';
   totalInvested: number;
   totalPnl: number;
   createdAt: string;
@@ -109,10 +117,18 @@ export interface ClientResponse {
 }
 
 export interface CreateClientRequest {
-  name: string;
+  fullName: string;
+  dateOfBirth?: string;
+  nickname: string;
+  password: string;
+  role: 'admin' | 'client';
   email: string;
   phone?: string;
+  telegram?: string;
   notes?: string;
+  contractFile?: string;
+  avatarFile?: string;
+  idDocumentFile?: string;
 }
 
 // ===== MATERIALS =====

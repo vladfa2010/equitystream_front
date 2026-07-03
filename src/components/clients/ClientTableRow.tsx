@@ -1,16 +1,28 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import type { Client } from '@/data/mockData';
+import type { ClientResponse } from '@/api';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 
 interface ClientTableRowProps {
-  client: Client;
+  client: ClientResponse;
   index: number;
+}
+
+function getName(c: ClientResponse): string {
+  return c.fullName || c.name || 'Unknown';
+}
+
+function getPnlPercent(c: ClientResponse): number {
+  return c.totalInvested > 0 ? (c.totalPnl / c.totalInvested) * 100 : 0;
+}
+
+function getAvatar(c: ClientResponse): string | null {
+  return c.avatarUrl || null;
 }
 
 export default function ClientTableRow({ client, index }: ClientTableRowProps) {
   const navigate = useNavigate();
-  const isProfit = client.pnlPercent >= 0;
+  const isProfit = getPnlPercent(client) >= 0;
 
   // Compute relative "last active" from joinDate as a fallback
   const getRelativeTime = () => {
@@ -43,10 +55,10 @@ export default function ClientTableRow({ client, index }: ClientTableRowProps) {
       {/* Client */}
       <td className="py-3.5 px-4">
         <div className="flex items-center gap-3">
-          {client.avatar ? (
+          {getAvatar(client) ? (
             <img
-              src={client.avatar}
-              alt={client.name}
+              src={getAvatar(client)!}
+              alt={getName(client)}
               className="w-8 h-8 rounded-full object-cover"
               style={{ border: '1px solid rgba(255,255,255,0.06)' }}
             />
@@ -65,7 +77,7 @@ export default function ClientTableRow({ client, index }: ClientTableRowProps) {
                   color: 'var(--accent-gold)',
                 }}
               >
-                {client.name
+                {getName(client)
                   .split(' ')
                   .map((n) => n[0])
                   .join('')}
@@ -74,7 +86,7 @@ export default function ClientTableRow({ client, index }: ClientTableRowProps) {
           )}
           <div>
             <p className="text-[14px] font-medium" style={{ color: '#F5F5F0' }}>
-              {client.name}
+              {getName(client)}
             </p>
             <p className="text-caption" style={{ color: '#55555E' }}>
               {client.email}
@@ -105,7 +117,7 @@ export default function ClientTableRow({ client, index }: ClientTableRowProps) {
       {/* Deals */}
       <td className="py-3.5 px-4">
         <span className="text-mono-s tabular-nums" style={{ color: '#F5F5F0' }}>
-          {client.dealCount} deal{client.dealCount !== 1 ? 's' : ''}
+          {0} deals
         </span>
       </td>
 
@@ -127,7 +139,7 @@ export default function ClientTableRow({ client, index }: ClientTableRowProps) {
             borderRadius: 6,
           }}
         >
-          {formatPercent(client.pnlPercent)}
+          {formatPercent(getPnlPercent(client))}
         </span>
       </td>
 

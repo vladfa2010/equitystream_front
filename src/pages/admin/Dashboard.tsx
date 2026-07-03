@@ -24,23 +24,26 @@ import {
   Users,
   BarChart3,
 } from 'lucide-react';
-import {
-  deals,
-  clients,
-  activities,
-  totalAUM,
-  activeDealCount,
-  totalClients,
-  avgReturn,
-  getPortfolioHistory,
-  formatCurrency,
-  formatPercent,
-  timeAgo,
-} from '@/data/mockData';
-import type { Deal, Client, ActivityItem } from '@/data/mockData';
+import { formatCurrency, formatPercent, timeAgo } from '@/data/mockData';
+import { dealsApi, clientsApi, dashboardApi } from '@/api';
+import type { DealResponse, ClientResponse, ActivityItem } from '@/api';
 import Layout from '@/components/Layout';
 
 const Globe = lazy(() => import('@/components/Globe'));
+
+// ===== HELPERS =====
+function getClientName(c: ClientResponse): string {
+  return c.fullName || c.name || 'Unknown';
+}
+
+function getClientPnlPercent(c: ClientResponse): number {
+  return c.totalInvested > 0 ? (c.totalPnl / c.totalInvested) * 100 : 0;
+}
+
+function getDealAllocatedPercent(deal: DealResponse): number {
+  const invested = deal.investments.reduce((s, i) => s + i.amount, 0);
+  return deal.totalPackageAmount > 0 ? Math.round((invested / deal.totalPackageAmount) * 100) : 0;
+}
 
 // ===== ANIMATION VARIANTS =====
 const containerVariants = {
@@ -136,11 +139,14 @@ function StatCard({ label, value, prefix, suffix, color, delay, icon: Icon }: {
 }
 
 // ===== DEAL CARD COMPONENT =====
-function DealCard({ deal, index }: { deal: Deal; index: number }) {
+function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; index: number; allClients: ClientResponse[]; onDeleted?: () => void }) {
   const navigate = useNavigate();
-  const allocatedPercent = Math.round((deal.allocatedAmount / deal.totalAmount) * 100);
+  const allocatedPercent = getDealAllocatedPercent(deal);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmName, setConfirmName] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -154,15 +160,17 @@ function DealCard({ deal, index }: { deal: Deal; index: number }) {
     active: 'badge-active',
     pending: 'badge-pending',
     closed: 'badge-closed',
+    draft: 'badge-pending',
   };
 
-  const statusLabels = { active: 'ACTIVE', pending: 'PENDING', closed: 'CLOSED' };
+  const statusLabels = { active: 'ACTIVE', pending: 'PENDING', closed: 'CLOSED', draft: 'DRAFT' };
 
-  const cardClients = deal.clientInvestments.slice(0, 5).map(ci =>
-    clients.find(c => c.id === ci.clientId)
-  ).filter(Boolean) as Client[];
+  const cardClients = deal.investments.slice(0, 5).map(ci =>
+    allClients.find(c => c.id === ci.clientId)
+  ).filter(Boolean) as ClientResponse[];
 
   return (
+    <>
     <motion.div
       variants={fadeUp}
       className="glass-panel p-5 glass-panel-hover cursor-pointer relative group"
@@ -205,7 +213,16 @@ function DealCard({ deal, index }: { deal: Deal; index: number }) {
                   key={action}
                   className="w-full text-left px-4 py-2 text-[13px] transition-colors hover:bg-white/5"
                   style={{ color: action === 'Delete' ? '#EF4444' : '#F5F5F0' }}
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    if (action === 'Delete') {
+                      setShowDeleteModal(true);
+                      setConfirmName('');
+                    } else if (action === 'View Details') {
+                      navigate(`/admin/deals/${deal.id}`);
+                    }
+                  }}
                 >
                   {action}
                 </button>
@@ -219,7 +236,7 @@ function DealCard({ deal, index }: { deal: Deal; index: number }) {
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-h4" style={{ color: '#F5F5F0' }}>{deal.companyName}</h4>
         <span className="text-mono-m tabular-nums" style={{ color: '#B8A14E' }}>
-          {formatCurrency(deal.totalAmount)}
+          {formatCurrency(deal.totalPackageAmount)}
         </span>
       </div>
 
@@ -228,7 +245,7 @@ function DealCard({ deal, index }: { deal: Deal; index: number }) {
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-caption" style={{ color: '#8A8A93' }}>{allocatedPercent}% allocated</span>
           <span className="text-caption tabular-nums" style={{ color: '#55555E' }}>
-            {deal.clientInvestments.length} clients
+            {deal.investments.length} clients
           </span>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -248,27 +265,112 @@ function DealCard({ deal, index }: { deal: Deal; index: number }) {
           {cardClients.map((client) => (
             <img
               key={client.id}
-              src={client.avatar}
-              alt={client.name}
+              src={client.avatarUrl || '/default-avatar.png'}
+              alt={getClientName(client)}
               className="w-7 h-7 rounded-full border-2"
               style={{ borderColor: '#111118' }}
-              title={client.name}
+              title={getClientName(client)}
             />
           ))}
         </div>
-        {deal.clientInvestments.length > 5 && (
+        {deal.investments.length > 5 && (
           <span className="ml-2 text-caption" style={{ color: '#55555E' }}>
-            +{deal.clientInvestments.length - 5}
+            +{deal.investments.length - 5}
           </span>
         )}
       </div>
     </motion.div>
+
+    {/* Delete Confirmation Modal */}
+    {showDeleteModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteModal(false); }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md p-6 rounded-2xl"
+          style={{ background: '#14141C', border: '1px solid rgba(255,255,255,0.08)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold" style={{ color: '#F5F5F0' }}>Delete Deal</h3>
+              <p className="text-sm" style={{ color: '#8A8A93' }}>This action cannot be undone.</p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
+            <p className="text-sm mb-3" style={{ color: '#F5F5F0' }}>
+              To confirm deletion, please type the deal name:
+            </p>
+            <p className="text-sm font-semibold" style={{ color: '#B8A14E' }}>{deal.companyName}</p>
+          </div>
+
+          <input
+            type="text"
+            value={confirmName}
+            onChange={(e) => setConfirmName(e.target.value)}
+            placeholder={`Type "${deal.companyName}" to confirm`}
+            className="w-full px-4 py-3 rounded-xl text-sm mb-4 outline-none"
+            style={{
+              background: '#0A0A0F',
+              border: `1px solid ${confirmName === deal.companyName ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.08)'}`,
+              color: '#F5F5F0',
+            }}
+            autoFocus
+          />
+
+          <div className="flex gap-3">
+            <button
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
+              style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}
+              onClick={() => { setShowDeleteModal(false); setConfirmName(''); }}
+            >
+              Cancel
+            </button>
+            <button
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+              disabled={confirmName !== deal.companyName || deleting}
+              style={{
+                background: confirmName === deal.companyName && !deleting ? '#EF4444' : 'rgba(239,68,68,0.2)',
+                color: '#F5F5F0',
+                opacity: confirmName === deal.companyName && !deleting ? 1 : 0.4,
+                cursor: confirmName === deal.companyName && !deleting ? 'pointer' : 'not-allowed',
+              }}
+              onClick={async () => {
+                if (confirmName !== deal.companyName) return;
+                setDeleting(true);
+                try {
+                  await dealsApi.delete(deal.id);
+                  setShowDeleteModal(false);
+                  onDeleted?.();
+                } catch (err) {
+                  alert('Failed to delete deal: ' + String(err));
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? 'Deleting...' : 'Delete Deal'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+    </>
   );
 }
 
 // ===== CLIENT SNAPSHOT ROW =====
-function ClientSnapshotRow({ client, index }: { client: Client; index: number }) {
-  const isProfit = client.pnlPercent >= 0;
+function ClientSnapshotRow({ client, index }: { client: ClientResponse; index: number }) {
+  const pnlPercent = getClientPnlPercent(client);
+  const isProfit = pnlPercent >= 0;
   return (
     <motion.div
       variants={fadeUp}
@@ -276,9 +378,9 @@ function ClientSnapshotRow({ client, index }: { client: Client; index: number })
       className="flex items-center justify-between py-3 px-1 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] rounded-lg transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-3">
-        <img src={client.avatar} alt={client.name} className="w-9 h-9 rounded-full" />
+        <img src={client.avatarUrl || '/default-avatar.png'} alt={getClientName(client)} className="w-9 h-9 rounded-full" />
         <div>
-          <p className="text-[14px] font-semibold" style={{ color: '#F5F5F0' }}>{client.name}</p>
+          <p className="text-[14px] font-semibold" style={{ color: '#F5F5F0' }}>{getClientName(client)}</p>
           <p className="text-caption tabular-nums" style={{ color: '#55555E' }}>
             {formatCurrency(client.totalInvested)} invested
           </p>
@@ -286,7 +388,7 @@ function ClientSnapshotRow({ client, index }: { client: Client; index: number })
       </div>
       <div className="text-right">
         <span className="text-mono-s tabular-nums font-medium" style={{ color: isProfit ? '#10B981' : '#EF4444' }}>
-          {formatPercent(client.pnlPercent)}
+          {formatPercent(pnlPercent)}
         </span>
       </div>
     </motion.div>
@@ -333,11 +435,51 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M');
-  const [dealFilter, setDealFilter] = useState<'all' | 'active' | 'pending' | 'closed'>('all');
+  const [dealFilter, setDealFilter] = useState<'all' | 'active' | 'pending' | 'closed' | 'draft'>('all');
   const [dealSearch, setDealSearch] = useState('');
 
-  const chartDays = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365, 'ALL': 365 };
-  const portfolioData = useMemo(() => getPortfolioHistory(chartDays[chartRange]), [chartRange]);
+  const [deals, setDeals] = useState<DealResponse[]>([]);
+  const [clients, setClients] = useState<ClientResponse[]>([]);
+  const [dashboardData, setDashboardData] = useState({
+    totalAum: 0,
+    activeDealCount: 0,
+    totalClients: 0,
+    avgReturn: 0,
+  });
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      dealsApi.getAll(),
+      clientsApi.getAll(),
+      dashboardApi.getAdmin(),
+    ]).then(([dealsData, clientsData, dashData]) => {
+      setDeals(dealsData || []);
+      setClients(clientsData || []);
+      setDashboardData({
+        totalAum: dashData?.totalAum || 0,
+        activeDealCount: dashData?.activeDealCount || 0,
+        totalClients: dashData?.totalClients || 0,
+        avgReturn: dashData?.avgReturn || 0,
+      });
+      setActivities(dashData?.recentActivity || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const portfolioData = useMemo(() => {
+    // Aggregate price history from all active deals
+    const activeDeals = deals.filter(d => d.status === 'active');
+    if (activeDeals.length === 0) return [];
+
+    // Use the first active deal's price history as proxy
+    const mainDeal = activeDeals[0];
+    return (mainDeal.priceHistory || []).map(p => ({
+      date: new Date(p.createdAt).toISOString().split('T')[0],
+      price: p.price * (mainDeal.totalPackageAmount / mainDeal.entryPrice),
+    })).slice(-30);
+  }, [deals, chartRange]);
 
   const filteredDeals = deals.filter(d => {
     const matchesFilter = dealFilter === 'all' || d.status === dealFilter;
@@ -345,10 +487,20 @@ export default function AdminDashboard() {
     return matchesFilter && matchesSearch;
   });
 
-  const topClients = [...clients].sort((a, b) => b.pnlPercent - a.pnlPercent).slice(0, 5);
+  const topClients = [...clients].sort((a, b) => getClientPnlPercent(b) - getClientPnlPercent(a)).slice(0, 5);
 
   const totalPnl = clients.reduce((sum, c) => sum + c.totalPnl, 0);
   const isTotalProfit = totalPnl >= 0;
+
+  if (loading) {
+    return (
+      <Layout role="admin">
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="w-12 h-12 rounded-full animate-pulse" style={{ background: 'rgba(184,161,78,0.2)' }} />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout role="admin">
@@ -370,7 +522,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 gap-4">
               <StatCard
                 label="Total AUM"
-                value={totalAUM}
+                value={dashboardData.totalAum}
                 prefix="$"
                 icon={DollarSign}
                 color="#F5F5F0"
@@ -378,21 +530,21 @@ export default function AdminDashboard() {
               />
               <StatCard
                 label="Active Deals"
-                value={activeDealCount}
+                value={dashboardData.activeDealCount}
                 icon={BarChart3}
                 color="#B8A14E"
                 delay={0.15}
               />
               <StatCard
                 label="Total Clients"
-                value={totalClients}
+                value={dashboardData.totalClients}
                 icon={Users}
                 color="#F5F5F0"
                 delay={0.3}
               />
               <StatCard
                 label="Avg. Return"
-                value={avgReturn}
+                value={dashboardData.avgReturn}
                 prefix="+"
                 suffix="%"
                 icon={TrendingUp}
@@ -427,11 +579,17 @@ export default function AdminDashboard() {
               <Briefcase size={16} />
               + New Deal
             </button>
-            <button className="btn-secondary flex items-center gap-2">
+            <button
+              className="btn-secondary flex items-center gap-2"
+              onClick={() => navigate('/admin/clients/new')}
+            >
               <UserPlus size={16} />
               + Add Client
             </button>
-            <button className="btn-secondary flex items-center gap-2">
+            <button
+              className="btn-secondary flex items-center gap-2"
+              onClick={() => navigate('/admin/materials')}
+            >
               <Upload size={16} />
               Upload Materials
             </button>
@@ -475,13 +633,24 @@ export default function AdminDashboard() {
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
                   <option value="closed">Closed</option>
+                  <option value="draft">Draft</option>
                 </select>
               </div>
             </div>
 
             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
-              {filteredDeals.slice(0, 5).map((deal, i) => (
-                <DealCard key={deal.id} deal={deal} index={i} />
+              {filteredDeals.map((deal, i) => (
+                <DealCard key={deal.id} deal={deal} index={i} allClients={clients} onDeleted={() => {
+  dealsApi.getAll().then(data => setDeals(data));
+  dashboardApi.getAdmin().then(d => {
+    setDashboardData({
+      totalAum: d?.totalAum || 0,
+      activeDealCount: d?.activeDealCount || 0,
+      totalClients: d?.totalClients || 0,
+      avgReturn: d?.avgReturn || 0,
+    });
+  });
+}} />
               ))}
               {filteredDeals.length === 0 && (
                 <div className="text-center py-12">
@@ -558,7 +727,7 @@ export default function AdminDashboard() {
             }}>
               {isTotalProfit ? <ArrowUpRight size={14} color="#10B981" /> : <ArrowDownRight size={14} color="#EF4444" />}
               <span className="text-[13px] font-semibold tabular-nums" style={{ color: isTotalProfit ? '#10B981' : '#EF4444' }}>
-                {((totalPnl / totalAUM) * 100).toFixed(1)}%
+                {dashboardData.totalAum > 0 ? ((totalPnl / dashboardData.totalAum) * 100).toFixed(1) : '0.0'}%
               </span>
             </div>
           </div>

@@ -1,17 +1,29 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import type { Client } from '@/data/mockData';
+import type { ClientResponse } from '@/api';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 
 interface ClientCardProps {
-  client: Client;
+  client: ClientResponse;
   index: number;
+}
+
+function getName(c: ClientResponse): string {
+  return c.fullName || c.name || 'Unknown';
+}
+
+function getPnlPercent(c: ClientResponse): number {
+  return c.totalInvested > 0 ? (c.totalPnl / c.totalInvested) * 100 : 0;
+}
+
+function getAvatar(c: ClientResponse): string | null {
+  return c.avatarUrl || null;
 }
 
 export default function ClientCard({ client, index }: ClientCardProps) {
   const navigate = useNavigate();
-  const isProfit = client.pnlPercent >= 0;
+  const isProfit = getPnlPercent(client) >= 0;
 
   return (
     <motion.div
@@ -49,10 +61,10 @@ export default function ClientCard({ client, index }: ClientCardProps) {
       {/* Top row: avatar + name + status */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          {client.avatar ? (
+          {getAvatar(client) ? (
             <img
-              src={client.avatar}
-              alt={client.name}
+              src={getAvatar(client)!}
+              alt={getName(client)}
               className="w-12 h-12 rounded-full object-cover"
               style={{ border: '2px solid rgba(255,255,255,0.06)' }}
             />
@@ -71,7 +83,7 @@ export default function ClientCard({ client, index }: ClientCardProps) {
                   color: 'var(--accent-gold)',
                 }}
               >
-                {client.name
+                {getName(client)
                   .split(' ')
                   .map((n) => n[0])
                   .join('')}
@@ -80,7 +92,7 @@ export default function ClientCard({ client, index }: ClientCardProps) {
           )}
           <div>
             <h4 className="text-h4" style={{ color: '#F5F5F0' }}>
-              {client.name}
+              {getName(client)}
             </h4>
             <p className="text-caption" style={{ color: '#55555E' }}>
               {client.email}
@@ -123,7 +135,7 @@ export default function ClientCard({ client, index }: ClientCardProps) {
             className="text-mono-s tabular-nums"
             style={{ color: isProfit ? '#10B981' : '#EF4444' }}
           >
-            {formatPercent(client.pnlPercent)}
+            {formatPercent(getPnlPercent(client))}
           </p>
         </div>
         <div>
@@ -131,7 +143,7 @@ export default function ClientCard({ client, index }: ClientCardProps) {
             Deals
           </p>
           <p className="text-mono-s tabular-nums" style={{ color: '#F5F5F0' }}>
-            {client.dealCount}
+            {0}
           </p>
         </div>
         <div>
@@ -143,7 +155,7 @@ export default function ClientCard({ client, index }: ClientCardProps) {
             style={{ color: isProfit ? '#10B981' : '#EF4444' }}
           >
             {isProfit ? '+' : ''}
-            {formatCurrency(client.totalPnl)}
+            {formatCurrency(client.totalPnl || 0)}
           </p>
         </div>
       </div>

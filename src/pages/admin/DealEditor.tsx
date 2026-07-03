@@ -11,8 +11,8 @@ import StepIndicator from '../../components/deals/StepIndicator';
 import CurrencyInput from '../../components/deals/CurrencyInput';
 import { clients, formatCurrency as fmtCur } from '../../data/mockData';
 import type { Client } from '../../data/mockData';
-import { dealsApi } from '../../api/services/deals';
-import type { CreateDealRequest } from '../../api/types';
+import { dealsApi } from '../../api';
+import type { CreateDealRequest } from '../../api';
 
 // =============================================================================
 // TYPES

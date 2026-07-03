@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -20,21 +20,21 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import Layout from '@/components/Layout';
-import {
-  deals,
-  activities,
-  getClientForId,
-  formatCurrency,
-  formatPercent,
-} from '@/data/mockData';
-import type { Client, Deal, ClientInvestment, PricePoint } from '@/data/mockData';
+import { formatCurrency, formatPercent } from '@/data/mockData';
+import type { PricePoint } from '@/data/mockData';
+import { clientsApi, dealsApi } from '@/api';
+import type { ClientResponse } from '@/api';
 import EditClientModal from '@/components/clients/EditClientModal';
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
+function getClientName(c: ClientResponse): string {
+  return c.fullName || c.name || 'Unknown';
+}
+
 interface ClientPosition {
-  deal: Deal;
-  investment: ClientInvestment;
+  deal: any;
+  investment: any;
   shares: number;
   currentValue: number;
   pnl: number;
@@ -50,16 +50,36 @@ export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [client, setClient] = useState<Client | undefined>(getClientForId(id || ''));
+  const [client, setClient] = useState<ClientResponse | null>(null);
+  const [clientDeals, setClientDeals] = useState<any[]>([]);
+  const [, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
 
+  // Load client from localStorage API
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    Promise.all([
+      clientsApi.getById(id),
+      dealsApi.getAll(),
+    ]).then(([clientData, allDeals]) => {
+      setClient(clientData);
+      // Filter deals where this client has investments
+      const dealsWithClient = (allDeals || []).filter((d: any) =>
+        d.investments?.some((i: any) => i.clientId === id)
+      );
+      setClientDeals(dealsWithClient);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [id]);
+
   // Compute client's positions across all deals
   const positions: ClientPosition[] = useMemo(() => {
-    if (!client) return [];
+    if (!client || !clientDeals.length) return [];
     const result: ClientPosition[] = [];
-    for (const deal of deals) {
-      const investment = deal.clientInvestments.find((ci) => ci.clientId === client.id);
+    for (const deal of clientDeals) {
+      const investment = deal.investments?.find((ci: any) => ci.clientId === client.id);
       if (investment) {
         const shares = investment.amount / investment.entryPrice;
         const currentValue = shares * deal.currentPrice;
@@ -69,7 +89,7 @@ export default function ClientDetail() {
       }
     }
     return result;
-  }, [client]);
+  }, [client, clientDeals]);
 
   // Compute portfolio history for this client
   const portfolioHistory: ChartDataPoint[] = useMemo(() => {
@@ -150,23 +170,17 @@ export default function ClientDetail() {
     };
   }, [client, positions]);
 
-  // Client-specific activities (simulated)
-  const clientActivities = useMemo(() => {
+  // Client-specific activities (placeholder)
+  interface ActivityItem {
+    id: string;
+    type: string;
+    title: string;
+    detail: string;
+    timestamp: string;
+  }
+  const clientActivities = useMemo<ActivityItem[]>(() => {
     if (!client) return [];
-    // Filter activities that mention this client by name, or generate synthetic ones
-    const filtered = activities.filter(
-      (a) =>
-        a.detail.toLowerCase().includes(client.name.split(' ')[0].toLowerCase()) ||
-        a.title.toLowerCase().includes('client')
-    );
-    // If no matches, take first 3 activities as generic
-    if (filtered.length === 0) {
-      return activities.slice(0, 3).map((a) => ({
-        ...a,
-        detail: `${a.detail} (${client.name.split(' ')[0]})`,
-      }));
-    }
-    return filtered;
+    return [] as ActivityItem[];
   }, [client]);
 
   const handleToggleStatus = useCallback(() => {
@@ -178,7 +192,7 @@ export default function ClientDetail() {
   }, [client]);
 
   const handleSaveClient = useCallback(
-    (updated: Client) => {
+    (updated: ClientResponse) => {
       setClient(updated);
     },
     [setClient]
@@ -264,10 +278,10 @@ export default function ClientDetail() {
               ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number],
             }}
           >
-            {client.avatar ? (
+            {client.avatarUrl ? (
               <img
-                src={client.avatar}
-                alt={client.name}
+                src={client.avatarUrl}
+                alt={getClientName(client)}
                 className="w-16 h-16 rounded-full object-cover"
                 style={{ border: '3px solid rgba(184,161,78,0.2)' }}
               />
@@ -286,7 +300,7 @@ export default function ClientDetail() {
                     color: 'var(--accent-gold)',
                   }}
                 >
-                  {getInitials(client.name)}
+                  {getInitials(getClientName(client))}
                 </span>
               </div>
             )}
@@ -301,7 +315,7 @@ export default function ClientDetail() {
               className="text-h1 mb-1"
               style={{ color: '#F5F5F0' }}
             >
-              {client.name}
+              {getClientName(client)}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -319,7 +333,7 @@ export default function ClientDetail() {
               className="text-caption"
               style={{ color: '#55555E' }}
             >
-              Joined {formatDate(client.joinDate)}
+              Joined {formatDate(client.createdAt.split('T')[0])}
             </motion.p>
           </div>
 

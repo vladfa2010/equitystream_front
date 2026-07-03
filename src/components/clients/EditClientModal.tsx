@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import type { Client } from '@/data/mockData';
+import type { ClientResponse } from '@/api';
 
 interface EditClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (client: Client) => void;
-  client: Client | null;
+  onSave: (client: ClientResponse) => void;
+  client: ClientResponse | null;
 }
 
 export default function EditClientModal({ isOpen, onClose, onSave, client }: EditClientModalProps) {
@@ -20,7 +20,7 @@ export default function EditClientModal({ isOpen, onClose, onSave, client }: Edi
 
   useEffect(() => {
     if (client) {
-      setName(client.name);
+      setName(client.fullName || client.name || '');
       setEmail(client.email);
       setPhone('');
       setNotes('');
@@ -50,7 +50,7 @@ export default function EditClientModal({ isOpen, onClose, onSave, client }: Edi
 
   const handleClose = () => {
     if (!isSubmitting && client) {
-      setName(client.name);
+      setName(client.fullName || client.name || '');
       setEmail(client.email);
       setPhone('');
       setNotes('');

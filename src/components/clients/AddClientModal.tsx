@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import type { Client } from '@/data/mockData';
+import type { ClientResponse } from '@/api';
 
 interface AddClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (client: Client) => void;
+  onAdd: (client: ClientResponse) => void;
 }
 
 export default function AddClientModal({ isOpen, onClose, onAdd }: AddClientModalProps) {
@@ -36,17 +36,25 @@ export default function AddClientModal({ isOpen, onClose, onAdd }: AddClientModa
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 600));
 
-    const newClient: Client = {
+    const newClient: ClientResponse = {
       id: `c${Date.now()}`,
+      fullName: name.trim(),
       name: name.trim(),
+      nickname: email.trim().split('@')[0],
+      dateOfBirth: null,
+      role: 'client',
       email: email.trim(),
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`,
+      phone: phone.trim() || null,
+      telegram: null,
+      notes: notes.trim() || null,
+      contractUrl: null,
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`,
+      idDocumentUrl: null,
+      status: 'active',
       totalInvested: 0,
       totalPnl: 0,
-      pnlPercent: 0,
-      dealCount: 0,
-      status: 'active',
-      joinDate: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     onAdd(newClient);

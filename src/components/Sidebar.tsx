@@ -27,7 +27,7 @@ const sidebarSections = [
     title: 'CLIENTS',
     items: [
       { label: 'All Clients', path: '/admin/clients', icon: Users },
-      { label: 'Add Client', path: '/admin/clients/add', icon: UserPlus },
+      { label: 'Add Client', path: '/admin/clients/new', icon: UserPlus },
     ],
   },
   {

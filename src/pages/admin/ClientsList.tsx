@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -11,8 +11,9 @@ import {
   Plus,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { clients as initialClients, formatCurrency, formatPercent } from '@/data/mockData';
-import type { Client } from '@/data/mockData';
+import { formatCurrency, formatPercent } from '@/data/mockData';
+import { clientsApi } from '@/api';
+import type { ClientResponse } from '@/api';
 import ClientCard from '@/components/clients/ClientCard';
 import ClientTableRow from '@/components/clients/ClientTableRow';
 import AddClientModal from '@/components/clients/AddClientModal';
@@ -30,8 +31,27 @@ type SortOption =
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
+// Helper: calculate P&L percentage
+function getPnlPercent(c: ClientResponse): number {
+  return c.totalInvested > 0 ? (c.totalPnl / c.totalInvested) * 100 : 0;
+}
+
+// Helper: get display name
+function getName(c: ClientResponse): string {
+  return c.fullName || c.name || 'Unknown';
+}
+
 export default function ClientsList() {
-  const [clientList, setClientList] = useState<Client[]>(initialClients);
+  const [clientList, setClientList] = useState<ClientResponse[]>([]);
+  const [, setLoading] = useState(true);
+
+  // Load clients from localStorage API on mount
+  useEffect(() => {
+    clientsApi.getAll().then(data => {
+      setClientList(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
@@ -46,12 +66,14 @@ export default function ClientsList() {
     const avgInvestment = totalClients > 0 ? totalInvested / totalClients : 0;
     const avgPnl =
       totalClients > 0
-        ? clientList.reduce((sum, c) => sum + c.pnlPercent, 0) / totalClients
+        ? clientList.reduce((sum, c) => sum + getPnlPercent(c), 0) / totalClients
         : 0;
-    const topPerformer = clientList.reduce(
-      (best, c) => (c.pnlPercent > best.pnlPercent ? c : best),
-      clientList[0]
-    );
+    const topPerformer = clientList.length > 0
+      ? clientList.reduce(
+          (best, c) => (getPnlPercent(c) > getPnlPercent(best) ? c : best),
+          clientList[0]
+        )
+      : null;
     return { totalClients, activeClients, totalInvested, avgInvestment, avgPnl, topPerformer };
   }, [clientList]);
 
@@ -63,7 +85,7 @@ export default function ClientsList() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+        (c) => getName(c).toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
       );
     }
 
@@ -75,10 +97,10 @@ export default function ClientsList() {
     // Sort
     switch (sortBy) {
       case 'name-asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        result.sort((a, b) => getName(a).localeCompare(getName(b)));
         break;
       case 'name-desc':
-        result.sort((a, b) => b.name.localeCompare(a.name));
+        result.sort((a, b) => getName(b).localeCompare(getName(a)));
         break;
       case 'invested-desc':
         result.sort((a, b) => b.totalInvested - a.totalInvested);
@@ -87,21 +109,24 @@ export default function ClientsList() {
         result.sort((a, b) => a.totalInvested - b.totalInvested);
         break;
       case 'pnl-desc':
-        result.sort((a, b) => b.pnlPercent - a.pnlPercent);
+        result.sort((a, b) => getPnlPercent(b) - getPnlPercent(a));
         break;
       case 'pnl-asc':
-        result.sort((a, b) => a.pnlPercent - b.pnlPercent);
-        break;
-      case 'deals-desc':
-        result.sort((a, b) => b.dealCount - a.dealCount);
+        result.sort((a, b) => getPnlPercent(a) - getPnlPercent(b));
         break;
     }
 
     return result;
   }, [clientList, searchQuery, statusFilter, sortBy]);
 
-  const handleAddClient = (newClient: Client) => {
+  const handleAddClient = (newClient: ClientResponse) => {
     setClientList((prev) => [...prev, newClient]);
+  };
+
+  // Refresh list from localStorage API when modal closes
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    clientsApi.getAll().then(data => setClientList(data));
   };
 
   const statCards = [
@@ -128,8 +153,8 @@ export default function ClientsList() {
     },
     {
       label: 'Top Performer',
-      value: stats.topPerformer ? stats.topPerformer.name : '-',
-      sub: stats.topPerformer ? formatPercent(stats.topPerformer.pnlPercent) : '',
+      value: stats.topPerformer ? getName(stats.topPerformer) : '-',
+      sub: stats.topPerformer ? formatPercent(getPnlPercent(stats.topPerformer)) : '',
       icon: Crown,
       iconColor: '#8B5CF6',
       isName: true,
@@ -436,7 +461,7 @@ export default function ClientsList() {
       </div>
 
       {/* Add Client Modal */}
-      <AddClientModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAdd={handleAddClient} />
+      <AddClientModal isOpen={isModalOpen} onClose={handleModalClose} onAdd={handleAddClient} />
     </Layout>
   );
 }
