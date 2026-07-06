@@ -250,8 +250,8 @@ export default function ClientDealView() {
           className="grid grid-cols-3 gap-2 sm:gap-4 mb-8"
         >
           {[
-            { label: 'Share Price', value: `$${(deal.currentPrice || 0).toFixed(2)}`, color: '#F5F5F0' },
             { label: 'Entry Price', value: `$${(deal.entryPrice || 0).toFixed(2)}`, color: '#8A8A93' },
+            { label: 'Share Price', value: `$${(deal.currentPrice || 0).toFixed(2)}`, color: '#F5F5F0' },
             { label: 'Shares', value: `${(deal.shareQuantity || 0).toLocaleString()}`, color: '#B8A14E' },
           ].map((m, i) => (
             <motion.div
