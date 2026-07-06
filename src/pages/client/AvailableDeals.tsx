@@ -12,14 +12,11 @@ import { formatCurrency } from '@/data/mockData';
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
-const OPEN_STATUSES = ['Pipeline', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
+const OPEN_STATUSES = ['Reserve', 'Founding'];
 
 const statusColors: Record<string, { bg: string; text: string }> = {
-  Pipeline:    { bg: 'rgba(79,110,247,0.15)',  text: '#4F6EF7' },
-  Reserve:     { bg: 'rgba(139,92,246,0.15)',  text: '#8B5CF6' },
-  Founding:    { bg: 'rgba(245,158,11,0.15)',  text: '#F59E0B' },
-  'Deal done': { bg: 'rgba(16,185,129,0.15)',  text: '#10B981' },
-  'Wait IPO':  { bg: 'rgba(6,182,212,0.15)',   text: '#06B6D4' },
+  Reserve:  { bg: 'rgba(139,92,246,0.15)', text: '#8B5CF6' },
+  Founding: { bg: 'rgba(245,158,11,0.15)', text: '#F59E0B' },
 };
 
 export default function AvailableDeals() {
@@ -119,7 +116,7 @@ export default function AvailableDeals() {
             Available Deals
           </h1>
           <p className="text-body" style={{ color: '#8A8A93' }}>
-            Open for reservation — commit your allocation
+            Reserve & Founding deals — commit your allocation
           </p>
         </motion.div>
 
