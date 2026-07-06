@@ -56,16 +56,16 @@ export default function ClientDealView() {
     return deal.investments?.find((i: any) => i.clientId === client.id);
   }, [deal, client]);
 
-  // Chart data from price history
+  // Chart data from price history (sorted oldest first for chart)
   const chartData = useMemo(() => {
-    if (!deal) return [];
-    const ph = (deal.priceHistory || []);
-    return ph.map((p: PriceHistoryItem, i: number, arr: PriceHistoryItem[]) => ({
+    if (!deal || priceHistory.length === 0) return [];
+    const sorted = [...priceHistory].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return sorted.map((p: PriceHistoryItem, i: number, arr: PriceHistoryItem[]) => ({
       date: p.createdAt ? p.createdAt.split('T')[0] : '',
       price: p.price,
       change: i > 0 ? p.price - arr[i - 1].price : 0,
     }));
-  }, [deal]);
+  }, [deal, priceHistory]);
 
   // Position calculations
   const shares = myInvestment ? myInvestment.amount / myInvestment.entryPrice : 0;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -10,6 +10,10 @@ import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import { dealsApi, clientsApi, authApi } from '@/api';
 import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
+} from 'recharts';
 
 function getClientName(c: ClientResponse | any): string {
   return c?.fullName || c?.name || 'Unknown';
@@ -383,6 +387,14 @@ export default function DealDetail() {
           )}
         </div>
 
+        {/* ═══════ PRICE HISTORY CHART ═══════ */}
+        {priceHistory.length > 1 && (
+          <div className="p-6 rounded-2xl mt-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: '#F5F5F0' }}>Price Trend</h2>
+            <PriceHistoryChart priceHistory={priceHistory} entryPrice={deal?.entryPrice || 0} />
+          </div>
+        )}
+
         {/* ═══════ PRICE HISTORY TABLE ═══════ */}
         <div className="p-6 rounded-2xl mt-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
           <div className="flex items-center justify-between mb-4">
@@ -643,5 +655,91 @@ export default function DealDetail() {
         )}
       </AnimatePresence>
     </Layout>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   PRICE HISTORY CHART (shared component)
+   ═══════════════════════════════════════════ */
+function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHistoryItem[]; entryPrice: number }) {
+  const chartData = useMemo(() => {
+    const sorted = [...priceHistory].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return sorted.map((p, i, arr) => ({
+      date: p.createdAt ? p.createdAt.split('T')[0] : '',
+      price: p.price,
+      change: i > 0 ? p.price - arr[i - 1].price : 0,
+      admin: p.changedByAdmin || '—',
+    }));
+  }, [priceHistory]);
+
+  const minPrice = Math.min(...chartData.map(d => d.price), entryPrice) * 0.98;
+  const maxPrice = Math.max(...chartData.map(d => d.price), entryPrice) * 1.02;
+
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+        <defs>
+          <linearGradient id="priceHistoryGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#B8A14E" stopOpacity={0.25} />
+            <stop offset="100%" stopColor="#B8A14E" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+        <XAxis
+          dataKey="date"
+          stroke="#55555E"
+          tick={{ fill: '#55555E', fontSize: 11 }}
+          axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+          tickFormatter={(v: string) => {
+            const d = new Date(v);
+            return `${d.getMonth() + 1}/${d.getDate()}`;
+          }}
+        />
+        <YAxis
+          stroke="#55555E"
+          tick={{ fill: '#55555E', fontSize: 11 }}
+          axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+          domain={[minPrice, maxPrice]}
+          tickFormatter={(v: number) => `$${v.toFixed(0)}`}
+          width={55}
+        />
+        <Tooltip
+          contentStyle={{
+            background: '#1A1A24',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: '12px 16px',
+          }}
+          labelStyle={{ color: '#8A8A93', fontSize: 12, marginBottom: 4 }}
+          itemStyle={{ color: '#F5F5F0', fontSize: 14, fontWeight: 500 }}
+          formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
+          labelFormatter={(label: string) => {
+            const d = new Date(label);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          }}
+        />
+        <ReferenceLine
+          y={entryPrice}
+          stroke="#8A8A93"
+          strokeDasharray="4 4"
+          strokeWidth={1}
+          label={{
+            value: `Entry: $${entryPrice.toFixed(2)}`,
+            fill: '#8A8A93',
+            fontSize: 11,
+            position: 'insideBottomRight',
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey="price"
+          stroke="#B8A14E"
+          strokeWidth={2}
+          fill="url(#priceHistoryGrad)"
+          animationDuration={1500}
+          animationEasing="ease-out"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
