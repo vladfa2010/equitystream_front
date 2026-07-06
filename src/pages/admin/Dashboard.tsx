@@ -503,10 +503,14 @@ export default function AdminDashboard() {
   const handleApproveReservation = async (resId: string) => {
     try {
       await dealsApi.approveReservation(resId);
-      setPendingReservations(prev => prev.filter(r => r.id !== resId));
+      // Update local state — status changed to approved
+      setPendingReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'approved' as const, updatedAt: new Date().toISOString() } : r));
       // Refresh deals to show new investments
       const freshDeals = await dealsApi.getAll();
       setDeals(freshDeals);
+      // Reload reservations
+      const freshRes = await dealsApi.getPendingReservations();
+      setPendingReservations(freshRes);
     } catch (err: any) {
       alert(err.message || 'Failed to approve');
     }
@@ -515,7 +519,11 @@ export default function AdminDashboard() {
   const handleRejectReservation = async (resId: string) => {
     try {
       await dealsApi.rejectReservation(resId);
-      setPendingReservations(prev => prev.filter(r => r.id !== resId));
+      // Update local state — status changed to rejected
+      setPendingReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'rejected' as const, updatedAt: new Date().toISOString() } : r));
+      // Reload reservations
+      const freshRes = await dealsApi.getPendingReservations();
+      setPendingReservations(freshRes);
     } catch (err: any) {
       alert(err.message || 'Failed to reject');
     }

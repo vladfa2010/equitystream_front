@@ -123,7 +123,7 @@ export default function ClientDashboard() {
         })
         .filter(Boolean);
       setApiDeals(clientDeals as any[]);
-      // Load reservations
+      // Load all client reservations (pending + approved + rejected)
       import('@/api').then(m => m.dealsApi.getClientReservations(client?.id || ''))
         .then(setReservations)
         .catch(() => {});
@@ -403,57 +403,66 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
           </ResponsiveContainer>
         </motion.section>
 
-        {/* Pending Reservations */}
-        {reservations.filter(r => r.status === 'pending').length > 0 && (
+        {/* Reserved Deals */}
+        {reservations.length > 0 && (
           <motion.section variants={itemVariants} className="mb-10">
             <div className="mb-6">
-              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Your Reservations</h3>
-              <p className="text-body" style={{ color: '#8A8A93' }}>Pending approval from admin</p>
+              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Reserved Deals</h3>
+              <p className="text-body" style={{ color: '#8A8A93' }}>Your reservations and their status</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {reservations.filter(r => r.status === 'pending').map((res, i) => (
-                <motion.div
-                  key={res.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="glass-panel p-5"
-                  style={{ borderLeft: '3px solid #F59E0B' }}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-md bg-white/5 text-[#F5F5F0]">
-                      {res.dealTicker}
-                    </span>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>
-                      Pending
-                    </span>
-                  </div>
-                  <h4 className="text-h4 mb-1" style={{ color: '#F5F5F0' }}>{res.dealName}</h4>
-                  <div className="flex items-center gap-1 mb-3">
-                    <Clock size={12} style={{ color: '#55555E' }} />
-                    <span className="text-caption" style={{ color: '#55555E' }}>
-                      {new Date(res.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase" style={{ color: '#55555E' }}>Reserved</p>
-                      <p className="text-mono-s" style={{ color: '#F5F5F0' }}>{formatCurrency(res.amount)}</p>
+              {reservations.map((res, i) => {
+                const statusStyles: Record<string, { border: string; bg: string; text: string }> = {
+                  pending:  { border: '#F59E0B', bg: 'rgba(245,158,11,0.15)', text: '#F59E0B' },
+                  approved: { border: '#10B981', bg: 'rgba(16,185,129,0.15)', text: '#10B981' },
+                  rejected: { border: '#EF4444', bg: 'rgba(239,68,68,0.15)', text: '#EF4444' },
+                };
+                const s = statusStyles[res.status] || statusStyles['pending'];
+                return (
+                  <motion.div
+                    key={res.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    className="glass-panel p-5"
+                    style={{ borderLeft: `3px solid ${s.border}` }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-md bg-white/5 text-[#F5F5F0]">
+                        {res.dealTicker}
+                      </span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase" style={{ background: s.bg, color: s.text }}>
+                        {res.status}
+                      </span>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase" style={{ color: '#55555E' }}>Shares</p>
-                      <p className="text-mono-s" style={{ color: '#F5F5F0' }}>
-                        {(res.amount / res.entryPrice).toFixed(2)}
-                      </p>
+                    <h4 className="text-h4 mb-1" style={{ color: '#F5F5F0' }}>{res.dealName}</h4>
+                    <div className="flex items-center gap-1 mb-3">
+                      <Clock size={12} style={{ color: '#55555E' }} />
+                      <span className="text-caption" style={{ color: '#55555E' }}>
+                        {new Date(res.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {res.updatedAt && res.status !== 'pending' && ` → ${new Date(res.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                      </span>
                     </div>
-                  </div>
-                  {res.isLead && (
-                    <span className="text-[11px] font-bold mt-2 inline-block px-2 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}>
-                      Lead Investor
-                    </span>
-                  )}
-                </motion.div>
-              ))}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] uppercase" style={{ color: '#55555E' }}>Reserved</p>
+                        <p className="text-mono-s" style={{ color: '#F5F5F0' }}>{formatCurrency(res.amount)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase" style={{ color: '#55555E' }}>Shares</p>
+                        <p className="text-mono-s" style={{ color: '#F5F5F0' }}>
+                          {(res.amount / res.entryPrice).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    {res.isLead && (
+                      <span className="text-[11px] font-bold mt-2 inline-block px-2 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}>
+                        Lead Investor
+                      </span>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.section>
         )}

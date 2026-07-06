@@ -180,6 +180,7 @@ export const dealsApi = {
       };
       updateDealLocal(res.dealId, {
         investments: [...existingInvestments, newInvestment],
+        status: 'Founding', // Move deal to Founding when first reservation is approved
       });
     }
     return { success: true };
