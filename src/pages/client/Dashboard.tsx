@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -102,24 +102,59 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export default function ClientDashboard() {
   const [timeRange, setTimeRange] = useState('6M');
+  const [apiDeals, setApiDeals] = useState<any[]>([]);
+  const [apiClient, setApiClient] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const client = useMemo(() => clients.find(c => c.id === CLIENT_ID)!, []);
-
-  // Get deals where this client has an investment
-  const clientDeals = useMemo(() => {
-    return deals
-      .map(deal => {
-        const investment = deal.clientInvestments.find(ci => ci.clientId === CLIENT_ID);
-        return investment ? { deal, investment } : null;
-      })
-      .filter((d): d is { deal: Deal; investment: { clientId: string; amount: number; entryPrice: number } } => d !== null);
+  // Load real data from API on mount
+  useEffect(() => {
+    Promise.all([
+      import('@/api').then(m => m.dealsApi.getAll()),
+      import('@/api').then(m => m.clientsApi.getAll()),
+    ]).then(([allDeals, allClients]) => {
+      // Find the logged-in client (c_user for demo)
+      const client = allClients.find((c: any) => c.id === 'c_user') || allClients[0];
+      setApiClient(client);
+      // Filter deals where this client has investments
+      const clientDeals = allDeals
+        .map((deal: any) => {
+          const inv = deal.investments?.find((i: any) => i.clientId === client?.id);
+          return inv ? { deal, investment: inv } : null;
+        })
+        .filter(Boolean);
+      setApiDeals(clientDeals as any[]);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  // Top-level metrics
-  const totalInvested = client.totalInvested;
-  const totalPnl = client.totalPnl;
-  const portfolioValue = totalInvested + totalPnl;
-  const isProfit = totalPnl >= 0;
+  // Use API data if available, fallback to mockData
+  const activeClient = apiClient || clients.find(c => c.id === CLIENT_ID)!;
+  const clientDeals = apiDeals.length > 0 ? apiDeals : deals
+    .map(deal => {
+      const investment = deal.clientInvestments.find(ci => ci.clientId === CLIENT_ID);
+      return investment ? { deal, investment } : null;
+    })
+    .filter((d): d is { deal: Deal; investment: { clientId: string; amount: number; entryPrice: number } } => d !== null);
+
+  // Calculate metrics from real data
+  const { totalInvested, portfolioValue, totalPnl, isProfit } = useMemo(() => {
+    let invested = 0;
+    let current = 0;
+    for (const { deal, investment } of clientDeals) {
+      const d = deal as any;
+      const shares = investment.amount / investment.entryPrice;
+      const price = d.currentPrice || d.entryPrice || 0;
+      invested += investment.amount;
+      current += shares * price;
+    }
+    const pnl = current - invested;
+    return {
+      totalInvested: invested,
+      portfolioValue: current,
+      totalPnl: pnl,
+      isProfit: pnl >= 0,
+    };
+  }, [clientDeals]);
 
   // Portfolio history for chart
   const days = TIME_RANGES.find(t => t.label === timeRange)?.days || 180;
