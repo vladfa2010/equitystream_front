@@ -160,7 +160,7 @@ export default function ClientDashboard() {
   };
 
   return (
-    <Layout role="client" showFooter>
+    <Layout role="user" showFooter>
       <motion.div
         variants={containerVariants}
         initial="hidden"

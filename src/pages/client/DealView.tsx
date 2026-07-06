@@ -10,7 +10,7 @@ export default function ClientDealView() {
   const deal = deals.find(d => d.id === id);
 
   return (
-    <Layout role="client" showFooter>
+    <Layout role="user" showFooter>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

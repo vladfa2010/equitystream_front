@@ -42,7 +42,7 @@ export default function AddClientModal({ isOpen, onClose, onAdd }: AddClientModa
       name: name.trim(),
       nickname: email.trim().split('@')[0],
       dateOfBirth: null,
-      role: 'client',
+      role: 'user',
       email: email.trim(),
       phone: phone.trim() || null,
       telegram: null,
