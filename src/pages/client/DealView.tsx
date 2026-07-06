@@ -5,6 +5,7 @@ import {
   ArrowLeft, TrendingUp, TrendingDown,
   ExternalLink, FileText, Image as ImageIcon, Video,
   Globe, DollarSign, Calendar, Building2, User,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -14,8 +15,17 @@ import Layout from '@/components/Layout';
 import { dealsApi, clientsApi, authApi } from '@/api';
 import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
 import { formatCurrency, formatPercent } from '@/data/mockData';
+import MaterialMiniCard from '@/components/client/MaterialMiniCard';
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
+
+const scrollDealMaterials = (dir: 'left' | 'right') => {
+  const el = document.getElementById('deal-materials-scroll');
+  if (el) {
+    const amount = dir === 'left' ? -300 : 300;
+    el.scrollBy({ left: amount, behavior: 'smooth' });
+  }
+};
 
 export default function ClientDealView() {
   const { id } = useParams<{ id: string }>();
@@ -397,7 +407,7 @@ export default function ClientDealView() {
           </motion.div>
         )}
 
-        {/* Materials */}
+        {/* Deal Materials Carousel */}
         {deal.materials && deal.materials.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -406,33 +416,55 @@ export default function ClientDealView() {
             className="mb-8"
           >
             <h3 className="text-h3 mb-4" style={{ color: '#F5F5F0' }}>Deal Materials</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {deal.materials.map((mat: any, i: number) => (
-                <motion.a
-                  key={mat.id}
-                  href={mat.url || mat.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.45 + i * 0.05, ease: easeExpo }}
-                  className="glass-panel p-4 flex items-center gap-3 hover:border-[#B8A14E]/30 transition-colors"
-                >
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: mat.type === 'pdf' ? 'rgba(239,68,68,0.12)' : mat.type === 'video' ? 'rgba(139,92,246,0.12)' : 'rgba(16,185,129,0.12)' }}
-                  >
-                    {mat.type === 'pdf' ? <FileText size={18} style={{ color: '#EF4444' }} /> :
-                     mat.type === 'video' ? <Video size={18} style={{ color: '#8B5CF6' }} /> :
-                     <ImageIcon size={18} style={{ color: '#10B981' }} />}
+
+            <div className="relative">
+              {/* Scroll container */}
+              <div
+                id="deal-materials-scroll"
+                className="flex gap-4 overflow-x-auto pb-4"
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  scrollbarWidth: 'thin',
+                  msOverflowStyle: 'none',
+                }}
+              >
+                {deal.materials.map((mat: any, i: number) => (
+                  <div key={mat.id} style={{ scrollSnapAlign: 'start', minWidth: 280, flex: '0 0 auto' }}>
+                    <MaterialMiniCard
+                      material={mat}
+                      dealName={deal.companyName}
+                      index={i}
+                      compact
+                    />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium truncate" style={{ color: '#F5F5F0' }}>{mat.title || mat.name}</p>
-                    <p className="text-[11px] uppercase" style={{ color: '#55555E' }}>{mat.type}</p>
-                  </div>
-                  <ExternalLink size={14} className="ml-auto shrink-0" style={{ color: '#55555E' }} />
-                </motion.a>
-              ))}
+                ))}
+              </div>
+
+              {/* Scroll arrows (desktop) */}
+              <button
+                onClick={() => scrollDealMaterials('left')}
+                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 items-center justify-center rounded-full glass-panel"
+                style={{ zIndex: 10 }}
+              >
+                <ChevronLeft size={18} color="#8A8A93" />
+              </button>
+              <button
+                onClick={() => scrollDealMaterials('right')}
+                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 items-center justify-center rounded-full glass-panel"
+                style={{ zIndex: 10 }}
+              >
+                <ChevronRight size={18} color="#8A8A93" />
+              </button>
+
+              {/* Fade gradients */}
+              <div
+                className="hidden md:block absolute left-0 top-0 bottom-4 w-12 pointer-events-none"
+                style={{ background: 'linear-gradient(to right, #0A0A0F, transparent)' }}
+              />
+              <div
+                className="hidden md:block absolute right-0 top-0 bottom-4 w-12 pointer-events-none"
+                style={{ background: 'linear-gradient(to left, #0A0A0F, transparent)' }}
+              />
             </div>
           </motion.div>
         )}
