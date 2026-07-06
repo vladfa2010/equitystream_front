@@ -63,7 +63,7 @@ export interface DealResponse {
   managementFeePercent: number;
   targetPrice: number | null;
   timeHorizon: string | null;
-  status: 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
+  status: 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   createdBy: string;
   createdAt: string;
   updatedAt: string;

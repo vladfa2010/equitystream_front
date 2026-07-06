@@ -71,6 +71,7 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
             const c: Record<string, React.CSSProperties> = {
               draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
               Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+              Skip:        { background: 'rgba(100,116,139,0.15)', color: '#64748B' },
               Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
               Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
               'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },

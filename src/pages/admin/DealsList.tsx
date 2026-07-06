@@ -31,7 +31,7 @@ export default function DealsList() {
   const [deals, setDeals] = useState<DealResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'volume' | 'return'>('newest');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; deal: DealResponse | null }>({ open: false, deal: null });
@@ -102,7 +102,7 @@ export default function DealsList() {
     return result;
   }, [deals, statusFilter, search, sortBy]);
 
-  const ACTIVE_STATUSES = ['Pipeline', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
+  const ACTIVE_STATUSES = ['Pipeline', 'Skip', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
 
   const stats = useMemo(() => {
     const active = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
@@ -197,14 +197,15 @@ export default function DealsList() {
           >
             <option value="all">All Statuses</option>
             <option value="active">Active (all)</option>
+            <option value="draft">Draft</option>
             <option value="Pipeline">Pipeline</option>
+            <option value="Skip">Skip</option>
             <option value="Reserve">Reserve</option>
             <option value="Founding">Founding</option>
             <option value="Deal done">Deal done</option>
             <option value="Wait IPO">Wait IPO</option>
             <option value="Lock-up">Lock-up</option>
             <option value="Exit">Exit</option>
-            <option value="draft">Draft</option>
           </select>
           <select
             value={sortBy}
@@ -271,6 +272,7 @@ export default function DealsList() {
                       const c: Record<string, React.CSSProperties> = {
                         draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
                         Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+                        Skip:        { background: 'rgba(100,116,139,0.15)', color: '#64748B' },
                         Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
                         Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
                         'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },

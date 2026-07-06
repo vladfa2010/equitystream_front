@@ -160,6 +160,7 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
     const map: Record<string, React.CSSProperties> = {
       draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
       Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+      Skip:        { background: 'rgba(100,116,139,0.15)', color: '#64748B' },
       Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
       Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
       'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },
@@ -478,7 +479,7 @@ export default function AdminDashboard() {
 
   const portfolioData = useMemo(() => {
     // Aggregate price history from all active deals
-    const ACTIVE_STATUSES = ['Pipeline', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
+    const ACTIVE_STATUSES = ['Pipeline', 'Skip', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
     const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
     if (activeDeals.length === 0) return [];
 

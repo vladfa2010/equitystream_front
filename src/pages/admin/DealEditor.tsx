@@ -1760,14 +1760,15 @@ export default function DealEditor() {
                     onFocus={e => { e.target.style.borderColor = '#B8A14E'; }}
                     onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                   >
+                    <option value="draft" style={{ background: '#14141C' }}>Draft</option>
                     <option value="Pipeline" style={{ background: '#14141C' }}>Pipeline</option>
+                    <option value="Skip" style={{ background: '#14141C' }}>Skip</option>
                     <option value="Reserve" style={{ background: '#14141C' }}>Reserve</option>
                     <option value="Founding" style={{ background: '#14141C' }}>Founding</option>
                     <option value="Deal done" style={{ background: '#14141C' }}>Deal done</option>
                     <option value="Wait IPO" style={{ background: '#14141C' }}>Wait IPO</option>
                     <option value="Lock-up" style={{ background: '#14141C' }}>Lock-up</option>
                     <option value="Exit" style={{ background: '#14141C' }}>Exit</option>
-                    <option value="draft" style={{ background: '#14141C' }}>Draft</option>
                   </select>
 
                   <button

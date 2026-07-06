@@ -16,6 +16,7 @@ export type DealStatus =
 const STATUS_COLORS: Record<DealStatus, { bg: string; text: string }> = {
   draft:       { bg: 'rgba(107,114,128,0.15)',   text: '#6B7280' },   // gray
   Pipeline:    { bg: 'rgba(79,110,247,0.15)',    text: '#4F6EF7' },   // blue
+  Skip:        { bg: 'rgba(100,116,139,0.15)',   text: '#64748B' },   // slate
   Reserve:     { bg: 'rgba(139,92,246,0.15)',    text: '#8B5CF6' },   // purple
   Founding:    { bg: 'rgba(245,158,11,0.15)',    text: '#F59E0B' },   // orange
   'Deal done': { bg: 'rgba(16,185,129,0.15)',    text: '#10B981' },   // green
@@ -48,6 +49,7 @@ export function getDealStatusStyle(status: string): React.CSSProperties {
 export const ALL_DEAL_STATUSES: DealStatus[] = [
   'draft',
   'Pipeline',
+  'Skip',
   'Reserve',
   'Founding',
   'Deal done',
