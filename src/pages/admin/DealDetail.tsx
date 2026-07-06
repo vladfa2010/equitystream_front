@@ -682,7 +682,7 @@ function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHi
 
   return (
     <ResponsiveContainer width="100%" height={320}>
-      <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }} cursor={{ fill: 'transparent' }}>
+      <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
         <XAxis
           dataKey="date"
@@ -703,6 +703,7 @@ function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHi
           width={55}
         />
         <Tooltip
+          cursor={{ fill: 'transparent' }}
           contentStyle={{
             background: '#1A1A24',
             border: '1px solid rgba(255,255,255,0.08)',

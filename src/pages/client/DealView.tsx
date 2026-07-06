@@ -277,7 +277,7 @@ export default function ClientDealView() {
           >
             <h3 className="text-h3 mb-4" style={{ color: '#F5F5F0' }}>Price History</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }} cursor={{ fill: 'transparent' }}>
+              <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis
                   dataKey="date"
@@ -293,6 +293,7 @@ export default function ClientDealView() {
                   width={55}
                 />
                 <Tooltip
+                  cursor={{ fill: 'transparent' }}
                   contentStyle={{
                     background: '#1A1A24',
                     border: '1px solid rgba(255,255,255,0.08)',
