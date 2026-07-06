@@ -142,6 +142,15 @@ function StatCard({ label, value, prefix, suffix, color, delay, icon: Icon }: {
 function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; index: number; allClients: ClientResponse[]; onDeleted?: () => void }) {
   const navigate = useNavigate();
   const allocatedPercent = getDealAllocatedPercent(deal);
+  // Real allocated amount = sum of all client investments
+  const allocatedAmount = deal.investments.reduce((s, i) => s + i.amount, 0);
+  // Real current value = sum of (shares × currentPrice) for each investment
+  const currentValue = deal.investments.reduce((s, i) => {
+    const shares = i.amount / i.entryPrice;
+    return s + shares * deal.currentPrice;
+  }, 0);
+  const dealReturn = allocatedAmount > 0 ? ((currentValue - allocatedAmount) / allocatedAmount) * 100 : 0;
+  const isDealProfit = dealReturn >= 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -241,18 +250,25 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
         </div>
       </div>
 
-      {/* Company name + total */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Company name + allocated amount + return */}
+      <div className="flex items-center justify-between mb-2">
         <h4 className="text-h4" style={{ color: '#F5F5F0' }}>{deal.companyName}</h4>
-        <span className="text-mono-m tabular-nums" style={{ color: '#B8A14E' }}>
-          {formatCurrency(deal.totalPackageAmount)}
-        </span>
+        <div className="text-right">
+          <span className="text-mono-m tabular-nums block" style={{ color: '#B8A14E' }}>
+            {formatCurrency(allocatedAmount)}
+          </span>
+          <span className="text-[11px] tabular-nums" style={{ color: isDealProfit ? '#10B981' : '#EF4444' }}>
+            {isDealProfit ? '+' : ''}{dealReturn.toFixed(1)}%
+          </span>
+        </div>
       </div>
 
       {/* Progress bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-caption" style={{ color: '#8A8A93' }}>{allocatedPercent}% allocated</span>
+          <span className="text-caption" style={{ color: '#8A8A93' }}>
+            {formatCurrency(allocatedAmount)} of {formatCurrency(deal.totalPackageAmount)} ({allocatedPercent}%)
+          </span>
           <span className="text-caption tabular-nums" style={{ color: '#55555E' }}>
             {deal.investments.length} clients
           </span>

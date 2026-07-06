@@ -29,17 +29,25 @@ export const dashboardApi = {
     const recentDeals: DealSummary[] = deals
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5)
-      .map(d => ({
-        id: d.id,
-        companyName: d.companyName,
-        ticker: d.ticker,
-        status: d.status,
-        totalPackageAmount: d.totalPackageAmount,
-        allocatedAmount: d.investments.reduce((s, i) => s + i.amount, 0),
-        currentPrice: d.currentPrice,
-        clientCount: d.investments.length,
-        createdAt: d.createdAt,
-      }));
+      .map(d => {
+        const alloc = d.investments.reduce((s, i) => s + i.amount, 0);
+        const currVal = d.investments.reduce((s, i) => {
+          const shares = i.amount / i.entryPrice;
+          return s + shares * d.currentPrice;
+        }, 0);
+        return {
+          id: d.id,
+          companyName: d.companyName,
+          ticker: d.ticker,
+          status: d.status,
+          totalPackageAmount: d.totalPackageAmount,
+          allocatedAmount: alloc,
+          currentValue: currVal,
+          currentPrice: d.currentPrice,
+          clientCount: d.investments.length,
+          createdAt: d.createdAt,
+        };
+      });
 
     const activities: ActivityItem[] = deals.slice(0, 5).map((d, i) => ({
       id: `a_${i}`,

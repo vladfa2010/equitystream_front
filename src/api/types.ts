@@ -186,6 +186,7 @@ export interface DealSummary {
   status: string;
   totalPackageAmount: number;
   allocatedAmount: number;
+  currentValue: number;
   currentPrice: number;
   clientCount: number;
   createdAt: string;
