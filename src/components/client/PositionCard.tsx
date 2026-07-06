@@ -65,8 +65,23 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
         >
           {deal.ticker}
         </span>
-        <span className={deal.status === 'active' ? 'badge-active' : deal.status === 'pending' ? 'badge-pending' : 'badge-closed'}>
-          {deal.status.toUpperCase()}
+        <span
+          className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
+          style={(() => {
+            const c: Record<string, React.CSSProperties> = {
+              draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
+              Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+              Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
+              Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
+              'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },
+              'Wait IPO':  { background: 'rgba(6,182,212,0.15)',   color: '#06B6D4' },
+              'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
+              Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
+            };
+            return c[deal.status] || c['draft'];
+          })()}
+        >
+          {deal.status}
         </span>
       </div>
 

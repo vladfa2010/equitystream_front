@@ -25,7 +25,7 @@ export interface Deal {
   id: string;
   ticker: string;
   companyName: string;
-  status: 'active' | 'pending' | 'closed';
+  status: 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   totalAmount: number;
   allocatedAmount: number;
   currentPrice: number;

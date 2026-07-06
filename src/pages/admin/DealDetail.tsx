@@ -247,7 +247,22 @@ export default function DealDetail() {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
               <span className="px-2 py-1 rounded text-xs font-semibold" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}>{deal.ticker}</span>
-              <span className="px-2 py-1 rounded text-xs" style={{ background: deal.status === 'active' ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: deal.status === 'active' ? '#10B981' : '#8A8A93' }}>{deal.status}</span>
+              <span
+                className="px-2 py-1 rounded text-xs"
+                style={(() => {
+                  const c: Record<string, React.CSSProperties> = {
+                    draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
+                    Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+                    Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
+                    Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
+                    'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },
+                    'Wait IPO':  { background: 'rgba(6,182,212,0.15)',   color: '#06B6D4' },
+                    'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
+                    Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
+                  };
+                  return c[deal.status] || c['draft'];
+                })()}
+              >{deal.status}</span>
             </div>
             <h1 className="text-3xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>{deal.companyName}</h1>
           </div>

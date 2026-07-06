@@ -1522,7 +1522,10 @@ export default function DealEditor() {
   }, []);
 
   // ---- Creation via API ----
-  const handleCreate = useCallback(async (status: 'active' | 'draft') => {
+  const [createStatus, setCreateStatus] = useState<string>('Pipeline');
+
+  const handleCreate = useCallback(async () => {
+    const status = createStatus as any;
     if (!validateStep1()) {
       setStep(0);
       return;
@@ -1566,7 +1569,7 @@ export default function DealEditor() {
       const response = await dealsApi.create(payload);
       const dealId = (response as unknown as { id: string }).id;
 
-      setToast({ message: `Deal created as ${status === 'active' ? 'Active' : 'Draft'}`, type: 'success' });
+      setToast({ message: `Deal created with status: ${createStatus}`, type: 'success' });
 
       setTimeout(() => {
         navigate(`/admin/deals/${dealId}`);
@@ -1739,19 +1742,36 @@ export default function DealEditor() {
                     <span className="text-[12px]" style={{ color: '#8A8A93' }}>Send email notifications</span>
                   </label>
 
-                  <button
-                    onClick={() => handleCreate('draft')}
+                  {/* Status selector */}
+                  <select
+                    value={createStatus}
+                    onChange={e => setCreateStatus(e.target.value)}
                     disabled={isCreating}
-                    className="px-5 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ color: '#F5F5F0', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
-                    onMouseEnter={e => { if (!isCreating) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                    className="px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200 appearance-none cursor-pointer disabled:opacity-50"
+                    style={{
+                      color: '#F5F5F0',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A93' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 10px center',
+                      paddingRight: 30,
+                    }}
+                    onFocus={e => { e.target.style.borderColor = '#B8A14E'; }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                   >
-                    {isCreating ? <Loader2 size={15} className="animate-spin" /> : null}
-                    Create as Draft
-                  </button>
+                    <option value="Pipeline" style={{ background: '#14141C' }}>Pipeline</option>
+                    <option value="Reserve" style={{ background: '#14141C' }}>Reserve</option>
+                    <option value="Founding" style={{ background: '#14141C' }}>Founding</option>
+                    <option value="Deal done" style={{ background: '#14141C' }}>Deal done</option>
+                    <option value="Wait IPO" style={{ background: '#14141C' }}>Wait IPO</option>
+                    <option value="Lock-up" style={{ background: '#14141C' }}>Lock-up</option>
+                    <option value="Exit" style={{ background: '#14141C' }}>Exit</option>
+                    <option value="draft" style={{ background: '#14141C' }}>Draft</option>
+                  </select>
+
                   <button
-                    onClick={() => handleCreate('active')}
+                    onClick={() => handleCreate()}
                     disabled={isCreating}
                     className="px-6 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}

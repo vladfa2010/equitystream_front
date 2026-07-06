@@ -40,7 +40,7 @@ export interface CreateDealRequest {
   managementFeePercent?: number;
   targetPrice?: number;
   timeHorizon?: string; // ISO date
-  status?: 'draft' | 'active';
+  status?: 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   clients: ClientAllocationRequest[];
   sendNotifications?: boolean;
 }
@@ -63,7 +63,7 @@ export interface DealResponse {
   managementFeePercent: number;
   targetPrice: number | null;
   timeHorizon: string | null;
-  status: 'draft' | 'active' | 'pending' | 'closed';
+  status: 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   createdBy: string;
   createdAt: string;
   updatedAt: string;

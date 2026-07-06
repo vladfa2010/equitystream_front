@@ -124,7 +124,7 @@ export default function AssociateDealModal({
                       [{deal.ticker}] {deal.companyName}
                     </p>
                     <p className="text-caption" style={{ color: '#55555E' }}>
-                      {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
+                      {deal.status}
                     </p>
                   </div>
                 </button>

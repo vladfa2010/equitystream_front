@@ -156,14 +156,19 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const statusColors = {
-    active: 'badge-active',
-    pending: 'badge-pending',
-    closed: 'badge-closed',
-    draft: 'badge-pending',
+  const getStatusStyle = (s: string) => {
+    const map: Record<string, React.CSSProperties> = {
+      draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
+      Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+      Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
+      Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
+      'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },
+      'Wait IPO':  { background: 'rgba(6,182,212,0.15)',   color: '#06B6D4' },
+      'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
+      Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
+    };
+    return map[s] || map['draft'];
   };
-
-  const statusLabels = { active: 'ACTIVE', pending: 'PENDING', closed: 'CLOSED', draft: 'DRAFT' };
 
   const cardClients = deal.investments.slice(0, 5).map(ci =>
     allClients.find(c => c.id === ci.clientId)
@@ -191,8 +196,11 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
           <span className="px-2.5 py-1 rounded-md text-[12px] font-bold bg-white/5 text-[#F5F5F0]">
             {deal.ticker}
           </span>
-          <span className={statusColors[deal.status]}>
-            {statusLabels[deal.status]}
+          <span
+            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
+            style={getStatusStyle(deal.status)}
+          >
+            {deal.status}
           </span>
         </div>
         <div className="relative" ref={menuRef}>

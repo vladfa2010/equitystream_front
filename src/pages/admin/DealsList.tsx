@@ -31,7 +31,7 @@ export default function DealsList() {
   const [deals, setDeals] = useState<DealResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'closed' | 'draft'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'volume' | 'return'>('newest');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; deal: DealResponse | null }>({ open: false, deal: null });
@@ -69,7 +69,11 @@ export default function DealsList() {
     let result = [...deals];
 
     if (statusFilter !== 'all') {
-      result = result.filter(d => d.status === statusFilter);
+      if (statusFilter === 'active') {
+        result = result.filter(d => ACTIVE_STATUSES.includes(d.status));
+      } else {
+        result = result.filter(d => d.status === statusFilter);
+      }
     }
 
     if (search.trim()) {
@@ -98,8 +102,10 @@ export default function DealsList() {
     return result;
   }, [deals, statusFilter, search, sortBy]);
 
+  const ACTIVE_STATUSES = ['Pipeline', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
+
   const stats = useMemo(() => {
-    const active = deals.filter(d => d.status === 'active');
+    const active = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
     const totalAum = active.reduce((s, d) => s + d.totalPackageAmount, 0);
     const avgReturn = active.length
       ? active.reduce((s, d) => s + getPriceChange(d), 0) / active.length
@@ -190,9 +196,14 @@ export default function DealsList() {
             style={{ background: '#14141C', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0' }}
           >
             <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="pending">Pending</option>
-            <option value="closed">Closed</option>
+            <option value="active">Active (all)</option>
+            <option value="Pipeline">Pipeline</option>
+            <option value="Reserve">Reserve</option>
+            <option value="Founding">Founding</option>
+            <option value="Deal done">Deal done</option>
+            <option value="Wait IPO">Wait IPO</option>
+            <option value="Lock-up">Lock-up</option>
+            <option value="Exit">Exit</option>
             <option value="draft">Draft</option>
           </select>
           <select
@@ -256,10 +267,19 @@ export default function DealsList() {
 
                   {/* Status */}
                   <div className="text-center">
-                    <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase" style={{
-                      background: deal.status === 'active' ? 'rgba(16,185,129,0.15)' : deal.status === 'pending' ? 'rgba(184,161,78,0.15)' : 'rgba(255,255,255,0.05)',
-                      color: deal.status === 'active' ? '#10B981' : deal.status === 'pending' ? '#B8A14E' : '#8A8A93',
-                    }}>
+                    <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase" style={(() => {
+                      const c: Record<string, React.CSSProperties> = {
+                        draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
+                        Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+                        Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
+                        Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
+                        'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },
+                        'Wait IPO':  { background: 'rgba(6,182,212,0.15)',   color: '#06B6D4' },
+                        'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
+                        Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
+                      };
+                      return c[deal.status] || c['draft'];
+                    })()}>
                       {deal.status}
                     </span>
                   </div>
