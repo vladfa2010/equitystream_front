@@ -24,7 +24,7 @@ const adminNavItems = [
 
 const clientNavItems = [
   { label: 'My Portfolio', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Deals', path: '/deals', icon: Briefcase },
+  { label: 'Deals', path: '/deals/available', icon: Briefcase },
 ];
 
 export default function Navbar({ role = 'admin' }: NavbarProps) {
@@ -36,6 +36,7 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
   const isActive = (path: string) => {
     if (path === '/admin/deals') return location.pathname.startsWith('/admin/deals');
     if (path === '/admin/clients') return location.pathname.startsWith('/admin/clients');
+    if (path === '/deals/available') return location.pathname.startsWith('/deals');
     return location.pathname === path;
   };
 
