@@ -4,8 +4,12 @@ import {
   createDealLocal,
   updateDealLocal,
   deleteDealLocal,
+  getPriceHistoryForDeal,
+  addPriceHistoryLocal,
+  updatePriceHistoryLocal,
+  deletePriceHistoryLocal,
 } from '../localDb';
-import type { CreateDealRequest, DealResponse, UpdatePriceRequest } from '../types';
+import type { CreateDealRequest, DealResponse, UpdatePriceRequest, PriceHistoryItem } from '../types';
 
 export const dealsApi = {
   getAll: async (params?: { status?: string; search?: string }) => {
@@ -78,6 +82,28 @@ export const dealsApi = {
     updateDealLocal(dealId, {
       investments: (deal.investments || []).filter((i: any) => i.id !== investmentId),
     });
+    return { success: true };
+  },
+
+  /* ─── Price History ─── */
+  getPriceHistory: async (dealId: string): Promise<PriceHistoryItem[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getPriceHistoryForDeal(dealId);
+  },
+
+  addPriceHistory: async (dealId: string, data: { price: number; changedByAdmin: string; sourceUrl?: string | null }): Promise<PriceHistoryItem> => {
+    await new Promise(r => setTimeout(r, 400));
+    return addPriceHistoryLocal(dealId, data.price, data.changedByAdmin, data.sourceUrl ?? null);
+  },
+
+  updatePriceHistory: async (priceId: string, data: { price: number; changedByAdmin: string; sourceUrl?: string | null }): Promise<PriceHistoryItem | null> => {
+    await new Promise(r => setTimeout(r, 300));
+    return updatePriceHistoryLocal(priceId, data.price, data.changedByAdmin, data.sourceUrl ?? null);
+  },
+
+  deletePriceHistory: async (priceId: string): Promise<{ success: boolean }> => {
+    await new Promise(r => setTimeout(r, 200));
+    deletePriceHistoryLocal(priceId);
     return { success: true };
   },
 };

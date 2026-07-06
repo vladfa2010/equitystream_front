@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, TrendingUp, TrendingDown, Users, Loader2,
   Pencil, Trash2, X, Plus, CheckCircle2, Crown,
+  Link as LinkIcon, ExternalLink,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
-import { dealsApi, clientsApi } from '@/api';
-import type { DealResponse, ClientResponse } from '@/api';
+import { dealsApi, clientsApi, authApi } from '@/api';
+import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
 
 function getClientName(c: ClientResponse | any): string {
   return c?.fullName || c?.name || 'Unknown';
@@ -69,11 +70,35 @@ export default function DealDetail() {
   const [editingPrice, setEditingPrice] = useState(false);
   const [newPrice, setNewPrice] = useState('');
 
+  /* price history */
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryItem[]>([]);
+  const [showAddPrice, setShowAddPrice] = useState(false);
+  const [addPriceValue, setAddPriceValue] = useState('');
+  const [addPriceAdmin, setAddPriceAdmin] = useState('');
+  const [addPriceSource, setAddPriceSource] = useState('');
+  const [addingPrice, setAddingPrice] = useState(false);
+
+  /* edit price history row */
+  const [editingPriceRow, setEditingPriceRow] = useState<string | null>(null);
+  const [editPriceRowValue, setEditPriceRowValue] = useState('');
+  const [editPriceRowAdmin, setEditPriceRowAdmin] = useState('');
+  const [editPriceRowSource, setEditPriceRowSource] = useState('');
+  const [savingPriceRow, setSavingPriceRow] = useState(false);
+
+  /* delete price history */
+  const [priceToDelete, setPriceToDelete] = useState<string | null>(null);
+
   const load = useCallback(() => {
     if (!id) { setLoading(false); return; }
     setLoading(true);
-    Promise.all([dealsApi.getById(id), clientsApi.getAll()])
-      .then(([d, c]) => { setDeal(d); setAllClients(c || []); setLoading(false); })
+    Promise.all([dealsApi.getById(id), clientsApi.getAll(), dealsApi.getPriceHistory(id), authApi.me()])
+      .then(([d, c, ph, admin]) => {
+        setDeal(d);
+        setAllClients(c || []);
+        setPriceHistory(ph || []);
+        setAddPriceAdmin(admin?.name || 'Admin');
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [id]);
 
@@ -142,20 +167,61 @@ export default function DealDetail() {
     setAdding(false); setShowAddClient(false); setSelectedClientId(''); setAddAmount(''); setAddIsLead(false); load();
   };
 
-  /* ────────── inline price update ────────── */
+  /* ────────── inline price update (current price) ────────── */
   const handlePriceUpdate = async () => {
     if (!deal || !id || !newPrice) return;
     const price = parseFloat(newPrice);
-    await dealsApi.updatePrice(id, { price });
-    /* API price update with history */
-    const freshDeal = await dealsApi.getById(id);
-    if (freshDeal) {
-      await dealsApi.update(id, {
-        currentPrice: price,
-        priceHistory: [...(freshDeal.priceHistory || []), { id: `ph_${Date.now()}`, dealId: id, price, changedBy: 'admin', createdAt: new Date().toISOString() }],
-      });
-    }
+    await dealsApi.addPriceHistory(id, { price, changedByAdmin: addPriceAdmin || 'Admin' });
     setEditingPrice(false); setNewPrice(''); load();
+  };
+
+  /* ────────── add price history entry ────────── */
+  const handleAddPrice = async () => {
+    if (!deal || !id || !addPriceValue) return;
+    setAddingPrice(true);
+    const price = parseFloat(addPriceValue);
+    await dealsApi.addPriceHistory(id, {
+      price,
+      changedByAdmin: addPriceAdmin || 'Admin',
+      sourceUrl: addPriceSource || null,
+    });
+    setAddingPrice(false);
+    setShowAddPrice(false);
+    setAddPriceValue('');
+    setAddPriceSource('');
+    load();
+  };
+
+  /* ────────── edit price history row ────────── */
+  const handleEditPriceRow = async (priceId: string) => {
+    if (!editPriceRowValue) return;
+    setSavingPriceRow(true);
+    await dealsApi.updatePriceHistory(priceId, {
+      price: parseFloat(editPriceRowValue),
+      changedByAdmin: editPriceRowAdmin || 'Admin',
+      sourceUrl: editPriceRowSource || null,
+    });
+    setSavingPriceRow(false);
+    setEditingPriceRow(null);
+    setEditPriceRowValue('');
+    setEditPriceRowAdmin('');
+    setEditPriceRowSource('');
+    load();
+  };
+
+  /* ────────── delete price history row ────────── */
+  const handleDeletePriceRow = async (priceId: string) => {
+    await dealsApi.deletePriceHistory(priceId);
+    setPriceToDelete(null);
+    load();
+  };
+
+  /* ────────── start editing price row ────────── */
+  const startEditPriceRow = (item: PriceHistoryItem) => {
+    setEditingPriceRow(item.id);
+    setEditPriceRowValue(String(item.price));
+    setEditPriceRowAdmin(item.changedByAdmin || '');
+    setEditPriceRowSource(item.sourceUrl || '');
   };
 
   if (loading) return <Layout role="admin"><div className="flex justify-center py-32"><Loader2 size={32} className="animate-spin" style={{ color: '#B8A14E' }} /></div></Layout>;
@@ -300,6 +366,104 @@ export default function DealDetail() {
             </div>
           )}
         </div>
+
+        {/* ═══════ PRICE HISTORY TABLE ═══════ */}
+        <div className="p-6 rounded-2xl mt-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold" style={{ color: '#F5F5F0' }}>Price History</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#8A8A93' }}>{priceHistory.length} record{priceHistory.length !== 1 ? 's' : ''}</p>
+            </div>
+            <button onClick={() => { setShowAddPrice(true); setAddPriceValue(''); setAddPriceSource(''); }} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}><Plus size={14} /> Add Last Price</button>
+          </div>
+
+          {priceHistory.length === 0 ? (
+            <p style={{ color: '#8A8A93' }}>No price history yet. Click "Add Last Price" to add the first entry.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th className="text-left py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Date</th>
+                    <th className="text-right py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Price</th>
+                    <th className="text-right py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Change</th>
+                    <th className="text-left py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Admin</th>
+                    <th className="text-left py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Source</th>
+                    <th className="text-right py-3 px-3" style={{ color: '#8A8A93' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {priceHistory.map((item, idx) => {
+                    const prevPrice = idx < priceHistory.length - 1 ? priceHistory[idx + 1].price : deal?.entryPrice || item.price;
+                    const change = ((item.price - prevPrice) / prevPrice) * 100;
+                    const isPositive = change >= 0;
+                    const isEditing = editingPriceRow === item.id;
+                    const isDeleting = priceToDelete === item.id;
+
+                    return (
+                      <motion.tr key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.03 }} className="group" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td className="py-3 px-3 text-sm" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono', fontSize: 12 }}>
+                          {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {item.updatedAt && <span className="ml-1 text-[10px]" style={{ color: '#8A8A93' }}>(edited)</span>}
+                        </td>
+                        <td className="py-3 px-3 text-right" style={{ fontFamily: 'JetBrains Mono' }}>
+                          {isEditing ? (
+                            <input type="number" value={editPriceRowValue} onChange={e => setEditPriceRowValue(e.target.value)} className="w-24 px-2 py-1 rounded text-sm text-right" style={{ ...inpBase, padding: '6px' }} autoFocus />
+                          ) : (
+                            <span className="text-sm font-medium" style={{ color: '#F5F5F0' }}>${item.price.toFixed(2)}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          {!isEditing && (
+                            <span className="text-xs font-medium" style={{ color: isPositive ? '#10B981' : '#EF4444' }}>
+                              {isPositive ? '+' : ''}{change.toFixed(2)}%
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          {isEditing ? (
+                            <input type="text" value={editPriceRowAdmin} onChange={e => setEditPriceRowAdmin(e.target.value)} className="w-28 px-2 py-1 rounded text-sm" style={{ ...inpBase, padding: '6px' }} />
+                          ) : (
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.1)', color: '#B8A14E' }}>{item.changedByAdmin || '—'}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          {isEditing ? (
+                            <input type="url" value={editPriceRowSource} onChange={e => setEditPriceRowSource(e.target.value)} placeholder="https://..." className="w-40 px-2 py-1 rounded text-sm" style={{ ...inpBase, padding: '6px' }} />
+                          ) : item.sourceUrl ? (
+                            <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs hover:underline" style={{ color: '#B8A14E' }}>
+                              <LinkIcon size={10} /> Source <ExternalLink size={10} />
+                            </a>
+                          ) : (
+                            <span className="text-xs" style={{ color: '#55555E' }}>—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          {isEditing ? (
+                            <div className="flex items-center gap-1 justify-end">
+                              <button onClick={() => handleEditPriceRow(item.id)} disabled={savingPriceRow} className="p-1 rounded" style={{ background: 'rgba(16,185,129,0.2)' }}><CheckCircle2 size={14} style={{ color: '#10B981' }} /></button>
+                              <button onClick={() => { setEditingPriceRow(null); }} className="p-1 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}><X size={14} style={{ color: '#8A8A93' }} /></button>
+                            </div>
+                          ) : isDeleting ? (
+                            <div className="flex items-center gap-1 justify-end">
+                              <button onClick={() => handleDeletePriceRow(item.id)} className="p-1 rounded" style={{ background: 'rgba(239,68,68,0.2)' }}><CheckCircle2 size={14} style={{ color: '#EF4444' }} /></button>
+                              <button onClick={() => setPriceToDelete(null)} className="p-1 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}><X size={14} style={{ color: '#8A8A93' }} /></button>
+                            </div>
+                          ) : (
+                            <div className={`flex items-center gap-1 justify-end transition-opacity ${editingPriceRow === null ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}>
+                              <button onClick={() => startEditPriceRow(item)} className="p-1.5 rounded-lg hover:bg-white/5" style={{ color: '#8A8A93' }}><Pencil size={13} /></button>
+                              <button onClick={() => setPriceToDelete(item.id)} className="p-1.5 rounded-lg hover:bg-white/5" style={{ color: '#EF4444' }}><Trash2 size={13} /></button>
+                            </div>
+                          )}
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════
@@ -380,6 +544,41 @@ export default function DealDetail() {
               <div className="flex gap-3">
                 <button onClick={() => setShowDeleteDeal(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
                 <button onClick={handleDeleteDeal} disabled={confirmDealName !== deal.companyName || deletingDeal} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ background: confirmDealName === deal.companyName && !deletingDeal ? '#EF4444' : 'rgba(239,68,68,0.2)', color: '#F5F5F0', opacity: confirmDealName === deal.companyName && !deletingDeal ? 1 : 0.4 }}>{deletingDeal ? 'Deleting...' : 'Delete Deal'}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════
+          ADD LAST PRICE MODAL
+          ════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showAddPrice && (
+          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddPrice(false)} />
+            <motion.div className="relative w-full max-w-md p-6 rounded-2xl" style={{ background: '#14141C', border: '1px solid rgba(255,255,255,0.08)' }} initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}>
+              <button onClick={() => setShowAddPrice(false)} className="absolute top-4 right-4 p-2" style={{ color: '#8A8A93' }}><X size={18} /></button>
+              <h3 className="text-xl font-bold mb-1" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>Add Last Price</h3>
+              <p className="text-sm mb-6" style={{ color: '#8A8A93' }}>{deal?.companyName} ({deal?.ticker})</p>
+
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Current Price ($) *</label>
+                  <input type="number" step="0.01" value={addPriceValue} onChange={e => setAddPriceValue(e.target.value)} placeholder="e.g. 198.45" style={inpBase} {...inpFocus} autoFocus />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Admin *</label>
+                  <input type="text" value={addPriceAdmin} onChange={e => setAddPriceAdmin(e.target.value)} placeholder="Your name" style={inpBase} {...inpFocus} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Source URL</label>
+                  <input type="url" value={addPriceSource} onChange={e => setAddPriceSource(e.target.value)} placeholder="https://finance.yahoo.com/quote/..." style={inpBase} {...inpFocus} />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setShowAddPrice(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
+                  <button onClick={handleAddPrice} disabled={!addPriceValue || addingPrice} className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F', opacity: addPriceValue && !addingPrice ? 1 : 0.5 }}>{addingPrice && <Loader2 size={14} className="animate-spin" />}{addingPrice ? 'Adding...' : 'Add Price'}</button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

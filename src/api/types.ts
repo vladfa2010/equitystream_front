@@ -90,8 +90,24 @@ export interface PriceHistoryItem {
   id: string;
   dealId: string;
   price: number;
-  changedBy: string;
+  changedBy: string;        // admin user ID
+  changedByAdmin: string;   // admin user display name
+  sourceUrl: string | null; // link to price source
   createdAt: string;
+  updatedAt?: string;       // set when edited
+}
+
+// ===== PRICE HISTORY REQUESTS =====
+export interface AddPriceHistoryRequest {
+  price: number;
+  changedByAdmin: string;
+  sourceUrl?: string | null;
+}
+
+export interface UpdatePriceHistoryRequest {
+  price: number;
+  changedByAdmin: string;
+  sourceUrl?: string | null;
 }
 
 // ===== CLIENTS =====

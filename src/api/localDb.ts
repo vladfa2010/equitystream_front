@@ -7,6 +7,7 @@ import type {
   DealResponse,
   ClientResponse,
   MaterialResponse,
+  PriceHistoryItem,
   CreateDealRequest,
   CreateClientRequest,
   CreateMaterialRequest,
@@ -22,6 +23,7 @@ const DB_KEYS = {
 const BACKUP_KEYS = {
   deals: 'es_deals_backup',
   clients: 'es_clients_backup',
+  priceHistory: 'es_price_history_backup',
 };
 
 /* ═══════════════════════════════════════════
@@ -209,6 +211,8 @@ export function createDealLocal(data: CreateDealRequest): DealResponse {
       dealId: `d_${Date.now()}`,
       price: data.sharePrice,
       changedBy: 'admin',
+      changedByAdmin: 'System',
+      sourceUrl: null,
       createdAt: new Date().toISOString(),
     }],
     materials: [],
@@ -216,6 +220,11 @@ export function createDealLocal(data: CreateDealRequest): DealResponse {
 
   const updated = [...deals, newDeal];
   _set(DB_KEYS.deals, updated);
+
+  // Save initial price history entry to separate collection
+  const allPriceHistory = _get<PriceHistoryItem[]>(DB_KEYS.priceHistory) || [];
+  _set(DB_KEYS.priceHistory, [...allPriceHistory, newDeal.priceHistory[0]]);
+
   _backup();
   return newDeal;
 }
@@ -330,6 +339,101 @@ export function deleteMaterialLocal(id: string): boolean {
 }
 
 /* ═══════════════════════════════════════════
+   PUBLIC API — Price History
+   ═══════════════════════════════════════════ */
+
+export function getPriceHistoryForDeal(dealId: string): PriceHistoryItem[] {
+  initLocalDb();
+  const all = _get<PriceHistoryItem[]>(DB_KEYS.priceHistory) || [];
+  return all.filter(p => p.dealId === dealId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function addPriceHistoryLocal(dealId: string, price: number, changedByAdmin: string, sourceUrl: string | null): PriceHistoryItem {
+  const all = _get<PriceHistoryItem[]>(DB_KEYS.priceHistory) || [];
+  const newItem: PriceHistoryItem = {
+    id: `ph_${Date.now()}`,
+    dealId,
+    price,
+    changedBy: 'admin',
+    changedByAdmin,
+    sourceUrl,
+    createdAt: new Date().toISOString(),
+  };
+  _set(DB_KEYS.priceHistory, [...all, newItem]);
+
+  // Also update the deal's currentPrice and priceHistory array
+  const deal = getDealById(dealId);
+  if (deal) {
+    updateDealLocal(dealId, {
+      currentPrice: price,
+      priceHistory: [...(deal.priceHistory || []), newItem],
+    });
+  }
+
+  _backup();
+  return newItem;
+}
+
+export function updatePriceHistoryLocal(priceId: string, price: number, changedByAdmin: string, sourceUrl: string | null): PriceHistoryItem | null {
+  const all = _get<PriceHistoryItem[]>(DB_KEYS.priceHistory) || [];
+  const idx = all.findIndex(p => p.id === priceId);
+  if (idx === -1) return null;
+
+  all[idx] = {
+    ...all[idx],
+    price,
+    changedByAdmin,
+    sourceUrl,
+    updatedAt: new Date().toISOString(),
+  };
+  _set(DB_KEYS.priceHistory, all);
+
+  // Also update in deal's priceHistory array
+  const dealId = all[idx].dealId;
+  const deal = getDealById(dealId);
+  if (deal) {
+    const dealPriceHistory = (deal.priceHistory || []).map((p: any) =>
+      p.id === priceId ? { ...p, price, changedByAdmin, sourceUrl, updatedAt: new Date().toISOString() } : p
+    );
+    // If this is the latest price, also update currentPrice
+    const sorted = [...dealPriceHistory].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const latestPrice = sorted.length > 0 ? sorted[0].price : deal.currentPrice;
+    updateDealLocal(dealId, {
+      currentPrice: latestPrice,
+      priceHistory: dealPriceHistory,
+    });
+  }
+
+  _backup();
+  return all[idx];
+}
+
+export function deletePriceHistoryLocal(priceId: string): boolean {
+  const all = _get<PriceHistoryItem[]>(DB_KEYS.priceHistory) || [];
+  const item = all.find(p => p.id === priceId);
+  if (!item) return false;
+
+  const filtered = all.filter(p => p.id !== priceId);
+  _set(DB_KEYS.priceHistory, filtered);
+
+  // Also update deal's priceHistory array
+  const deal = getDealById(item.dealId);
+  if (deal) {
+    const dealPriceHistory = (deal.priceHistory || []).filter((p: any) => p.id !== priceId);
+    // Recalculate currentPrice from remaining history
+    const sorted = [...dealPriceHistory].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const latestPrice = sorted.length > 0 ? sorted[0].price : deal.entryPrice;
+    updateDealLocal(item.dealId, {
+      currentPrice: latestPrice,
+      priceHistory: dealPriceHistory,
+    });
+  }
+
+  _backup();
+  return true;
+}
+
+/* ═══════════════════════════════════════════
    RESET — manual only
    ═══════════════════════════════════════════ */
 
@@ -343,12 +447,14 @@ export function resetLocalDb(): void {
    DEBUG — show current state
    ═══════════════════════════════════════════ */
 
-export function debugDbState(): { deals: number; clients: number; materials: number; backupDeals: number; backupClients: number } {
+export function debugDbState(): { deals: number; clients: number; materials: number; priceHistory: number; backupDeals: number; backupClients: number; backupPriceHistory: number } {
   return {
     deals: _countItems(DB_KEYS.deals),
     clients: _countItems(DB_KEYS.clients),
     materials: _countItems(DB_KEYS.materials),
+    priceHistory: _countItems(DB_KEYS.priceHistory),
     backupDeals: _countItems(BACKUP_KEYS.deals),
     backupClients: _countItems(BACKUP_KEYS.clients),
+    backupPriceHistory: _countItems(BACKUP_KEYS.priceHistory),
   };
 }
