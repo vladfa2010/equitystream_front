@@ -178,7 +178,7 @@ export default function ClientDashboard() {
       items.push({
         id: `act_mat_${material.id}`,
         type: 'material_uploaded',
-        title: `New material: ${material.title || material.name}`,
+        title: `New material: ${material.title}`,
         detail: dealName,
         timestamp: material.uploadedAt,
       });
