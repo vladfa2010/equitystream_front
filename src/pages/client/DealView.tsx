@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, TrendingUp, TrendingDown,
-  ExternalLink, FileText, Image as ImageIcon, Video,
+  ExternalLink,
   Globe, DollarSign, Calendar, Building2, User,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
