@@ -114,6 +114,7 @@ const SEED_DEALS: DealResponse[] = [
       { id: 'i1', dealId: 'd1', clientId: 'c1', clientName: 'Alexei Volkov', clientAvatar: null, amount: 45000, entryPrice: 175.20, shareCount: 256.85, isLead: true, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
       { id: 'i2', dealId: 'd1', clientId: 'c2', clientName: 'Maria Petrova', clientAvatar: null, amount: 38000, entryPrice: 175.20, shareCount: 216.89, isLead: false, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
       { id: 'i3', dealId: 'd1', clientId: 'c3', clientName: 'Dmitri Sokolov', clientAvatar: null, amount: 25000, entryPrice: 175.20, shareCount: 142.69, isLead: false, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
+      { id: 'i3b', dealId: 'd1', clientId: 'c_user', clientName: 'Default User', clientAvatar: null, amount: 30000, entryPrice: 175.20, shareCount: 171.23, isLead: false, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
     ],
     priceHistory: [], materials: [],
   },

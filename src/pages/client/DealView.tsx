@@ -191,52 +191,56 @@ export default function ClientDealView() {
         </motion.div>
 
         {/* My Position Panel */}
-        {myInvestment && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15, ease: easeExpo }}
-            className="glass-panel p-5 sm:p-6 mb-8"
-            style={{ borderLeft: `4px solid ${isProfit ? '#10B981' : '#EF4444'}` }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <User size={16} style={{ color: '#B8A14E' }} />
-              <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>My Position</h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: easeExpo }}
+          className="glass-panel p-5 sm:p-6 mb-8"
+          style={{ borderLeft: `4px solid ${invested > 0 ? (isProfit ? '#10B981' : '#EF4444') : '#55555E'}` }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <User size={16} style={{ color: '#B8A14E' }} />
+            <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>My Position</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Shares</p>
+              <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                {shares.toFixed(2)}
+              </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div>
-                <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Shares</p>
-                <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
-                  {shares.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Invested</p>
-                <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
-                  {formatCurrency(invested)}
-                </p>
-              </div>
-              <div>
-                <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Current Value</p>
-                <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
-                  {formatCurrency(currentValue)}
-                </p>
-              </div>
-              <div>
-                <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>P&L</p>
-                <div className="flex items-center gap-1.5">
-                  {isProfit ? <TrendingUp size={16} color="#10B981" /> : <TrendingDown size={16} color="#EF4444" />}
-                  <p className="text-mono-m" style={{ color: isProfit ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
-                    {formatPercent(pnlPercent)}
+            <div>
+              <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Invested</p>
+              <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                {formatCurrency(invested)}
+              </p>
+            </div>
+            <div>
+              <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Current Value</p>
+              <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                {formatCurrency(currentValue)}
+              </p>
+            </div>
+            <div>
+              <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>P&L</p>
+              {invested > 0 ? (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    {isProfit ? <TrendingUp size={16} color="#10B981" /> : <TrendingDown size={16} color="#EF4444" />}
+                    <p className="text-mono-m" style={{ color: isProfit ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
+                      {formatPercent(pnlPercent)}
+                    </p>
+                  </div>
+                  <p className="text-caption" style={{ color: isProfit ? '#10B981' : '#EF4444' }}>
+                    {isProfit ? '+' : ''}{formatCurrency(pnl)}
                   </p>
-                </div>
-                <p className="text-caption" style={{ color: isProfit ? '#10B981' : '#EF4444' }}>
-                  {isProfit ? '+' : ''}{formatCurrency(pnl)}
-                </p>
-              </div>
+                </>
+              ) : (
+                <p className="text-mono-m" style={{ color: '#55555E', fontFamily: "'JetBrains Mono', monospace" }}>—</p>
+              )}
             </div>
-          </motion.div>
-        )}
+          </div>
+        </motion.div>
 
         {/* Deal Overview Metrics */}
         <motion.div
