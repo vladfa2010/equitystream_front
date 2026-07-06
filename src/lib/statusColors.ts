@@ -6,6 +6,7 @@
 export type DealStatus =
   | 'draft'
   | 'Pipeline'
+  | 'Skip'
   | 'Reserve'
   | 'Founding'
   | 'Deal done'
