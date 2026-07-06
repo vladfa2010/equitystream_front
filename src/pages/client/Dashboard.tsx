@@ -190,8 +190,8 @@ export default function ClientDashboard() {
           </motion.p>
         </motion.section>
 
-        {/* Key Metrics Row */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        {/* Key Metrics Row — 3 cols on all screens */}
+        <section className="grid grid-cols-3 gap-2 sm:gap-4 mb-10">
           <PortfolioMetricCard
             label="Portfolio Value"
             value={formatCurrency(portfolioValue)}

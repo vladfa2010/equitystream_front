@@ -40,7 +40,7 @@ export default function PortfolioMetricCard({
         delay: index * 0.12,
         ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
       }}
-      className="glass-panel-hover"
+      className="glass-panel-hover p-3 sm:p-5 md:p-6"
       style={{
         background: 'var(--glass-bg)',
         backdropFilter: 'var(--glass-blur)',
@@ -48,39 +48,39 @@ export default function PortfolioMetricCard({
         border: '1px solid rgba(255, 255, 255, 0.06)',
         borderTop: `3px solid ${topColor}`,
         borderRadius: 16,
-        padding: 24,
         boxShadow: 'var(--glass-shadow)',
       }}
     >
       <p
-        className="text-caption"
+        className="text-[10px] sm:text-caption"
         style={{
           color: '#55555E',
           textTransform: 'uppercase',
-          marginBottom: 8,
+          marginBottom: 4,
         }}
       >
         {label}
       </p>
       <p
-        className="text-mono-l"
+        className="text-[13px] sm:text-base md:text-mono-l font-semibold"
         style={{
           color: accentColor === 'green' || accentColor === 'red' ? topColor : '#F5F5F0',
-          marginBottom: subValue ? 4 : 0,
+          marginBottom: subValue ? 2 : 0,
+          fontFamily: "'JetBrains Mono', monospace",
         }}
       >
         {value}
       </p>
 
       {subValue && (
-        <div className="flex items-center gap-1" style={{ marginBottom: 12 }}>
+        <div className="flex items-center gap-0.5 sm:gap-1" style={{ marginBottom: 8 }}>
           {isPositive ? (
-            <TrendingUp size={14} color="#10B981" />
+            <TrendingUp size={12} className="hidden sm:block" color="#10B981" />
           ) : (
-            <TrendingDown size={14} color="#EF4444" />
+            <TrendingDown size={12} className="hidden sm:block" color="#EF4444" />
           )}
           <p
-            className="text-body"
+            className="text-[10px] sm:text-body"
             style={{ color: isPositive ? '#10B981' : '#EF4444' }}
           >
             {subValue}
@@ -89,24 +89,27 @@ export default function PortfolioMetricCard({
       )}
 
       {sparklineData && sparklineData.length > 0 && (
-        <Sparkline
-          data={sparklineData}
-          color={isPositive ? '#10B981' : '#EF4444'}
-          width="100%"
-          height={40}
-        />
+        <div className="hidden sm:block">
+          <Sparkline
+            data={sparklineData}
+            color={isPositive ? '#10B981' : '#EF4444'}
+            width="100%"
+            height={40}
+          />
+        </div>
       )}
 
       {miniBars && miniBars.length > 0 && (
-        <div className="flex items-end gap-1" style={{ height: 28, marginTop: 8 }}>
-          {miniBars.map((h, i) => (
+        <div className="hidden sm:flex items-end gap-[2px] sm:gap-1 mt-1 sm:mt-2" style={{ height: 20 }}>
+          {miniBars.slice(0, 12).map((h, i) => (
             <div
               key={i}
+              className="flex-1"
               style={{
-                width: 4,
-                height: `${Math.max(4, h * 24)}px`,
+                height: `${Math.max(3, h * 16)}px`,
                 background: 'rgba(255, 255, 255, 0.08)',
-                borderRadius: 2,
+                borderRadius: 1,
+                minWidth: 2,
               }}
             />
           ))}
