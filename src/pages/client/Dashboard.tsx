@@ -104,7 +104,6 @@ export default function ClientDashboard() {
   const [timeRange, setTimeRange] = useState('6M');
   const [apiDeals, setApiDeals] = useState<any[]>([]);
   const [apiClient, setApiClient] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   // Load real data from API on mount
   useEffect(() => {
@@ -123,8 +122,7 @@ export default function ClientDashboard() {
         })
         .filter(Boolean);
       setApiDeals(clientDeals as any[]);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => {});
   }, []);
 
   // Use API data if available, fallback to mockData
@@ -265,7 +263,7 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           >
-            {getGreeting()}, {client.name.split(' ')[0]}
+            {getGreeting()}, {(activeClient?.name || 'User').split(' ')[0]}
           </motion.h2>
           <motion.p
             className="text-body-l"
