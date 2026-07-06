@@ -61,15 +61,20 @@ export default function AvailableDeals() {
     }
   }, [toast]);
 
-  const handleInvest = async () => {
+  const handleReserve = async () => {
     if (!selectedDeal || !client || !investAmount) return;
     const amount = parseFloat(investAmount);
     if (isNaN(amount) || amount <= 0) return;
     setSubmitting(true);
     try {
-      await dealsApi.addInvestment(selectedDeal.id, {
+      await dealsApi.createReservation({
+        dealId: selectedDeal.id,
+        dealName: selectedDeal.companyName,
+        dealTicker: selectedDeal.ticker,
         clientId: client.id,
+        clientName: client.name || client.fullName || 'Unknown',
         amount,
+        entryPrice: selectedDeal.entryPrice || selectedDeal.currentPrice || 0,
         isLead,
       });
       setSubmitting(false);
@@ -80,7 +85,7 @@ export default function AvailableDeals() {
       load(); // Refresh list
     } catch (err: any) {
       setSubmitting(false);
-      setToast({ message: err.message || 'Investment failed', type: 'error' });
+      setToast({ message: err.message || 'Reservation failed', type: 'error' });
     }
   };
 
@@ -302,7 +307,7 @@ export default function AvailableDeals() {
                     Cancel
                   </button>
                   <button
-                    onClick={handleInvest}
+                    onClick={handleReserve}
                     disabled={!investAmount || parseFloat(investAmount) <= 0 || submitting}
                     className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
                     style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}

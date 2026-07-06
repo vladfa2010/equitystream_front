@@ -169,6 +169,33 @@ export interface CreateMaterialRequest {
   dealId?: string;
 }
 
+// ===== RESERVATIONS =====
+export interface Reservation {
+  id: string;
+  dealId: string;
+  dealName: string;
+  dealTicker: string;
+  clientId: string;
+  clientName: string;
+  amount: number;
+  entryPrice: number;
+  isLead: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateReservationRequest {
+  dealId: string;
+  dealName: string;
+  dealTicker: string;
+  clientId: string;
+  clientName: string;
+  amount: number;
+  entryPrice: number;
+  isLead: boolean;
+}
+
 // ===== DASHBOARD =====
 export interface AdminDashboardResponse {
   totalAum: number;

@@ -9,8 +9,14 @@ import {
   addPriceHistoryLocal,
   updatePriceHistoryLocal,
   deletePriceHistoryLocal,
+  getAllReservations,
+  getReservationsForClient,
+  getPendingReservations,
+  createReservationLocal,
+  updateReservationStatusLocal,
+  deleteReservationLocal,
 } from '../localDb';
-import type { CreateDealRequest, DealResponse, UpdatePriceRequest, PriceHistoryItem } from '../types';
+import type { CreateDealRequest, DealResponse, UpdatePriceRequest, PriceHistoryItem, Reservation } from '../types';
 
 /** Attach materials to a deal by matching dealId */
 function attachMaterials(deal: DealResponse | null): DealResponse | null {
@@ -117,6 +123,78 @@ export const dealsApi = {
   deletePriceHistory: async (priceId: string): Promise<{ success: boolean }> => {
     await new Promise(r => setTimeout(r, 200));
     deletePriceHistoryLocal(priceId);
+    return { success: true };
+  },
+
+  /* ─── Reservations ─── */
+  getReservations: async (): Promise<Reservation[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getAllReservations();
+  },
+
+  getClientReservations: async (clientId: string): Promise<Reservation[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getReservationsForClient(clientId);
+  },
+
+  getPendingReservations: async (): Promise<Reservation[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getPendingReservations();
+  },
+
+  createReservation: async (data: {
+    dealId: string;
+    dealName: string;
+    dealTicker: string;
+    clientId: string;
+    clientName: string;
+    amount: number;
+    entryPrice: number;
+    isLead: boolean;
+  }): Promise<Reservation> => {
+    await new Promise(r => setTimeout(r, 400));
+    return createReservationLocal(data);
+  },
+
+  approveReservation: async (reservationId: string): Promise<{ success: boolean }> => {
+    await new Promise(r => setTimeout(r, 300));
+    const res = updateReservationStatusLocal(reservationId, 'approved');
+    if (!res) throw new Error('Reservation not found');
+    // Add client as investor to the deal
+    const deal = getDealById(res.dealId);
+    if (deal) {
+      const existingInvestments = deal.investments || [];
+      const shares = res.amount / res.entryPrice;
+      const newInvestment = {
+        id: `i_${Date.now()}`,
+        dealId: res.dealId,
+        clientId: res.clientId,
+        clientName: res.clientName,
+        clientAvatar: null,
+        amount: res.amount,
+        entryPrice: res.entryPrice,
+        shareCount: shares,
+        isLead: res.isLead,
+        customEntryPrice: null,
+        createdAt: new Date().toISOString(),
+      };
+      updateDealLocal(res.dealId, {
+        investments: [...existingInvestments, newInvestment],
+      });
+    }
+    return { success: true };
+  },
+
+  rejectReservation: async (reservationId: string): Promise<{ success: boolean }> => {
+    await new Promise(r => setTimeout(r, 200));
+    const res = updateReservationStatusLocal(reservationId, 'rejected');
+    if (!res) throw new Error('Reservation not found');
+    return { success: true };
+  },
+
+  deleteReservation: async (reservationId: string): Promise<{ success: boolean }> => {
+    await new Promise(r => setTimeout(r, 200));
+    deleteReservationLocal(reservationId);
     return { success: true };
   },
 };

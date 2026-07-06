@@ -23,10 +23,13 @@ import {
   DollarSign,
   Users,
   BarChart3,
+  CheckCircle2,
+  XCircle,
+  Clock,
 } from 'lucide-react';
 import { formatCurrency, formatPercent, timeAgo } from '@/data/mockData';
 import { dealsApi, clientsApi, dashboardApi } from '@/api';
-import type { DealResponse, ClientResponse, ActivityItem } from '@/api';
+import type { DealResponse, ClientResponse, ActivityItem, Reservation } from '@/api';
 import Layout from '@/components/Layout';
 
 const Globe = lazy(() => import('@/components/Globe'));
@@ -472,6 +475,7 @@ export default function AdminDashboard() {
     avgReturn: 0,
   });
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [pendingReservations, setPendingReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -479,7 +483,8 @@ export default function AdminDashboard() {
       dealsApi.getAll(),
       clientsApi.getAll(),
       dashboardApi.getAdmin(),
-    ]).then(([dealsData, clientsData, dashData]) => {
+      dealsApi.getPendingReservations(),
+    ]).then(([dealsData, clientsData, dashData, reservationsData]) => {
       setDeals(dealsData || []);
       setClients(clientsData || []);
       setDashboardData({
@@ -489,9 +494,32 @@ export default function AdminDashboard() {
         avgReturn: dashData?.avgReturn || 0,
       });
       setActivities(dashData?.recentActivity || []);
+      setPendingReservations(reservationsData || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  // Approve / Reject reservation handlers
+  const handleApproveReservation = async (resId: string) => {
+    try {
+      await dealsApi.approveReservation(resId);
+      setPendingReservations(prev => prev.filter(r => r.id !== resId));
+      // Refresh deals to show new investments
+      const freshDeals = await dealsApi.getAll();
+      setDeals(freshDeals);
+    } catch (err: any) {
+      alert(err.message || 'Failed to approve');
+    }
+  };
+
+  const handleRejectReservation = async (resId: string) => {
+    try {
+      await dealsApi.rejectReservation(resId);
+      setPendingReservations(prev => prev.filter(r => r.id !== resId));
+    } catch (err: any) {
+      alert(err.message || 'Failed to reject');
+    }
+  };
 
   const portfolioData = useMemo(() => {
     // Aggregate price history from all active deals
@@ -621,6 +649,59 @@ export default function AdminDashboard() {
             </button>
           </div>
         </motion.section>
+
+        {/* ===== RESERVE REQUESTS ===== */}
+        {pendingReservations.length > 0 && (
+          <motion.section variants={fadeUp} className="mb-10">
+            <div className="mb-4">
+              <h2 className="text-h2" style={{ color: '#F5F5F0' }}>Reserve Requests</h2>
+              <p className="text-body mt-1" style={{ color: '#8A8A93' }}>{pendingReservations.length} pending reservation{pendingReservations.length !== 1 ? 's' : ''} awaiting approval</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingReservations.map((res) => (
+                <div
+                  key={res.id}
+                  className="glass-panel p-5"
+                  style={{ borderLeft: '3px solid #F59E0B' }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-md bg-white/5 text-[#F5F5F0]">
+                      {res.dealTicker}
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full uppercase" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>
+                      <Clock size={10} /> Pending
+                    </span>
+                  </div>
+                  <h4 className="text-h4 mb-1" style={{ color: '#F5F5F0' }}>{res.dealName}</h4>
+                  <p className="text-[12px] mb-3" style={{ color: '#8A8A93' }}>
+                    {res.clientName} — {formatCurrency(res.amount)}
+                    {res.isLead && <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}>Lead</span>}
+                  </p>
+                  <div className="flex items-center justify-between text-[11px] mb-4">
+                    <span style={{ color: '#55555E' }}>Shares: <span style={{ color: '#F5F5F0' }}>{(res.amount / res.entryPrice).toFixed(2)}</span></span>
+                    <span style={{ color: '#55555E' }}>Entry: <span style={{ color: '#F5F5F0' }}>${res.entryPrice.toFixed(2)}</span></span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleApproveReservation(res.id)}
+                      className="flex-1 py-2 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
+                      style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }}
+                    >
+                      <CheckCircle2 size={14} /> Approve
+                    </button>
+                    <button
+                      onClick={() => handleRejectReservation(res.id)}
+                      className="flex-1 py-2 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
+                      style={{ background: 'rgba(239,68,68,0.15)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                    >
+                      <XCircle size={14} /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {/* ===== DEALS + CLIENT SNAPSHOT ===== */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">

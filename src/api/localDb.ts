@@ -8,6 +8,8 @@ import type {
   ClientResponse,
   MaterialResponse,
   PriceHistoryItem,
+  Reservation,
+  CreateReservationRequest,
   CreateDealRequest,
   CreateClientRequest,
   CreateMaterialRequest,
@@ -18,12 +20,14 @@ const DB_KEYS = {
   clients: 'es_clients',
   materials: 'es_materials',
   priceHistory: 'es_price_history',
+  reservations: 'es_reservations',
 };
 
 const BACKUP_KEYS = {
   deals: 'es_deals_backup',
   clients: 'es_clients_backup',
   priceHistory: 'es_price_history_backup',
+  reservations: 'es_reservations_backup',
 };
 
 /* ═══════════════════════════════════════════
@@ -161,6 +165,7 @@ export function initLocalDb(): void {
   _set(DB_KEYS.deals, SEED_DEALS);
   _set(DB_KEYS.materials, SEED_MATERIALS);
   _set(DB_KEYS.priceHistory, []);
+  _set(DB_KEYS.reservations, []);
   _backup();
 }
 
@@ -462,6 +467,53 @@ export function deletePriceHistoryLocal(priceId: string): boolean {
     });
   }
 
+  _backup();
+  return true;
+}
+
+/* ═══════════════════════════════════════════
+   PUBLIC API — Reservations
+   ═══════════════════════════════════════════ */
+
+export function getAllReservations(): Reservation[] {
+  initLocalDb();
+  return _get<Reservation[]>(DB_KEYS.reservations) || [];
+}
+
+export function getReservationsForClient(clientId: string): Reservation[] {
+  return getAllReservations().filter(r => r.clientId === clientId);
+}
+
+export function getPendingReservations(): Reservation[] {
+  return getAllReservations().filter(r => r.status === 'pending');
+}
+
+export function createReservationLocal(data: CreateReservationRequest): Reservation {
+  const all = getAllReservations();
+  const newItem: Reservation = {
+    id: `res_${Date.now()}`,
+    ...data,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  _set(DB_KEYS.reservations, [...all, newItem]);
+  _backup();
+  return newItem;
+}
+
+export function updateReservationStatusLocal(reservationId: string, status: 'approved' | 'rejected'): Reservation | null {
+  const all = getAllReservations();
+  const idx = all.findIndex(r => r.id === reservationId);
+  if (idx === -1) return null;
+  all[idx] = { ...all[idx], status, updatedAt: new Date().toISOString() };
+  _set(DB_KEYS.reservations, all);
+  _backup();
+  return all[idx];
+}
+
+export function deleteReservationLocal(reservationId: string): boolean {
+  const all = getAllReservations().filter(r => r.id !== reservationId);
+  _set(DB_KEYS.reservations, all);
   _backup();
   return true;
 }

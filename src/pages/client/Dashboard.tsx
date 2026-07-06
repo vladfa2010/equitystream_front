@@ -4,7 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import PortfolioMetricCard from '@/components/client/PortfolioMetricCard';
 import PositionCard from '@/components/client/PositionCard';
@@ -13,7 +13,7 @@ import {
   deals, clients, formatCurrency, formatPercent, getPortfolioHistory, timeAgo,
 } from '@/data/mockData';
 import type { Deal, PricePoint } from '@/data/mockData';
-import type { ActivityItem } from '@/api';
+import type { ActivityItem, Reservation } from '@/api';
 
 const CLIENT_ID = 'c1';
 const TIME_RANGES = [
@@ -104,6 +104,7 @@ export default function ClientDashboard() {
   const [timeRange, setTimeRange] = useState('6M');
   const [apiDeals, setApiDeals] = useState<any[]>([]);
   const [apiClient, setApiClient] = useState<any>(null);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
 
   // Load real data from API on mount
   useEffect(() => {
@@ -122,6 +123,10 @@ export default function ClientDashboard() {
         })
         .filter(Boolean);
       setApiDeals(clientDeals as any[]);
+      // Load reservations
+      import('@/api').then(m => m.dealsApi.getClientReservations(client?.id || ''))
+        .then(setReservations)
+        .catch(() => {});
     }).catch(() => {});
   }, []);
 
@@ -398,11 +403,66 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
           </ResponsiveContainer>
         </motion.section>
 
+        {/* Pending Reservations */}
+        {reservations.filter(r => r.status === 'pending').length > 0 && (
+          <motion.section variants={itemVariants} className="mb-10">
+            <div className="mb-6">
+              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Your Reservations</h3>
+              <p className="text-body" style={{ color: '#8A8A93' }}>Pending approval from admin</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {reservations.filter(r => r.status === 'pending').map((res, i) => (
+                <motion.div
+                  key={res.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="glass-panel p-5"
+                  style={{ borderLeft: '3px solid #F59E0B' }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-md bg-white/5 text-[#F5F5F0]">
+                      {res.dealTicker}
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>
+                      Pending
+                    </span>
+                  </div>
+                  <h4 className="text-h4 mb-1" style={{ color: '#F5F5F0' }}>{res.dealName}</h4>
+                  <div className="flex items-center gap-1 mb-3">
+                    <Clock size={12} style={{ color: '#55555E' }} />
+                    <span className="text-caption" style={{ color: '#55555E' }}>
+                      {new Date(res.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] uppercase" style={{ color: '#55555E' }}>Reserved</p>
+                      <p className="text-mono-s" style={{ color: '#F5F5F0' }}>{formatCurrency(res.amount)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase" style={{ color: '#55555E' }}>Shares</p>
+                      <p className="text-mono-s" style={{ color: '#F5F5F0' }}>
+                        {(res.amount / res.entryPrice).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  {res.isLead && (
+                    <span className="text-[11px] font-bold mt-2 inline-block px-2 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}>
+                      Lead Investor
+                    </span>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
         {/* My Positions */}
         <motion.section variants={itemVariants} className="mb-10">
           <div className="mb-6">
             <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Your Investments</h3>
-            <p className="text-body" style={{ color: '#8A8A93' }}>Active positions across all your deals</p>
+            <p className="text-body" style={{ color: '#8A8A93' }}>Approved positions across all your deals</p>
           </div>
 
           {clientDeals.length === 0 ? (
