@@ -7,8 +7,8 @@ import {
   Globe, DollarSign, Calendar, Building2, User,
 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 import Layout from '@/components/Layout';
 import { dealsApi, clientsApi, authApi } from '@/api';
@@ -60,12 +60,17 @@ export default function ClientDealView() {
   const chartData = useMemo(() => {
     if (!deal || priceHistory.length === 0) return [];
     const sorted = [...priceHistory].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    return sorted.map((p: PriceHistoryItem, i: number, arr: PriceHistoryItem[]) => ({
-      date: p.createdAt ? p.createdAt.split('T')[0] : '',
-      price: p.price,
-      change: i > 0 ? p.price - arr[i - 1].price : 0,
-    }));
-  }, [deal, priceHistory]);
+    return sorted.map((p: PriceHistoryItem, i: number, arr: PriceHistoryItem[]) => {
+      const prevPrice = i > 0 ? arr[i - 1].price : (myInvestment?.entryPrice || deal?.entryPrice || p.price);
+      const change = p.price - prevPrice;
+      return {
+        date: p.createdAt ? p.createdAt.split('T')[0] : '',
+        price: p.price,
+        change,
+        isUp: change >= 0,
+      };
+    });
+  }, [deal, priceHistory, myInvestment]);
 
   // Position calculations
   const shares = myInvestment ? myInvestment.amount / myInvestment.entryPrice : 0;
@@ -272,13 +277,7 @@ export default function ClientDealView() {
           >
             <h3 className="text-h3 mb-4" style={{ color: '#F5F5F0' }}>Price History</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="dealPriceGradClient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#B8A14E" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#B8A14E" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis
                   dataKey="date"
@@ -302,7 +301,11 @@ export default function ClientDealView() {
                   }}
                   labelStyle={{ color: '#8A8A93', fontSize: 12, marginBottom: 4 }}
                   itemStyle={{ color: '#F5F5F0', fontSize: 14, fontWeight: 500 }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
+                  formatter={(value: number, _name: string, props: any) => {
+                    const change = props?.payload?.change;
+                    const sign = change >= 0 ? '+' : '';
+                    return [`$${value.toFixed(2)} (${sign}${change?.toFixed(2)})`, 'Price'];
+                  }}
                 />
                 {myInvestment && (
                   <ReferenceLine
@@ -318,16 +321,17 @@ export default function ClientDealView() {
                     }}
                   />
                 )}
-                <Area
-                  type="monotone"
-                  dataKey="price"
-                  stroke="#B8A14E"
-                  strokeWidth={2}
-                  fill="url(#dealPriceGradClient)"
-                  animationDuration={1500}
-                  animationEasing="ease-out"
-                />
-              </AreaChart>
+                <Bar dataKey="price" radius={[4, 4, 0, 0]} animationDuration={1500}>
+                  {chartData.map((entry: any, index: number) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.isUp ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)'}
+                      stroke={entry.isUp ? '#10B981' : '#EF4444'}
+                      strokeWidth={1}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </motion.div>
         )}

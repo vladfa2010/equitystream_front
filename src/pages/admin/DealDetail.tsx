@@ -11,8 +11,8 @@ import { formatCurrency, formatPercent } from '@/data/mockData';
 import { dealsApi, clientsApi, authApi } from '@/api';
 import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 
 function getClientName(c: ClientResponse | any): string {
@@ -388,9 +388,9 @@ export default function DealDetail() {
         </div>
 
         {/* ═══════ PRICE HISTORY CHART ═══════ */}
-        {priceHistory.length > 1 && (
+        {priceHistory.length > 0 && (
           <div className="p-6 rounded-2xl mt-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: '#F5F5F0' }}>Price Trend</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: '#F5F5F0' }}>Price History</h2>
             <PriceHistoryChart priceHistory={priceHistory} entryPrice={deal?.entryPrice || 0} />
           </div>
         )}
@@ -659,31 +659,30 @@ export default function DealDetail() {
 }
 
 /* ═══════════════════════════════════════════
-   PRICE HISTORY CHART (shared component)
+   PRICE HISTORY BAR CHART (shared component)
    ═══════════════════════════════════════════ */
 function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHistoryItem[]; entryPrice: number }) {
   const chartData = useMemo(() => {
     const sorted = [...priceHistory].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    return sorted.map((p, i, arr) => ({
-      date: p.createdAt ? p.createdAt.split('T')[0] : '',
-      price: p.price,
-      change: i > 0 ? p.price - arr[i - 1].price : 0,
-      admin: p.changedByAdmin || '—',
-    }));
-  }, [priceHistory]);
+    return sorted.map((p, i, arr) => {
+      const prevPrice = i > 0 ? arr[i - 1].price : entryPrice;
+      const change = p.price - prevPrice;
+      return {
+        date: p.createdAt ? p.createdAt.split('T')[0] : '',
+        price: p.price,
+        change,
+        isUp: change >= 0,
+        admin: p.changedByAdmin || '—',
+      };
+    });
+  }, [priceHistory, entryPrice]);
 
   const minPrice = Math.min(...chartData.map(d => d.price), entryPrice) * 0.98;
   const maxPrice = Math.max(...chartData.map(d => d.price), entryPrice) * 1.02;
 
   return (
     <ResponsiveContainer width="100%" height={320}>
-      <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-        <defs>
-          <linearGradient id="priceHistoryGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#B8A14E" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="#B8A14E" stopOpacity={0} />
-          </linearGradient>
-        </defs>
+      <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
         <XAxis
           dataKey="date"
@@ -712,7 +711,11 @@ function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHi
           }}
           labelStyle={{ color: '#8A8A93', fontSize: 12, marginBottom: 4 }}
           itemStyle={{ color: '#F5F5F0', fontSize: 14, fontWeight: 500 }}
-          formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
+          formatter={(value: number, _name: string, props: any) => {
+            const change = props?.payload?.change;
+            const sign = change >= 0 ? '+' : '';
+            return [`$${value.toFixed(2)} (${sign}${change?.toFixed(2)})`, 'Price'];
+          }}
           labelFormatter={(label: string) => {
             const d = new Date(label);
             return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -730,16 +733,17 @@ function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHi
             position: 'insideBottomRight',
           }}
         />
-        <Area
-          type="monotone"
-          dataKey="price"
-          stroke="#B8A14E"
-          strokeWidth={2}
-          fill="url(#priceHistoryGrad)"
-          animationDuration={1500}
-          animationEasing="ease-out"
-        />
-      </AreaChart>
+        <Bar dataKey="price" radius={[4, 4, 0, 0]} animationDuration={1500}>
+          {chartData.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={entry.isUp ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)'}
+              stroke={entry.isUp ? '#10B981' : '#EF4444'}
+              strokeWidth={1}
+            />
+          ))}
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   );
 }
