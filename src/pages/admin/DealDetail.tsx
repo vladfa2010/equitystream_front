@@ -682,7 +682,7 @@ function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHi
 
   return (
     <ResponsiveContainer width="100%" height={320}>
-      <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+      <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }} cursor={{ fill: 'transparent' }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
         <XAxis
           dataKey="date"
@@ -733,7 +733,7 @@ function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHi
             position: 'insideBottomRight',
           }}
         />
-        <Bar dataKey="price" radius={[4, 4, 0, 0]} animationDuration={1500}>
+        <Bar dataKey="price" radius={[4, 4, 0, 0]} animationDuration={1500} activeBar={false} isAnimationActive={true}>
           {chartData.map((entry, index) => (
             <Cell
               key={`cell-${index}`}
