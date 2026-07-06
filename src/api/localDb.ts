@@ -298,7 +298,7 @@ export function createClientLocal(data: CreateClientRequest): ClientResponse {
     contractUrl: data.contractFile || null,
     avatarUrl: data.avatarFile || null,
     idDocumentUrl: data.idDocumentFile || null,
-    status: 'Pipeline',
+    status: 'active',
     totalInvested: 0,
     totalPnl: 0,
     createdAt: new Date().toISOString(),

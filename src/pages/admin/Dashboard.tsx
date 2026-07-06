@@ -478,7 +478,8 @@ export default function AdminDashboard() {
 
   const portfolioData = useMemo(() => {
     // Aggregate price history from all active deals
-    const activeDeals = deals.filter(d => d.status === 'active');
+    const ACTIVE_STATUSES = ['Pipeline', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
+    const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
     if (activeDeals.length === 0) return [];
 
     // Use the first active deal's price history as proxy
