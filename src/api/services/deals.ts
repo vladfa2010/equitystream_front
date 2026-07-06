@@ -4,12 +4,21 @@ import {
   createDealLocal,
   updateDealLocal,
   deleteDealLocal,
+  getAllMaterials,
   getPriceHistoryForDeal,
   addPriceHistoryLocal,
   updatePriceHistoryLocal,
   deletePriceHistoryLocal,
 } from '../localDb';
 import type { CreateDealRequest, DealResponse, UpdatePriceRequest, PriceHistoryItem } from '../types';
+
+/** Attach materials to a deal by matching dealId */
+function attachMaterials(deal: DealResponse | null): DealResponse | null {
+  if (!deal) return null;
+  const allMaterials = getAllMaterials();
+  deal.materials = allMaterials.filter(m => m.dealId === deal.id);
+  return deal;
+}
 
 export const dealsApi = {
   getAll: async (params?: { status?: string; search?: string }) => {
@@ -19,11 +28,15 @@ export const dealsApi = {
       const q = params.search.toLowerCase();
       deals = deals.filter(d => d.companyName.toLowerCase().includes(q) || d.ticker.toLowerCase().includes(q));
     }
+    // Attach materials to each deal
+    const allMaterials = getAllMaterials();
+    deals.forEach(d => { d.materials = allMaterials.filter(m => m.dealId === d.id); });
     return deals;
   },
 
   getById: async (id: string): Promise<DealResponse | null> => {
-    return getDealById(id);
+    const deal = getDealById(id);
+    return attachMaterials(deal);
   },
 
   create: async (data: CreateDealRequest): Promise<DealResponse> => {

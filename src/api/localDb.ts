@@ -93,6 +93,15 @@ const SEED_CLIENTS: ClientResponse[] = [
   { id: 'c10', fullName: 'Yulia Fedorova', name: 'Yulia Fedorova', nickname: 'yulia_f', dateOfBirth: '1989-06-20', role: 'user', email: 'yulia@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 134000, totalPnl: 16080, createdAt: '2023-11-20T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
 ];
 
+const SEED_MATERIALS = [
+  { id: 'm1', dealId: 'd1', title: 'AAPL Investor Presentation Q2 2025', type: 'file' as const, url: 'https://example.com/aapl-investor-deck.pdf', fileSize: 4500000, mimeType: 'application/pdf', description: 'Quarterly investor presentation with financial highlights', uploadedBy: 'admin', createdAt: '2025-05-20T10:00:00Z' },
+  { id: 'm2', dealId: 'd1', title: 'Apple Annual Report 2024', type: 'file' as const, url: 'https://example.com/aapl-annual-report.pdf', fileSize: 8200000, mimeType: 'application/pdf', description: 'Full annual report with audited financials', uploadedBy: 'admin', createdAt: '2025-05-22T14:00:00Z' },
+  { id: 'm3', dealId: 'd1', title: 'AAPL Price Target Analysis', type: 'link' as const, url: 'https://finance.yahoo.com/quote/AAPL', fileSize: null, mimeType: null, description: 'Yahoo Finance AAPL page with latest price data', uploadedBy: 'admin', createdAt: '2025-05-25T09:00:00Z' },
+  { id: 'm4', dealId: 'd2', title: 'Databricks Valuation Model', type: 'file' as const, url: 'https://example.com/databricks-valuation.xlsx', fileSize: 1200000, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', description: 'DCF valuation model with sensitivity analysis', uploadedBy: 'admin', createdAt: '2025-05-18T11:00:00Z' },
+  { id: 'm5', dealId: 'd2', title: 'Databricks IPO Prospectus', type: 'file' as const, url: 'https://example.com/databricks-s1.pdf', fileSize: 15000000, mimeType: 'application/pdf', description: 'S-1 filing with SEC disclosure', uploadedBy: 'admin', createdAt: '2025-05-28T16:00:00Z' },
+  { id: 'm6', dealId: 'd2', title: 'Latest Databricks News', type: 'link' as const, url: 'https://www.reuters.com/technology/databricks', fileSize: null, mimeType: null, description: 'Reuters technology coverage', uploadedBy: 'admin', createdAt: '2025-06-01T08:00:00Z' },
+];
+
 const SEED_DEALS: DealResponse[] = [
   {
     id: 'd1', companyName: 'Apple Inc.', ticker: 'AAPL', exchange: 'NASDAQ', sector: 'Technology',
@@ -149,7 +158,7 @@ export function initLocalDb(): void {
   // First visit — seed demo data
   _set(DB_KEYS.clients, SEED_CLIENTS);
   _set(DB_KEYS.deals, SEED_DEALS);
-  _set(DB_KEYS.materials, []);
+  _set(DB_KEYS.materials, SEED_MATERIALS);
   _set(DB_KEYS.priceHistory, []);
   _backup();
 }
