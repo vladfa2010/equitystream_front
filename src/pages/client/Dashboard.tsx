@@ -10,9 +10,10 @@ import PortfolioMetricCard from '@/components/client/PortfolioMetricCard';
 import PositionCard from '@/components/client/PositionCard';
 import MaterialMiniCard from '@/components/client/MaterialMiniCard';
 import {
-  deals, clients, formatCurrency, formatPercent, getPortfolioHistory,
+  deals, clients, formatCurrency, formatPercent, getPortfolioHistory, timeAgo,
 } from '@/data/mockData';
 import type { Deal, PricePoint } from '@/data/mockData';
+import type { ActivityItem } from '@/api';
 
 const CLIENT_ID = 'c1';
 const TIME_RANGES = [
@@ -158,6 +159,58 @@ export default function ClientDashboard() {
       el.scrollBy({ left: amount, behavior: 'smooth' });
     }
   };
+
+  // Build client activity feed from deals, materials, and price history
+  const clientActivities = useMemo<ActivityItem[]>(() => {
+    const items: ActivityItem[] = [];
+    // Deal creation events
+    for (const { deal } of clientDeals) {
+      items.push({
+        id: `act_deal_${deal.id}`,
+        type: 'deal_created',
+        title: `Joined "${deal.companyName}"`,
+        detail: `${deal.ticker} — ${deal.status}`,
+        timestamp: deal.createdAt,
+      });
+    }
+    // Material uploads
+    for (const { material, dealName } of clientMaterials.slice(0, 6)) {
+      items.push({
+        id: `act_mat_${material.id}`,
+        type: 'material_uploaded',
+        title: `New material: ${material.name}`,
+        detail: dealName,
+        timestamp: material.uploadedAt,
+      });
+    }
+    // Sort by timestamp desc, take latest 8
+    return items
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 8);
+  }, [clientDeals, clientMaterials]);
+
+// ===== ACTIVITY ITEM =====
+function ActivityRow({ activity, index }: { activity: ActivityItem; index: number }) {
+  return (
+    <motion.div
+      variants={itemVariants}
+      transition={{ delay: index * 0.05 }}
+      className="flex gap-4 py-3"
+    >
+      <div className="flex flex-col items-center pt-1">
+        <div className="w-2 h-2 rounded-full bg-[#B8A14E]" />
+        <div className="w-px flex-1 mt-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-medium truncate" style={{ color: '#F5F5F0' }}>{activity.title}</p>
+        <p className="text-caption mt-0.5" style={{ color: '#55555E' }}>{activity.detail}</p>
+      </div>
+      <span className="text-caption whitespace-nowrap mt-0.5" style={{ color: '#55555E' }}>
+        {timeAgo(activity.timestamp)}
+      </span>
+    </motion.div>
+  );
+}
 
   return (
     <Layout role="user" showFooter>
@@ -401,6 +454,21 @@ export default function ClientDashboard() {
                 className="hidden md:block absolute right-0 top-0 bottom-4 w-12 pointer-events-none"
                 style={{ background: 'linear-gradient(to left, var(--bg-base), transparent)' }}
               />
+            </div>
+          </motion.section>
+        )}
+
+        {/* Recent Activity */}
+        {clientActivities.length > 0 && (
+          <motion.section variants={itemVariants} className="mb-10">
+            <div className="mb-6">
+              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Recent Activity</h3>
+              <p className="text-body" style={{ color: '#8A8A93' }}>Latest updates from your investments</p>
+            </div>
+            <div className="glass-panel" style={{ padding: '20px 24px' }}>
+              {clientActivities.map((activity, i) => (
+                <ActivityRow key={activity.id} activity={activity} index={i} />
+              ))}
             </div>
           </motion.section>
         )}
