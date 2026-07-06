@@ -11,9 +11,19 @@ export const dashboardApi = {
     const clients = getAllClients();
 
     const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
-    const totalAum = activeDeals.reduce((s, d) => s + d.totalPackageAmount, 0);
-    const avgReturn = clients.length
-      ? clients.reduce((s, c) => s + (c.totalPnl / Math.max(c.totalInvested, 1)) * 100, 0) / clients.length
+    // Total AUM = sum of all client positions at current price
+    // For each investment: shares = amount / entryPrice, currentValue = shares * deal.currentPrice
+    const totalAum = activeDeals.reduce((sum, deal) => {
+      return sum + deal.investments.reduce((dealSum, inv) => {
+        const shares = inv.amount / inv.entryPrice;
+        return dealSum + shares * deal.currentPrice;
+      }, 0);
+    }, 0);
+    // Avg return weighted by investment amount
+    const totalInvestedAll = activeDeals.reduce((s, d) => s + d.investments.reduce((ds, i) => ds + i.amount, 0), 0);
+    const totalCurrentAll = totalAum;
+    const avgReturn = totalInvestedAll > 0
+      ? ((totalCurrentAll - totalInvestedAll) / totalInvestedAll) * 100
       : 0;
 
     const recentDeals: DealSummary[] = deals
