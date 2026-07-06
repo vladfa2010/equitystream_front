@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -16,7 +17,6 @@ import { clientsApi } from '@/api';
 import type { ClientResponse } from '@/api';
 import ClientCard from '@/components/clients/ClientCard';
 import ClientTableRow from '@/components/clients/ClientTableRow';
-import AddClientModal from '@/components/clients/AddClientModal';
 
 type ViewMode = 'grid' | 'list';
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -42,6 +42,7 @@ function getName(c: ClientResponse): string {
 }
 
 export default function ClientsList() {
+  const navigate = useNavigate();
   const [clientList, setClientList] = useState<ClientResponse[]>([]);
   const [, setLoading] = useState(true);
 
@@ -56,7 +57,6 @@ export default function ClientsList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -119,15 +119,7 @@ export default function ClientsList() {
     return result;
   }, [clientList, searchQuery, statusFilter, sortBy]);
 
-  const handleAddClient = (newClient: ClientResponse) => {
-    setClientList((prev) => [...prev, newClient]);
-  };
 
-  // Refresh list from localStorage API when modal closes
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    clientsApi.getAll().then(data => setClientList(data));
-  };
 
   const statCards = [
     {
@@ -196,7 +188,7 @@ export default function ClientsList() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15, ease: easeExpo }}
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => navigate('/admin/clients/new')}
             className="btn-primary flex items-center gap-2 shrink-0"
           >
             <Plus size={16} />
@@ -395,7 +387,7 @@ export default function ClientsList() {
                 : 'Add your first investor to get started'}
             </p>
             {!searchQuery && statusFilter === 'all' && (
-              <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2">
+              <button onClick={() => navigate('/admin/clients/new')} className="btn-primary flex items-center gap-2">
                 <Plus size={16} />
                 Add Client
               </button>
@@ -460,8 +452,6 @@ export default function ClientsList() {
         )}
       </div>
 
-      {/* Add Client Modal */}
-      <AddClientModal isOpen={isModalOpen} onClose={handleModalClose} onAdd={handleAddClient} />
     </Layout>
   );
 }
