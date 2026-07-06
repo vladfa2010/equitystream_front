@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Building2, TrendingUp, TrendingDown,
-  DollarSign, Users, Globe, ChevronRight, Plus, X, Loader2, CheckCircle2,
+  ArrowLeft, Building2,
+  DollarSign, Users, Globe, ChevronRight, X, Loader2, CheckCircle2,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { dealsApi, clientsApi, authApi } from '@/api';
 import type { DealResponse, ClientResponse } from '@/api';
-import { formatCurrency, formatPercent } from '@/data/mockData';
+import { formatCurrency } from '@/data/mockData';
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -160,7 +160,7 @@ export default function AvailableDeals() {
                       </span>
                       <span
                         className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
-                        style={statusColors[deal.status] || { background: 'rgba(107,114,128,0.15)', color: '#6B7280' }}
+                        style={(statusColors[deal.status] || { bg: 'rgba(107,114,128,0.15)', text: '#6B7280' }) as any}
                       >
                         {deal.status}
                       </span>
