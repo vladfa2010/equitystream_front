@@ -419,7 +419,7 @@ export default function ClientsList() {
             <table className="w-full min-w-[700px]">
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {['Client', 'Status', 'Deals', 'Total Invested', 'Total P&L', 'Last Active'].map(
+                  {['Client', 'Status', 'Role', 'Total Invested', 'Total P&L', 'Last Active'].map(
                     (h) => (
                       <th
                         key={h}

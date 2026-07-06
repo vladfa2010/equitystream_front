@@ -140,11 +140,21 @@ export default function ClientCard({ client, index }: ClientCardProps) {
         </div>
         <div>
           <p className="text-caption mb-1" style={{ color: '#55555E' }}>
-            Deals
+            Role
           </p>
-          <p className="text-mono-s tabular-nums" style={{ color: '#F5F5F0' }}>
-            {0}
-          </p>
+          <span
+            className="text-mono-s uppercase"
+            style={{
+              color: client.role === 'superadmin' ? '#EF4444' : client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+              background: client.role === 'superadmin' ? 'rgba(239,68,68,0.12)' : client.role === 'admin' ? 'rgba(139,92,246,0.12)' : 'rgba(79,110,247,0.12)',
+              borderRadius: 6,
+              padding: '2px 8px',
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            {client.role === 'superadmin' ? 'SUPERADMIN' : client.role === 'admin' ? 'ADMIN' : 'USER'}
+          </span>
         </div>
         <div>
           <p className="text-caption mb-1" style={{ color: '#55555E' }}>

@@ -13,7 +13,7 @@ export interface UserDto {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'client';
+  role: 'user' | 'admin' | 'superadmin';
   avatarUrl: string | null;
 }
 
@@ -117,7 +117,7 @@ export interface ClientResponse {
   name: string;              // backward compatibility
   nickname: string;
   dateOfBirth: string | null;
-  role: 'admin' | 'client';
+  role: 'user' | 'admin' | 'superadmin';
   email: string;
   phone: string | null;
   telegram: string | null;
@@ -137,7 +137,7 @@ export interface CreateClientRequest {
   dateOfBirth?: string;
   nickname: string;
   password: string;
-  role: 'admin' | 'client';
+  role: 'user' | 'admin' | 'superadmin';
   email: string;
   phone?: string;
   telegram?: string;

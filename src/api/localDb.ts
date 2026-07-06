@@ -76,16 +76,16 @@ function _restore(): void {
    ═══════════════════════════════════════════ */
 
 const SEED_CLIENTS: ClientResponse[] = [
-  { id: 'c1', fullName: 'Alexei Volkov', name: 'Alexei Volkov', nickname: 'alexei_v', dateOfBirth: '1985-03-15', role: 'client', email: 'alexei@example.com', phone: '+7-999-123-4567', telegram: '@alexei_v', notes: 'VIP client', contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 187500, totalPnl: 46500, createdAt: '2024-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c2', fullName: 'Maria Petrova', name: 'Maria Petrova', nickname: 'maria_p', dateOfBirth: '1990-07-22', role: 'client', email: 'maria@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 142000, totalPnl: 31200, createdAt: '2024-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c3', fullName: 'Dmitri Sokolov', name: 'Dmitri Sokolov', nickname: 'dmitri_s', dateOfBirth: '1988-11-08', role: 'client', email: 'dmitri@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 95000, totalPnl: 16150, createdAt: '2024-02-20T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c4', fullName: 'Elena Kuznetsova', name: 'Elena Kuznetsova', nickname: 'elena_k', dateOfBirth: '1982-05-30', role: 'client', email: 'elena@example.com', phone: null, telegram: '@elena_k', notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 210000, totalPnl: 33600, createdAt: '2023-11-10T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c5', fullName: 'Ivan Smirnov', name: 'Ivan Smirnov', nickname: 'ivan_s', dateOfBirth: '1992-01-12', role: 'client', email: 'ivan@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 78000, totalPnl: 8580, createdAt: '2024-03-05T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c6', fullName: 'Olga Novikova', name: 'Olga Novikova', nickname: 'olga_n', dateOfBirth: '1987-09-18', role: 'client', email: 'olga@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 125000, totalPnl: -3750, createdAt: '2024-01-28T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c7', fullName: 'Sergei Morozov', name: 'Sergei Morozov', nickname: 'sergei_m', dateOfBirth: '1979-04-25', role: 'client', email: 'sergei@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 56000, totalPnl: -2240, createdAt: '2024-03-12T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c8', fullName: 'Anna Lebedeva', name: 'Anna Lebedeva', nickname: 'anna_l', dateOfBirth: '1991-12-03', role: 'client', email: 'anna@example.com', phone: null, telegram: '@anna_l', notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 168000, totalPnl: 20160, createdAt: '2023-12-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c9', fullName: 'Pavel Kozlov', name: 'Pavel Kozlov', nickname: 'pavel_k', dateOfBirth: '1984-08-14', role: 'client', email: 'pavel@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 89000, totalPnl: 9780, createdAt: '2024-02-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'c10', fullName: 'Yulia Fedorova', name: 'Yulia Fedorova', nickname: 'yulia_f', dateOfBirth: '1989-06-20', role: 'client', email: 'yulia@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 134000, totalPnl: 16080, createdAt: '2023-11-20T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c1', fullName: 'Alexei Volkov', name: 'Alexei Volkov', nickname: 'alexei_v', dateOfBirth: '1985-03-15', role: 'user', email: 'alexei@example.com', phone: '+7-999-123-4567', telegram: '@alexei_v', notes: 'VIP client', contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 187500, totalPnl: 46500, createdAt: '2024-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c2', fullName: 'Maria Petrova', name: 'Maria Petrova', nickname: 'maria_p', dateOfBirth: '1990-07-22', role: 'user', email: 'maria@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 142000, totalPnl: 31200, createdAt: '2024-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c3', fullName: 'Dmitri Sokolov', name: 'Dmitri Sokolov', nickname: 'dmitri_s', dateOfBirth: '1988-11-08', role: 'user', email: 'dmitri@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 95000, totalPnl: 16150, createdAt: '2024-02-20T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c4', fullName: 'Elena Kuznetsova', name: 'Elena Kuznetsova', nickname: 'elena_k', dateOfBirth: '1982-05-30', role: 'user', email: 'elena@example.com', phone: null, telegram: '@elena_k', notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 210000, totalPnl: 33600, createdAt: '2023-11-10T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c5', fullName: 'Ivan Smirnov', name: 'Ivan Smirnov', nickname: 'ivan_s', dateOfBirth: '1992-01-12', role: 'user', email: 'ivan@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 78000, totalPnl: 8580, createdAt: '2024-03-05T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c6', fullName: 'Olga Novikova', name: 'Olga Novikova', nickname: 'olga_n', dateOfBirth: '1987-09-18', role: 'user', email: 'olga@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 125000, totalPnl: -3750, createdAt: '2024-01-28T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c7', fullName: 'Sergei Morozov', name: 'Sergei Morozov', nickname: 'sergei_m', dateOfBirth: '1979-04-25', role: 'user', email: 'sergei@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 56000, totalPnl: -2240, createdAt: '2024-03-12T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c8', fullName: 'Anna Lebedeva', name: 'Anna Lebedeva', nickname: 'anna_l', dateOfBirth: '1991-12-03', role: 'user', email: 'anna@example.com', phone: null, telegram: '@anna_l', notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 168000, totalPnl: 20160, createdAt: '2023-12-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c9', fullName: 'Pavel Kozlov', name: 'Pavel Kozlov', nickname: 'pavel_k', dateOfBirth: '1984-08-14', role: 'user', email: 'pavel@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 89000, totalPnl: 9780, createdAt: '2024-02-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c10', fullName: 'Yulia Fedorova', name: 'Yulia Fedorova', nickname: 'yulia_f', dateOfBirth: '1989-06-20', role: 'user', email: 'yulia@example.com', phone: null, telegram: null, notes: null, contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 134000, totalPnl: 16080, createdAt: '2023-11-20T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
 ];
 
 const SEED_DEALS: DealResponse[] = [
@@ -247,12 +247,30 @@ export function deleteDealLocal(id: string): boolean {
 }
 
 /* ═══════════════════════════════════════════
+   ROLE MAPPING — backward compatibility
+   ═══════════════════════════════════════════ */
+
+function normalizeRole(role: string): 'user' | 'admin' | 'superadmin' {
+  if (role === 'superadmin') return 'superadmin';
+  if (role === 'admin') return 'admin';
+  return 'user'; // 'client' or any other → 'user'
+}
+
+function normalizeClient(client: any): ClientResponse {
+  return {
+    ...client,
+    role: normalizeRole(client.role),
+  };
+}
+
+/* ═══════════════════════════════════════════
    PUBLIC API — Clients
    ═══════════════════════════════════════════ */
 
 export function getAllClients(): ClientResponse[] {
   initLocalDb();
-  return _get<ClientResponse[]>(DB_KEYS.clients) || [];
+  const clients = _get<ClientResponse[]>(DB_KEYS.clients) || [];
+  return clients.map(normalizeClient);
 }
 
 export function getClientById(id: string): ClientResponse | null {

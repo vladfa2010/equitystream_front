@@ -5,12 +5,12 @@ import Footer from './Footer';
 
 interface LayoutProps {
   children: ReactNode;
-  role?: 'admin' | 'client';
+  role?: 'user' | 'admin' | 'superadmin';
   showFooter?: boolean;
 }
 
 export default function Layout({ children, role = 'admin', showFooter = false }: LayoutProps) {
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'superadmin';
 
   return (
     <div className="min-h-[100dvh]" style={{ background: 'var(--bg-base)' }}>

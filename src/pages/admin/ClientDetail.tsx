@@ -346,15 +346,26 @@ export default function ClientDetail() {
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: easeExpo }}
-              className="text-h1 mb-1"
-              style={{ color: '#F5F5F0' }}
-            >
-              {getClientName(client)}
-            </motion.h1>
+            <div className="flex items-center gap-3 mb-1">
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1, ease: easeExpo }}
+                className="text-h1"
+                style={{ color: '#F5F5F0' }}
+              >
+                {getClientName(client)}
+              </motion.h1>
+              <span
+                className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
+                style={{
+                  background: client.role === 'superadmin' ? 'rgba(239,68,68,0.15)' : client.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
+                  color: client.role === 'superadmin' ? '#EF4444' : client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+                }}
+              >
+                {client.role === 'superadmin' ? 'SUPERADMIN' : client.role === 'admin' ? 'ADMIN' : 'USER'}
+              </span>
+            </div>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

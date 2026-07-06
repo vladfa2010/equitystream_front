@@ -114,10 +114,20 @@ export default function ClientTableRow({ client, index }: ClientTableRowProps) {
         </span>
       </td>
 
-      {/* Deals */}
+      {/* Role */}
       <td className="py-3.5 px-4">
-        <span className="text-mono-s tabular-nums" style={{ color: '#F5F5F0' }}>
-          {0} deals
+        <span
+          className="text-mono-s uppercase"
+          style={{
+            color: client.role === 'superadmin' ? '#EF4444' : client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+            background: client.role === 'superadmin' ? 'rgba(239,68,68,0.12)' : client.role === 'admin' ? 'rgba(139,92,246,0.12)' : 'rgba(79,110,247,0.12)',
+            borderRadius: 6,
+            padding: '4px 10px',
+            fontSize: 11,
+            fontWeight: 600,
+          }}
+        >
+          {client.role === 'superadmin' ? 'SUPERADMIN' : client.role === 'admin' ? 'ADMIN' : 'USER'}
         </span>
       </td>
 

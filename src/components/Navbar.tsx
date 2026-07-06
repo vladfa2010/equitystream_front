@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 interface NavbarProps {
-  role?: 'admin' | 'client';
+  role?: 'user' | 'admin' | 'superadmin';
 }
 
 const adminNavItems = [
@@ -31,7 +31,8 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = role === 'admin' ? adminNavItems : clientNavItems;
+  const isAdminNav = role === 'admin' || role === 'superadmin';
+  const navItems = isAdminNav ? adminNavItems : clientNavItems;
   const isActive = (path: string) => {
     if (path === '/admin/deals') return location.pathname.startsWith('/admin/deals');
     if (path === '/admin/clients') return location.pathname.startsWith('/admin/clients');
@@ -51,7 +52,7 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
         }}
       >
         {/* Left: Logo */}
-        <Link to={role === 'admin' ? '/admin' : '/dashboard'} className="flex items-center gap-3">
+        <Link to={isAdminNav ? '/admin' : '/dashboard'} className="flex items-center gap-3">
           <img src="/logo-mark.svg" alt="EquityStream" className="w-7 h-7" />
           <span
             className="hidden sm:inline text-[14px] font-semibold tracking-[0.08em] text-[#F5F5F0]"
@@ -91,13 +92,13 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
         {/* Right: Role Badge, Notification, Avatar */}
         <div className="flex items-center gap-3">
           <span
-            className="hidden sm:inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-md"
+            className="hidden sm:inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-md uppercase"
             style={{
-              background: 'rgba(184, 161, 78, 0.12)',
-              color: '#B8A14E',
+              background: role === 'superadmin' ? 'rgba(239,68,68,0.12)' : role === 'admin' ? 'rgba(184,161,78,0.12)' : 'rgba(79,110,247,0.12)',
+              color: role === 'superadmin' ? '#EF4444' : role === 'admin' ? '#B8A14E' : '#4F6EF7',
             }}
           >
-            {role === 'admin' ? 'ADMIN' : 'CLIENT'}
+            {role === 'superadmin' ? 'SUPERADMIN' : role === 'admin' ? 'ADMIN' : 'USER'}
           </span>
 
           <button className="relative p-2 rounded-lg hover:bg-white/5 transition-colors">

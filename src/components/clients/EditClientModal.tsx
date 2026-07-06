@@ -40,7 +40,7 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
   const [fullName, setFullName] = useState('');
   const [nickname, setNickname] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [role, setRole] = useState<'admin' | 'client'>('client');
+  const [role, setRole] = useState<'user' | 'admin' | 'superadmin'>('user');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [telegram, setTelegram] = useState('');
@@ -57,7 +57,7 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
       setFullName(client.fullName || client.name || '');
       setNickname(client.nickname || '');
       setDateOfBirth(client.dateOfBirth ? client.dateOfBirth.split('T')[0] : '');
-      setRole(client.role || 'client');
+      setRole((client.role as any) || 'user');
       setEmail(client.email || '');
       setPhone(client.phone || '');
       setTelegram(client.telegram ? client.telegram.replace('@', '') : '');
@@ -118,7 +118,7 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
       setFullName(client.fullName || client.name || '');
       setNickname(client.nickname || '');
       setDateOfBirth(client.dateOfBirth ? client.dateOfBirth.split('T')[0] : '');
-      setRole(client.role || 'client');
+      setRole((client.role as any) || 'user');
       setEmail(client.email || '');
       setPhone(client.phone || '');
       setTelegram(client.telegram ? client.telegram.replace('@', '') : '');
@@ -210,9 +210,10 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
                   {/* Role */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs" style={{ color: '#8A8A93' }}>Role</label>
-                    <select value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'client')} style={inputStyle} {...focusHandlers}>
-                      <option value="client">Client</option>
+                    <select value={role} onChange={(e) => setRole(e.target.value as 'user' | 'admin' | 'superadmin')} style={inputStyle} {...focusHandlers}>
+                      <option value="user">User</option>
                       <option value="admin">Admin</option>
+                      <option value="superadmin">Superadmin</option>
                     </select>
                   </div>
                 </div>

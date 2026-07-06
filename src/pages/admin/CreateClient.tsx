@@ -5,7 +5,7 @@ import {
   User, Mail, Phone, Send, FileText, Image, Shield,
   ChevronRight, ChevronLeft, CheckCircle2, XCircle,
   AlertTriangle, Eye, EyeOff, X, Loader2,
-  UserPlus, CalendarDays, Lock, AtSign, StickyNote, ArrowLeft,
+  UserPlus, CalendarDays, Lock, AtSign, StickyNote, ArrowLeft, Crown,
 } from 'lucide-react';
 import StepIndicator from '../../components/deals/StepIndicator';
 import { clientsApi } from '../../api';
@@ -45,7 +45,7 @@ interface WizardState {
   nickname: string;
   password: string;
   confirmPassword: string;
-  role: 'client' | 'admin';
+  role: 'user' | 'admin' | 'superadmin';
   showPassword: boolean;
   // Step 2
   email: string;
@@ -229,7 +229,7 @@ function Step1PersonalInfo({ form, setForm, errors, setErrors }: Step1Props) {
           <FormField label="Role" required error={errors.role}>
             <select
               value={form.role}
-              onChange={e => updateField('role', e.target.value as 'client' | 'admin')}
+              onChange={e => updateField('role', e.target.value as 'user' | 'admin' | 'superadmin')}
               className="w-full text-[14px] px-4 py-3 outline-none transition-all duration-200 appearance-none cursor-pointer"
               style={{
                 ...INPUT_STYLE,
@@ -242,8 +242,9 @@ function Step1PersonalInfo({ form, setForm, errors, setErrors }: Step1Props) {
               onFocus={e => { e.target.style.borderColor = '#B8A14E'; }}
               onBlur={e => { e.target.style.borderColor = errors.role ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'; }}
             >
-              <option value="client" style={{ background: '#14141C' }}>Client</option>
+              <option value="user" style={{ background: '#14141C' }}>User</option>
               <option value="admin" style={{ background: '#14141C' }}>Admin</option>
+              <option value="superadmin" style={{ background: '#14141C' }}>Superadmin</option>
             </select>
           </FormField>
         </div>
@@ -359,15 +360,15 @@ function Step1PersonalInfo({ form, setForm, errors, setErrors }: Step1Props) {
 
               {/* Role Badge */}
               <span
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full mb-4"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase"
                 style={{
-                  background: form.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(184,161,78,0.15)',
-                  color: form.role === 'admin' ? '#8B5CF6' : '#B8A14E',
-                  border: `1px solid ${form.role === 'admin' ? 'rgba(139,92,246,0.3)' : 'rgba(184,161,78,0.3)'}`,
+                  background: form.role === 'superadmin' ? 'rgba(239,68,68,0.15)' : form.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
+                  color: form.role === 'superadmin' ? '#EF4444' : form.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+                  border: `1px solid ${form.role === 'superadmin' ? 'rgba(239,68,68,0.3)' : form.role === 'admin' ? 'rgba(139,92,246,0.3)' : 'rgba(79,110,247,0.3)'}`,
                 }}
               >
-                {form.role === 'admin' ? <Shield size={11} /> : <User size={11} />}
-                {form.role === 'admin' ? 'ADMIN' : 'CLIENT'}
+                {form.role === 'superadmin' ? <Crown size={11} /> : form.role === 'admin' ? <Shield size={11} /> : <User size={11} />}
+                {form.role === 'superadmin' ? 'SUPERADMIN' : form.role === 'admin' ? 'ADMIN' : 'USER'}
               </span>
 
               {/* DOB */}
@@ -788,13 +789,13 @@ function Step4Review({ form }: Step4Props) {
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span
-                  className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+                  className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
                   style={{
-                    background: form.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(184,161,78,0.15)',
-                    color: form.role === 'admin' ? '#8B5CF6' : '#B8A14E',
+                    background: form.role === 'superadmin' ? 'rgba(239,68,68,0.15)' : form.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
+                    color: form.role === 'superadmin' ? '#EF4444' : form.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
                   }}
                 >
-                  {form.role === 'admin' ? 'ADMIN' : 'CLIENT'}
+                  {form.role === 'superadmin' ? 'SUPERADMIN' : form.role === 'admin' ? 'ADMIN' : 'USER'}
                 </span>
                 {form.dateOfBirth && (
                   <span className="text-[11px] px-2 py-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#8A8A93' }}>
@@ -931,7 +932,7 @@ export default function CreateClient() {
     nickname: '',
     password: '',
     confirmPassword: '',
-    role: 'client',
+    role: 'user',
     showPassword: false,
     email: '',
     phone: '',
