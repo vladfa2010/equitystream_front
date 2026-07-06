@@ -281,6 +281,48 @@ export default function ClientDealView() {
           ))}
         </motion.div>
 
+        {/* Latest Update */}
+        {priceHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.25, ease: easeExpo }}
+            className="glass-panel p-4 sm:p-5 mb-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6"
+          >
+            <div className="flex items-center gap-2 shrink-0">
+              <TrendingUp size={14} style={{ color: '#B8A14E' }} />
+              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>Latest Update</span>
+            </div>
+            {(() => {
+              const latest = [...priceHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+              const prev = priceHistory.length > 1 ? [...priceHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[1] : null;
+              const change = prev ? latest.price - prev.price : latest.price - (deal?.entryPrice || 0);
+              const isUp = change >= 0;
+              return (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+                  <span style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                    ${latest.price.toFixed(2)}
+                  </span>
+                  <span style={{ color: isUp ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
+                    {isUp ? '+' : ''}{change.toFixed(2)}
+                  </span>
+                  <span style={{ color: '#8A8A93' }}>
+                    {new Date(latest.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.1)', color: '#B8A14E' }}>
+                    {latest.changedByAdmin || '—'}
+                  </span>
+                  {latest.sourceUrl && (
+                    <a href={latest.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline" style={{ color: '#4F6EF7' }}>
+                      <ExternalLink size={10} /> Source
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+
         {/* Price History Chart */}
         {chartData.length > 0 && (
           <motion.div
