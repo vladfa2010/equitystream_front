@@ -24,6 +24,7 @@ interface CompanyForm {
   exchange: string;
   sector: string;
   description: string;
+  status: string;
   totalVolume: string;
   sharePrice: string;
   marketCap: string;
@@ -282,6 +283,59 @@ function Step1CompanyInfo({ form, setForm, errors, setErrors }: Step1Props) {
               {SECTORS.map(s => <option key={s} value={s} style={{ background: '#14141C' }}>{s}</option>)}
             </select>
           </FormField>
+        </div>
+
+        {/* Row: Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField label="Status" required>
+            <select
+              value={form.status}
+              onChange={e => updateField('status', e.target.value)}
+              className="w-full text-[14px] px-4 py-3 outline-none transition-all duration-200 appearance-none cursor-pointer"
+              style={{
+                ...INPUT_STYLE,
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A93' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                paddingRight: 40,
+              }}
+              onFocus={e => { e.target.style.borderColor = '#B8A14E'; }}
+              onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            >
+              <option value="draft" style={{ background: '#14141C' }}>Draft</option>
+              <option value="Pipeline" style={{ background: '#14141C' }}>Pipeline</option>
+              <option value="Skip" style={{ background: '#14141C' }}>Skip</option>
+              <option value="Reserve" style={{ background: '#14141C' }}>Reserve</option>
+              <option value="Founding" style={{ background: '#14141C' }}>Founding</option>
+              <option value="Deal done" style={{ background: '#14141C' }}>Deal done</option>
+              <option value="Wait IPO" style={{ background: '#14141C' }}>Wait IPO</option>
+              <option value="Lock-up" style={{ background: '#14141C' }}>Lock-up</option>
+              <option value="Exit" style={{ background: '#14141C' }}>Exit</option>
+            </select>
+          </FormField>
+
+          {/* Placeholder for alignment — shows selected status badge */}
+          <div className="flex items-end pb-3">
+            <span
+              className="text-[11px] font-bold px-3 py-1 rounded-full uppercase"
+              style={(() => {
+                const c: Record<string, React.CSSProperties> = {
+                  draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
+                  Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+                  Skip:        { background: 'rgba(100,116,139,0.15)', color: '#64748B' },
+                  Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
+                  Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
+                  'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },
+                  'Wait IPO':  { background: 'rgba(6,182,212,0.15)',   color: '#06B6D4' },
+                  'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
+                  Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
+                };
+                return c[form.status] || c['draft'];
+              })()}
+            >
+              {form.status}
+            </span>
+          </div>
         </div>
 
         {/* Description */}
@@ -1204,7 +1258,7 @@ function Step3Review({ form, allocations, totalVolume, sharePrice }: Step3Props)
   const logoUrl = form.logoPreview || (form.ticker ? getLogoFromTicker(form.ticker) : null);
 
   const checklist = [
-    { label: 'Required fields filled', ok: !!(form.companyName && form.ticker && form.exchange && form.totalVolume && form.sharePrice) },
+    { label: 'Required fields filled', ok: !!(form.companyName && form.ticker && form.exchange && form.status && form.totalVolume && form.sharePrice) },
     { label: 'At least 1 client assigned', ok: allocations.length > 0, warn: allocations.length === 0 },
     { label: 'Lead investor assigned', ok: hasLead, warn: allocations.length > 0 && !hasLead },
     { label: 'Allocation within limit', ok: totalAllocated <= totalVolume, error: totalAllocated > totalVolume },
@@ -1242,6 +1296,22 @@ function Step3Review({ form, allocations, totalVolume, sharePrice }: Step3Props)
                 )}
                 {form.sector && (
                   <span className="text-[12px] px-2 py-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#8A8A93' }}>{form.sector}</span>
+                )}
+                {form.status && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase" style={(() => {
+                    const c: Record<string, React.CSSProperties> = {
+                      draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
+                      Pipeline:    { background: 'rgba(79,110,247,0.15)',  color: '#4F6EF7' },
+                      Skip:        { background: 'rgba(100,116,139,0.15)', color: '#64748B' },
+                      Reserve:     { background: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
+                      Founding:    { background: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
+                      'Deal done': { background: 'rgba(16,185,129,0.15)',  color: '#10B981' },
+                      'Wait IPO':  { background: 'rgba(6,182,212,0.15)',   color: '#06B6D4' },
+                      'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
+                      Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
+                    };
+                    return c[form.status] || c['draft'];
+                  })()}>{form.status}</span>
                 )}
               </div>
             </div>
@@ -1462,6 +1532,7 @@ export default function DealEditor() {
     exchange: '',
     sector: '',
     description: '',
+    status: 'Pipeline',
     totalVolume: '',
     sharePrice: '',
     marketCap: '',
@@ -1522,10 +1593,8 @@ export default function DealEditor() {
   }, []);
 
   // ---- Creation via API ----
-  const [createStatus, setCreateStatus] = useState<string>('Pipeline');
-
   const handleCreate = useCallback(async () => {
-    const status = createStatus as any;
+    const status = form.status as any;
     if (!validateStep1()) {
       setStep(0);
       return;
@@ -1569,7 +1638,7 @@ export default function DealEditor() {
       const response = await dealsApi.create(payload);
       const dealId = (response as unknown as { id: string }).id;
 
-      setToast({ message: `Deal created with status: ${createStatus}`, type: 'success' });
+      setToast({ message: `Deal created with status: ${form.status}`, type: 'success' });
 
       setTimeout(() => {
         navigate(`/admin/deals/${dealId}`);
@@ -1741,35 +1810,6 @@ export default function DealEditor() {
                     <Mail size={13} style={{ color: '#8A8A93' }} />
                     <span className="text-[12px]" style={{ color: '#8A8A93' }}>Send email notifications</span>
                   </label>
-
-                  {/* Status selector */}
-                  <select
-                    value={createStatus}
-                    onChange={e => setCreateStatus(e.target.value)}
-                    disabled={isCreating}
-                    className="px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200 appearance-none cursor-pointer disabled:opacity-50"
-                    style={{
-                      color: '#F5F5F0',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A93' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 10px center',
-                      paddingRight: 30,
-                    }}
-                    onFocus={e => { e.target.style.borderColor = '#B8A14E'; }}
-                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-                  >
-                    <option value="draft" style={{ background: '#14141C' }}>Draft</option>
-                    <option value="Pipeline" style={{ background: '#14141C' }}>Pipeline</option>
-                    <option value="Skip" style={{ background: '#14141C' }}>Skip</option>
-                    <option value="Reserve" style={{ background: '#14141C' }}>Reserve</option>
-                    <option value="Founding" style={{ background: '#14141C' }}>Founding</option>
-                    <option value="Deal done" style={{ background: '#14141C' }}>Deal done</option>
-                    <option value="Wait IPO" style={{ background: '#14141C' }}>Wait IPO</option>
-                    <option value="Lock-up" style={{ background: '#14141C' }}>Lock-up</option>
-                    <option value="Exit" style={{ background: '#14141C' }}>Exit</option>
-                  </select>
 
                   <button
                     onClick={() => handleCreate()}
