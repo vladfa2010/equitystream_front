@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, TrendingUp, TrendingDown, Briefcase,
+  ArrowLeft, TrendingUp, TrendingDown,
   ExternalLink, FileText, Image as ImageIcon, Video,
   Globe, DollarSign, Calendar, Building2, User,
 } from 'lucide-react';
@@ -160,8 +160,8 @@ export default function ClientDealView() {
                 <DollarSign size={13} />
                 <span className="font-semibold" style={{ color: '#B8A14E', fontFamily: "'JetBrains Mono', monospace" }}>{deal.ticker}</span>
               </span>
-              {deal.websiteUrl && (
-                <a href={deal.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-[#B8A14E] transition-colors">
+              {deal.website && (
+                <a href={deal.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-[#B8A14E] transition-colors">
                   <Globe size={13} />
                   Website
                   <ExternalLink size={11} />
@@ -233,7 +233,7 @@ export default function ClientDealView() {
           {[
             { label: 'Share Price', value: `$${(deal.currentPrice || 0).toFixed(2)}`, color: '#F5F5F0' },
             { label: 'Entry Price', value: `$${(deal.entryPrice || 0).toFixed(2)}`, color: '#8A8A93' },
-            { label: 'Total Volume', value: `${(deal.totalVolume || 0).toLocaleString()}`, color: '#B8A14E' },
+            { label: 'Shares', value: `${(deal.shareQuantity || 0).toLocaleString()}`, color: '#B8A14E' },
           ].map((m, i) => (
             <motion.div
               key={m.label}
