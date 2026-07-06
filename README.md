@@ -94,9 +94,14 @@ Status is selected via dropdown in Step 1 of deal creation and in the Edit Deal 
 ### Admin Panel
 
 #### 1. Dashboard (`/admin`)
-- **Metrics**: Total AUM, Active Deals, Total Clients, Avg Return
+- **Metrics**:
+  - **Total AUM** = `sum of all client positions at current price` (shares × currentPrice per investment)
+  - **Active Deals** = count of deals with active statuses
+  - **Total Clients** = total registered clients
+  - **Avg Return** = weighted average return across all active deals
 - **3D Globe**: Three.js rotating globe
 - **Active Deals**: list with all 9 status filters
+  - Each card shows: **allocated amount** (real sum of client investments), **return %** (green/red), **progress bar** (allocated vs total package)
 - **Top Performers**: 5 best clients by P&L
 - **Portfolio Chart**: portfolio dynamics over time
 - **Quick Actions**: + New Deal, + Add Client, Upload Materials
@@ -140,18 +145,16 @@ Status is selected via dropdown in Step 1 of deal creation and in the Edit Deal 
 - **Header**: Ticker badge, Status badge (colored), Edit/Delete buttons
 - **Metrics**: Total Package, Allocated %, Clients count, Total Return
 - **Price Panel**: Entry Price, Current Price (inline edit), Shares, Fee, Target
-- **Price History Bar Chart**: histogram from all Last Price entries, green/red bars
+- **Price Trend Bar Chart**: histogram of all price history (green = up, red = down)
 - **Price History Table**:
-  - All price records: Date, Price, Change %, Admin, Source Link
-  - **Add Last Price** button in header — opens modal
-  - Inline **edit** per row (price, admin, source URL)
-  - Inline **delete** with confirmation
+  - All price records with Date, Price, Change %, Admin, Source Link
+  - **Add Last Price** button, inline **edit** and **delete** per row
 - **Client Positions Table**:
   - Client avatar + name + Lead badge
   - Investment, Shares, Entry Price, P&L
   - **Remove** (trash → confirmation)
   - **Add Client** button → modal
-- **Deal Materials**: files and links associated with the deal
+- **Deal Materials Carousel**: horizontal scrollable carousel with arrows and fade gradients
 
 **Edit Deal Modal** (all fields):
 - Company Information: name, ticker, exchange, sector, **status dropdown**, description
@@ -225,17 +228,23 @@ Status is selected via dropdown in Step 1 of deal creation and in the Edit Deal 
 #### Client Dashboard (`/dashboard`)
 - Animated greeting (Good morning/afternoon/evening)
 - **3 metric cards in a row on mobile**: Portfolio Value, Total Invested, Total Return
+  - **Portfolio Value** = `sum of (shares × currentPrice)` for all client positions. Uses real API data.
+  - **Total Invested** = sum of all invested amounts
+  - **Total Return** = Portfolio Value - Total Invested
 - Portfolio Performance chart with reference line "Your Investment"
 - Active Positions: cards per deal with P&L
-- Recent Materials: horizontal scroller
+- Recent Materials: horizontal carousel with scroll arrows
+- **Recent Activity**: timeline feed showing deal joins and material uploads
 
 #### Client Deal View (`/deals/:id`)
 - Deal header: company name, status badge, ticker, website link, creation date
 - **My Position Panel**: Shares, Invested, Current Value, P&L with color coding
-- Deal overview metrics: Share Price, Entry Price, Total Shares
+  - Always visible. Calculated from real investment data.
+- Deal overview metrics: Entry Price, Share Price, Total Shares
+- **Latest Update**: bar showing last price update (price, change, date, admin, source)
 - **Price History Bar Chart**: histogram from Last Price data, green/red bars
 - **All Price Updates Table**: date, price, admin, source link
-- **Deal Materials**: files and links grid with icons
+- **Deal Materials Carousel**: horizontal scrollable carousel with arrows and fade gradients
 
 ---
 
@@ -245,12 +254,20 @@ Each deal has a price history table:
 - **Add Last Price**: modal with Price ($), Admin name, Source URL
 - **Inline Edit**: click pencil → edit price, admin, source URL
 - **Inline Delete**: click trash → confirm with check/cross
-- **Bar Chart**: visualizes all price changes, green = up, red = down
-- Entry Price shown as dashed reference line
 
 When a price is added/edited/deleted:
 - The deal's `currentPrice` is automatically recalculated from the latest history entry
 - Price history is persisted in `es_price_history` localStorage key
+
+### Price History Bar Chart
+- **Histogram (bar chart)** showing all price updates
+- **Green bars** = price went up, **red bars** = price went down
+- **Entry Price** shown as dashed reference line
+- **Tooltip** shows price and change amount (no white hover highlight)
+- Shown with 1+ price records (both admin and client views)
+
+### Latest Update (client deal view)
+Bar showing the most recent price update: price, change amount, date, admin name, source link.
 
 ---
 
