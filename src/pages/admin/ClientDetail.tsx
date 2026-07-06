@@ -9,6 +9,18 @@ import {
   TrendingUp,
   TrendingDown,
   Briefcase,
+  Mail,
+  Phone,
+  Send,
+  FileText,
+  Image,
+  Shield,
+  Link2,
+  Calendar,
+  Clock,
+  User,
+  ExternalLink,
+  StickyNote,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -30,6 +42,75 @@ const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 function getClientName(c: ClientResponse): string {
   return c.fullName || c.name || 'Unknown';
+}
+
+/* ═══════════════════════════════════════════
+   Profile Info Field
+   ═══════════════════════════════════════════ */
+function ProfileField({
+  label,
+  value,
+  icon,
+  href,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  href?: string;
+}) {
+  const content = (
+    <div className="flex items-center gap-2">
+      {icon}
+      <span className="text-[13px] truncate" style={{ color: href ? '#B8A14E' : '#F5F5F0' }}>
+        {value}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-[11px] uppercase mt-0.5" style={{ color: '#55555E', fontWeight: 500, minWidth: 90 }}>{label}</span>
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 group">
+          {content}
+          <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: '#B8A14E' }} />
+        </a>
+      ) : (
+        content
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   Document Link
+   ═══════════════════════════════════════════ */
+function DocLink({ label, url, icon }: { label: string; url: string | null; icon: React.ReactNode }) {
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2">
+        <span style={{ color: '#55555E' }}>{icon}</span>
+        <span className="text-[12px] font-medium" style={{ color: '#55555E' }}>{label}</span>
+        <span className="text-[11px] ml-auto" style={{ color: '#55555E' }}>Not uploaded</span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 p-2 rounded-lg transition-colors group"
+      style={{ background: 'rgba(16,185,129,0.06)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.06)'; }}
+    >
+      <span style={{ color: '#10B981' }}>{icon}</span>
+      <span className="text-[12px] font-medium" style={{ color: '#10B981' }}>{label}</span>
+      <Link2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto" style={{ color: '#10B981' }} />
+    </a>
+  );
 }
 
 interface ClientPosition {
@@ -441,6 +522,142 @@ export default function ClientDetail() {
               </p>
             </motion.div>
           ))}
+        </motion.div>
+
+        {/* Client Full Profile Details */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3, ease: easeExpo }}
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"
+        >
+          {/* Personal Information */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.32, ease: easeExpo }}
+            className="glass-panel p-5"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <User size={16} style={{ color: '#B8A14E' }} />
+              <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>Personal Info</h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              <ProfileField label="Full Name" value={client.fullName || '—'} />
+              <ProfileField label="Display Name" value={client.name || '—'} />
+              <ProfileField label="Nickname" value={client.nickname || '—'} />
+              <ProfileField
+                label="Date of Birth"
+                value={client.dateOfBirth ? new Date(client.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}
+              />
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase" style={{ color: '#55555E', fontWeight: 500, minWidth: 90 }}>Role</span>
+                <span
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase"
+                  style={{
+                    background: client.role === 'superadmin' ? 'rgba(239,68,68,0.15)' : client.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
+                    color: client.role === 'superadmin' ? '#EF4444' : client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+                  }}
+                >
+                  {client.role}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase" style={{ color: '#55555E', fontWeight: 500, minWidth: 90 }}>Status</span>
+                <span
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase"
+                  style={{
+                    background: client.status === 'active' ? 'rgba(16,185,129,0.15)' : client.status === 'pending' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)',
+                    color: client.status === 'active' ? '#10B981' : client.status === 'pending' ? '#F59E0B' : '#6B7280',
+                  }}
+                >
+                  {client.status}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Contact Information */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.36, ease: easeExpo }}
+            className="glass-panel p-5"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Mail size={16} style={{ color: '#4F6EF7' }} />
+              <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#4F6EF7' }}>Contact</h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              <ProfileField
+                label="Email"
+                value={client.email || '—'}
+                icon={<Mail size={12} style={{ color: '#55555E' }} />}
+                href={client.email ? `mailto:${client.email}` : undefined}
+              />
+              <ProfileField
+                label="Phone"
+                value={client.phone || '—'}
+                icon={<Phone size={12} style={{ color: '#55555E' }} />}
+                href={client.phone ? `tel:${client.phone}` : undefined}
+              />
+              <ProfileField
+                label="Telegram"
+                value={client.telegram || '—'}
+                icon={<Send size={12} style={{ color: '#55555E' }} />}
+                href={client.telegram ? `https://t.me/${client.telegram.replace('@', '')}` : undefined}
+              />
+            </div>
+          </motion.div>
+
+          {/* Documents */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4, ease: easeExpo }}
+            className="glass-panel p-5"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <FileText size={16} style={{ color: '#10B981' }} />
+              <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#10B981' }}>Documents</h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              <DocLink label="Contract" url={client.contractUrl} icon={<FileText size={12} />} />
+              <DocLink label="Avatar" url={client.avatarUrl} icon={<Image size={12} />} />
+              <DocLink label="ID Document" url={client.idDocumentUrl} icon={<Shield size={12} />} />
+            </div>
+          </motion.div>
+
+          {/* Notes & System Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.44, ease: easeExpo }}
+            className="glass-panel p-5"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <StickyNote size={16} style={{ color: '#8B5CF6' }} />
+              <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#8B5CF6' }}>Notes & System</h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <span className="text-[10px] uppercase font-semibold block mb-1" style={{ color: '#55555E' }}>Notes</span>
+                <p className="text-[13px] whitespace-pre-wrap" style={{ color: client.notes ? '#F5F5F0' : '#55555E' }}>
+                  {client.notes || 'No notes'}
+                </p>
+              </div>
+              <ProfileField
+                label="Created"
+                value={formatDate(client.createdAt.split('T')[0])}
+                icon={<Calendar size={12} style={{ color: '#55555E' }} />}
+              />
+              <ProfileField
+                label="Updated"
+                value={client.updatedAt ? formatDate(client.updatedAt.split('T')[0]) : '—'}
+                icon={<Clock size={12} style={{ color: '#55555E' }} />}
+              />
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Portfolio Performance Chart + Summary */}
