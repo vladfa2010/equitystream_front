@@ -79,7 +79,7 @@ export default function AvailableDeals() {
       setSelectedDeal(null);
       setInvestAmount('');
       setIsLead(false);
-      setToast({ message: `Successfully invested ${formatCurrency(amount)} in ${selectedDeal.companyName}`, type: 'success' });
+      setToast({ message: `${formatCurrency(amount)} reserved in ${selectedDeal.companyName}`, type: 'success' });
       load(); // Refresh list
     } catch (err: any) {
       setSubmitting(false);
@@ -119,7 +119,7 @@ export default function AvailableDeals() {
             Available Deals
           </h1>
           <p className="text-body" style={{ color: '#8A8A93' }}>
-            Open for investment — commit your allocation
+            Open for reservation — commit your allocation
           </p>
         </motion.div>
 
@@ -249,7 +249,7 @@ export default function AvailableDeals() {
               <div className="flex flex-col gap-4 mt-6">
                 {/* Amount */}
                 <div>
-                  <label className="text-[12px] mb-1.5 block" style={{ color: '#8A8A93' }}>Investment Amount ($) *</label>
+                  <label className="text-[12px] mb-1.5 block" style={{ color: '#8A8A93' }}>Reservation Amount ($) *</label>
                   <input
                     type="number"
                     value={investAmount}
@@ -311,7 +311,7 @@ export default function AvailableDeals() {
                     style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}
                   >
                     {submitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                    {submitting ? 'Committing...' : 'Commit'}
+                    {submitting ? 'Reserving...' : 'Reserve'}
                   </button>
                 </div>
               </div>
