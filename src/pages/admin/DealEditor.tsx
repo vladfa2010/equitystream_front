@@ -5,7 +5,7 @@ import {
   Building2, TrendingUp, Globe, Users, Crown, Pencil, Trash2,
   Plus, Search, X, ChevronRight, ChevronLeft, AlertTriangle,
   CheckCircle2, XCircle, Percent, Upload, Equal, Sparkles,
-  Mail, Calendar, DollarSign, Calculator, Loader2
+  Mail, Calendar, DollarSign, Calculator, Loader2, ArrowLeft
 } from 'lucide-react';
 import StepIndicator from '../../components/deals/StepIndicator';
 import CurrencyInput from '../../components/deals/CurrencyInput';
@@ -1602,6 +1602,16 @@ export default function DealEditor() {
       {/* Header */}
       <div className="w-full px-6 lg:px-10 pt-8 pb-4">
         <div className="max-w-6xl mx-auto">
+          {/* Back button */}
+          <button
+            onClick={() => navigate('/admin/deals')}
+            className="flex items-center gap-2 mb-4 text-[12px] font-medium transition-all duration-200 rounded-lg px-2 py-1 -ml-2"
+            style={{ color: '#8A8A93', background: 'transparent' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#F5F5F0'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#8A8A93'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            <ArrowLeft size={14} /> Back to Deals
+          </button>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(184,161,78,0.12)', border: '1px solid rgba(184,161,78,0.2)' }}>
               <Building2 size={20} style={{ color: '#B8A14E' }} />
@@ -1676,13 +1686,24 @@ export default function DealEditor() {
 
           {/* Navigation Buttons */}
           <div className="mt-8 flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-3">
+              {/* Cancel — always visible */}
+              <button
+                onClick={() => navigate('/admin/deals')}
+                className="px-5 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200 flex items-center gap-2"
+                style={{ color: '#8A8A93', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#F5F5F0'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#8A8A93'; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+              >
+                Cancel
+              </button>
               {step > 0 && (
                 <button
                   onClick={handleBack}
-                  className="px-5 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200 flex items-center gap-2"
+                  disabled={isCreating}
+                  className="px-5 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ color: '#8A8A93', background: 'transparent' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#F5F5F0'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  onMouseEnter={e => { if (!isCreating) { e.currentTarget.style.color = '#F5F5F0'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; } }}
                   onMouseLeave={e => { e.currentTarget.style.color = '#8A8A93'; e.currentTarget.style.background = 'transparent'; }}
                 >
                   <ChevronLeft size={16} /> Back
