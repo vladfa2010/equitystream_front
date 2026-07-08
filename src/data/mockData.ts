@@ -100,7 +100,7 @@ export const clients: Client[] = [
 function generatePriceHistory(basePrice: number, days: number, volatility: number = 0.02): PricePoint[] {
   const history: PricePoint[] = [];
   let price = basePrice * 0.85;
-  const now = new Date('2025-06-01');
+  const now = new Date();
   for (let i = days; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
@@ -429,7 +429,7 @@ export const avgReturn = clients.reduce((sum, c) => sum + c.pnlPercent, 0) / cli
 export function getPortfolioHistory(days: number = 180): PricePoint[] {
   const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
   const history: PricePoint[] = [];
-  const now = new Date('2025-06-01');
+  const now = new Date();
 
   for (let i = days; i >= 0; i--) {
     const date = new Date(now);

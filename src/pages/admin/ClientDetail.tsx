@@ -176,7 +176,7 @@ export default function ClientDetail() {
   const portfolioHistory: ChartDataPoint[] = useMemo(() => {
     if (!client || positions.length === 0) return [];
 
-    const now = new Date('2025-06-01');
+    const now = new Date();
     const rangeMap: Record<string, number> = {
       '1M': 30,
       '3M': 90,
@@ -260,9 +260,37 @@ export default function ClientDetail() {
     timestamp: string;
   }
   const clientActivities = useMemo<ActivityItem[]>(() => {
-    if (!client) return [];
-    return [] as ActivityItem[];
-  }, [client]);
+    if (!client || clientPositions.length === 0) return [];
+    // Build activity from real client positions and price updates
+    const activities: ActivityItem[] = [];
+    for (const pos of clientPositions) {
+      activities.push({
+        type: 'deal_created' as const,
+        title: `Joined "${pos.dealName}"`,
+        detail: `${formatCurrency(pos.invested)} at $${pos.entryPrice.toFixed(2)}`,
+        timestamp: pos.createdAt,
+      });
+    }
+    // Add price update activities from deal price history
+    for (const pos of clientPositions) {
+      const deal = allDeals.find(d => d.id === pos.dealId);
+      if (deal && deal.priceHistory && deal.priceHistory.length > 1) {
+        const latest = deal.priceHistory[deal.priceHistory.length - 1];
+        const prev = deal.priceHistory[deal.priceHistory.length - 2];
+        const change = ((latest.price - prev.price) / prev.price) * 100;
+        activities.push({
+          type: 'price_updated' as const,
+          title: `Price update: ${pos.dealTicker}`,
+          detail: `$${latest.price.toFixed(2)} (${change >= 0 ? '+' : ''}${change.toFixed(1)}%)`,
+          timestamp: latest.createdAt,
+        });
+      }
+    }
+    // Sort by timestamp desc, take latest 8
+    return activities
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 8);
+  }, [client, clientPositions, allDeals]);
 
   const handleToggleStatus = useCallback(() => {
     if (!client) return;

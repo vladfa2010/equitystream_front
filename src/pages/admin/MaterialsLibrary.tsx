@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Link2, Trash2, Link2Icon, X, Check } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useMaterials } from '@/hooks/useMaterials';
-import { deals } from '@/data/mockData';
+import { dealsApi } from '@/api';
+import type { DealResponse } from '@/api';
 import type { MaterialItem } from '@/hooks/useMaterials';
 
 import StatsBar from '@/components/materials/StatsBar';
@@ -45,6 +46,11 @@ export default function MaterialsLibrary() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [previewMaterial, setPreviewMaterial] = useState<MaterialItem | null>(null);
   const [showAssociateModal, setShowAssociateModal] = useState(false);
+  const [apiDeals, setApiDeals] = useState<DealResponse[]>([]);
+
+  useEffect(() => {
+    dealsApi.getAll().then(setApiDeals).catch(() => {});
+  }, []);
 
   const hasSelection = selectedIds.size > 0;
 
@@ -144,7 +150,7 @@ export default function MaterialsLibrary() {
           setSortOption={setSortOption}
           viewMode={viewMode}
           setViewMode={setViewMode}
-          deals={deals}
+          deals={apiDeals}
           resultCount={materials.length}
         />
 

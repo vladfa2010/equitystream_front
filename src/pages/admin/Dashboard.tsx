@@ -530,6 +530,11 @@ export default function AdminDashboard() {
   };
 
   const portfolioData = useMemo(() => {
+    const daysMap: Record<string, number> = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365, 'ALL': 9999 };
+    const days = daysMap[chartRange] || 180;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
     // Aggregate price history from all active deals
     const ACTIVE_STATUSES = ['Pipeline', 'Skip', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
     const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
@@ -537,10 +542,12 @@ export default function AdminDashboard() {
 
     // Use the first active deal's price history as proxy
     const mainDeal = activeDeals[0];
-    return (mainDeal.priceHistory || []).map(p => ({
-      date: new Date(p.createdAt).toISOString().split('T')[0],
-      price: p.price * (mainDeal.totalPackageAmount / mainDeal.entryPrice),
-    })).slice(-30);
+    return (mainDeal.priceHistory || [])
+      .filter(p => new Date(p.createdAt) >= cutoff)
+      .map(p => ({
+        date: new Date(p.createdAt).toISOString().split('T')[0],
+        price: p.price * (mainDeal.totalPackageAmount / mainDeal.entryPrice),
+      }));
   }, [deals, chartRange]);
 
   const filteredDeals = deals.filter(d => {

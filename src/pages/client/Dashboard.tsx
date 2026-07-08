@@ -161,7 +161,48 @@ export default function ClientDashboard() {
 
   // Portfolio history for chart
   const days = TIME_RANGES.find(t => t.label === timeRange)?.days || 180;
-  const portfolioHistory = useMemo(() => getPortfolioHistory(days), [days]);
+
+  // Build portfolio history from REAL apiDeals with their priceHistory
+  const portfolioHistory = useMemo(() => {
+    if (apiDeals.length === 0) return getPortfolioHistory(days); // fallback to mock
+    const now = new Date();
+    const history: PricePoint[] = [];
+    for (let i = days; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      let totalValue = 0;
+      let hasData = false;
+      for (const { deal, investment } of apiDeals) {
+        const d = deal as any;
+        const ph = (d.priceHistory || []) as any[];
+        // Find closest price for this date
+        const entry = ph.find((p: any) => p.createdAt?.startsWith(dateStr));
+        if (entry) {
+          const shares = investment.amount / investment.entryPrice;
+          totalValue += shares * entry.price;
+          hasData = true;
+        } else if (ph.length > 0) {
+          // Use nearest price
+          const nearest = ph.reduce((closest: any, p: any) => {
+            const pd = new Date(p.createdAt).getTime();
+            const cd = new Date(closest.createdAt).getTime();
+            const td = new Date(dateStr).getTime();
+            return Math.abs(pd - td) < Math.abs(cd - td) ? p : closest;
+          });
+          const shares = investment.amount / investment.entryPrice;
+          totalValue += shares * nearest.price;
+          hasData = true;
+        }
+      }
+      if (hasData) {
+        history.push({ date: dateStr, value: Math.round(totalValue) });
+      }
+    }
+    return history.length > 0 ? history : getPortfolioHistory(days);
+  }, [apiDeals, days]);
+
   const chartData = useMemo(() => buildPortfolioChartData(portfolioHistory), [portfolioHistory]);
 
   // Sparkline data for Total Return card (last 30 points)
