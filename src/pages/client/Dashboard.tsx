@@ -197,7 +197,7 @@ export default function ClientDashboard() {
         }
       }
       if (hasData) {
-        history.push({ date: dateStr, value: Math.round(totalValue) });
+        history.push({ date: dateStr, price: Math.round(totalValue) });
       }
     }
     return history.length > 0 ? history : getPortfolioHistory(days);

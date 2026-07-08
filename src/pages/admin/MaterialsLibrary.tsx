@@ -150,7 +150,7 @@ export default function MaterialsLibrary() {
           setSortOption={setSortOption}
           viewMode={viewMode}
           setViewMode={setViewMode}
-          deals={apiDeals}
+          deals={apiDeals as any}
           resultCount={materials.length}
         />
 
@@ -331,14 +331,14 @@ export default function MaterialsLibrary() {
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onUpload={handleUpload}
-        deals={apiDeals}
+        deals={apiDeals as any}
       />
 
       <AddLinkModal
         isOpen={showLinkModal}
         onClose={() => setShowLinkModal(false)}
         onAdd={addMaterial}
-        deals={apiDeals}
+        deals={apiDeals as any}
       />
 
       <PreviewModal
@@ -351,7 +351,7 @@ export default function MaterialsLibrary() {
         isOpen={showAssociateModal}
         onClose={() => setShowAssociateModal(false)}
         onAssociate={handleAssociate}
-        deals={apiDeals}
+        deals={apiDeals as any}
         selectedCount={selectedIds.size}
       />
     </Layout>

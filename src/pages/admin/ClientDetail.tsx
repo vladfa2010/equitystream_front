@@ -265,9 +265,9 @@ export default function ClientDetail() {
     return positions.map((pos, i) => ({
       id: `act_${i}`,
       type: 'deal_created' as const,
-      title: `Joined "${pos.dealName}"`,
-      detail: `${formatCurrency(pos.invested)} at $${pos.entryPrice.toFixed(2)}`,
-      timestamp: pos.createdAt,
+      title: `Joined "${pos.deal?.companyName || 'Deal'}"`,
+      detail: `${formatCurrency(pos.investment?.amount || 0)} at $${(pos.investment?.entryPrice || 0).toFixed(2)}`,
+      timestamp: pos.investment?.createdAt || new Date().toISOString(),
     })).slice(0, 8);
   }, [client, positions]);
 
