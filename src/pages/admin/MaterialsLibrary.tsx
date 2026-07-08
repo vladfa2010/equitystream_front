@@ -331,14 +331,14 @@ export default function MaterialsLibrary() {
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onUpload={handleUpload}
-        deals={deals}
+        deals={apiDeals}
       />
 
       <AddLinkModal
         isOpen={showLinkModal}
         onClose={() => setShowLinkModal(false)}
         onAdd={addMaterial}
-        deals={deals}
+        deals={apiDeals}
       />
 
       <PreviewModal
@@ -351,7 +351,7 @@ export default function MaterialsLibrary() {
         isOpen={showAssociateModal}
         onClose={() => setShowAssociateModal(false)}
         onAssociate={handleAssociate}
-        deals={deals}
+        deals={apiDeals}
         selectedCount={selectedIds.size}
       />
     </Layout>
