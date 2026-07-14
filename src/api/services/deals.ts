@@ -15,8 +15,16 @@ import {
   createReservationLocal,
   updateReservationStatusLocal,
   deleteReservationLocal,
+  getAllOrders,
+  getOrdersForDeal,
+  getOrdersForClient,
+  getActiveOrdersForDeal,
+  createOrderLocal,
+  updateOrderLocal,
+  cancelOrderLocal,
+  executeOrderLocal,
 } from '../localDb';
-import type { CreateDealRequest, DealResponse, UpdatePriceRequest, PriceHistoryItem, Reservation } from '../types';
+import type { CreateDealRequest, DealResponse, UpdatePriceRequest, PriceHistoryItem, Reservation, Order } from '../types';
 
 /** Attach materials to a deal by matching dealId */
 function attachMaterials(deal: DealResponse | null): DealResponse | null {
@@ -196,6 +204,59 @@ export const dealsApi = {
   deleteReservation: async (reservationId: string): Promise<{ success: boolean }> => {
     await new Promise(r => setTimeout(r, 200));
     deleteReservationLocal(reservationId);
+    return { success: true };
+  },
+
+  /* ─── Orders (Marketplace) ─── */
+  getOrders: async (): Promise<Order[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getAllOrders();
+  },
+
+  getDealOrders: async (dealId: string): Promise<Order[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getOrdersForDeal(dealId);
+  },
+
+  getClientOrders: async (clientId: string): Promise<Order[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getOrdersForClient(clientId);
+  },
+
+  getActiveDealOrders: async (dealId: string): Promise<Order[]> => {
+    await new Promise(r => setTimeout(r, 200));
+    return getActiveOrdersForDeal(dealId);
+  },
+
+  createOrder: async (data: {
+    dealId: string;
+    dealName: string;
+    dealTicker: string;
+    clientId: string;
+    clientName: string;
+    type: 'limit' | 'market';
+    side: 'buy' | 'sell';
+    price: number | null;
+    quantity: number;
+  }): Promise<Order> => {
+    await new Promise(r => setTimeout(r, 300));
+    return createOrderLocal(data);
+  },
+
+  updateOrder: async (orderId: string, patch: Partial<Order>): Promise<Order | null> => {
+    await new Promise(r => setTimeout(r, 200));
+    return updateOrderLocal(orderId, patch);
+  },
+
+  cancelOrder: async (orderId: string): Promise<{ success: boolean }> => {
+    await new Promise(r => setTimeout(r, 200));
+    cancelOrderLocal(orderId);
+    return { success: true };
+  },
+
+  executeOrder: async (orderId: string): Promise<{ success: boolean }> => {
+    await new Promise(r => setTimeout(r, 200));
+    executeOrderLocal(orderId);
     return { success: true };
   },
 };

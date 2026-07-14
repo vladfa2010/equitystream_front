@@ -11,6 +11,8 @@ import MaterialsLibrary from '@/pages/admin/MaterialsLibrary';
 import ClientDashboard from '@/pages/client/Dashboard';
 import ClientDealView from '@/pages/client/DealView';
 import AvailableDeals from '@/pages/client/AvailableDeals';
+import Market from '@/pages/client/Market';
+import DealTrading from '@/pages/client/DealTrading';
 
 export default function App() {
   return (
@@ -32,6 +34,8 @@ export default function App() {
       <Route path="/dashboard" element={<ClientDashboard />} />
       <Route path="/deals/:id" element={<ClientDealView />} />
       <Route path="/deals/available" element={<AvailableDeals />} />
+      <Route path="/market" element={<Market />} />
+      <Route path="/market/:id" element={<DealTrading />} />
     </Routes>
   );
 }

@@ -10,6 +10,8 @@ import type {
   PriceHistoryItem,
   Reservation,
   CreateReservationRequest,
+  Order,
+  CreateOrderRequest,
   CreateDealRequest,
   CreateClientRequest,
   CreateMaterialRequest,
@@ -21,6 +23,7 @@ const DB_KEYS = {
   materials: 'es_materials',
   priceHistory: 'es_price_history',
   reservations: 'es_reservations',
+  orders: 'es_orders',
 };
 
 const BACKUP_KEYS = {
@@ -28,6 +31,7 @@ const BACKUP_KEYS = {
   clients: 'es_clients_backup',
   priceHistory: 'es_price_history_backup',
   reservations: 'es_reservations_backup',
+  orders: 'es_orders_backup',
 };
 
 /* ═══════════════════════════════════════════
@@ -166,6 +170,7 @@ export function initLocalDb(): void {
   _set(DB_KEYS.materials, SEED_MATERIALS);
   _set(DB_KEYS.priceHistory, []);
   _set(DB_KEYS.reservations, []);
+  _set(DB_KEYS.orders, []);
   _backup();
 }
 
@@ -516,6 +521,58 @@ export function deleteReservationLocal(reservationId: string): boolean {
   _set(DB_KEYS.reservations, all);
   _backup();
   return true;
+}
+
+/* ═══════════════════════════════════════════
+   PUBLIC API — Orders (Marketplace)
+   ═══════════════════════════════════════════ */
+
+export function getAllOrders(): Order[] {
+  initLocalDb();
+  return _get<Order[]>(DB_KEYS.orders) || [];
+}
+
+export function getOrdersForDeal(dealId: string): Order[] {
+  return getAllOrders().filter(o => o.dealId === dealId);
+}
+
+export function getOrdersForClient(clientId: string): Order[] {
+  return getAllOrders().filter(o => o.clientId === clientId);
+}
+
+export function getActiveOrdersForDeal(dealId: string): Order[] {
+  return getAllOrders().filter(o => o.dealId === dealId && o.status === 'pending');
+}
+
+export function createOrderLocal(data: CreateOrderRequest): Order {
+  const all = getAllOrders();
+  const newOrder: Order = {
+    id: `ord_${Date.now()}`,
+    ...data,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  _set(DB_KEYS.orders, [...all, newOrder]);
+  _backup();
+  return newOrder;
+}
+
+export function updateOrderLocal(orderId: string, patch: Partial<Order>): Order | null {
+  const all = getAllOrders();
+  const idx = all.findIndex(o => o.id === orderId);
+  if (idx === -1) return null;
+  all[idx] = { ...all[idx], ...patch, updatedAt: new Date().toISOString() };
+  _set(DB_KEYS.orders, all);
+  _backup();
+  return all[idx];
+}
+
+export function cancelOrderLocal(orderId: string): Order | null {
+  return updateOrderLocal(orderId, { status: 'cancelled' });
+}
+
+export function executeOrderLocal(orderId: string): Order | null {
+  return updateOrderLocal(orderId, { status: 'executed' });
 }
 
 /* ═══════════════════════════════════════════

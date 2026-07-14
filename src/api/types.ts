@@ -196,6 +196,35 @@ export interface CreateReservationRequest {
   isLead: boolean;
 }
 
+// ===== ORDERS (MARKETPLACE) =====
+export interface Order {
+  id: string;
+  dealId: string;
+  dealName: string;
+  dealTicker: string;
+  clientId: string;
+  clientName: string;
+  type: 'limit' | 'market';
+  side: 'buy' | 'sell';
+  price: number | null;
+  quantity: number;
+  status: 'pending' | 'executed' | 'cancelled';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateOrderRequest {
+  dealId: string;
+  dealName: string;
+  dealTicker: string;
+  clientId: string;
+  clientName: string;
+  type: 'limit' | 'market';
+  side: 'buy' | 'sell';
+  price: number | null;
+  quantity: number;
+}
+
 // ===== DASHBOARD =====
 export interface AdminDashboardResponse {
   totalAum: number;

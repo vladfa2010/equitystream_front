@@ -6,6 +6,7 @@ import {
   Briefcase,
   Users,
   FolderOpen,
+  BarChart3,
   Bell,
   Menu,
   X,
@@ -25,6 +26,7 @@ const adminNavItems = [
 const clientNavItems = [
   { label: 'My Portfolio', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Deals', path: '/deals/available', icon: Briefcase },
+  { label: 'Market', path: '/market', icon: BarChart3 },
 ];
 
 export default function Navbar({ role = 'admin' }: NavbarProps) {
@@ -37,6 +39,7 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
     if (path === '/admin/deals') return location.pathname.startsWith('/admin/deals');
     if (path === '/admin/clients') return location.pathname.startsWith('/admin/clients');
     if (path === '/deals/available') return location.pathname.startsWith('/deals');
+    if (path === '/market') return location.pathname.startsWith('/market');
     return location.pathname === path;
   };
 
