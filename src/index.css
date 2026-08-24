@@ -146,18 +146,40 @@
   .btn-primary {
     background: var(--grad-gold);
     color: var(--text-inverse);
-    border-radius: 10px;
-    padding: 10px 20px;
+    border-radius: 12px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
     transition: all 0.25s var(--ease-expo-out);
     cursor: pointer;
     border: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 85% 15%, rgba(255,255,255,0.15) 0%, transparent 45%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
   }
   .btn-primary:hover {
-    filter: brightness(1.1);
-    transform: scale(1.02);
-    box-shadow: 0 8px 24px rgba(184, 161, 78, 0.25);
+    filter: brightness(1.08);
+    box-shadow: 3px 4px 18px rgba(184, 161, 78, 0.22);
+  }
+  .btn-primary:hover::after,
+  .btn-primary:active::after {
+    opacity: 1;
+  }
+  @media (max-width: 640px) {
+    .btn-primary::after {
+      background: radial-gradient(circle at 92% 8%, rgba(255,255,255,0.2) 0%, transparent 30%);
+    }
+    .btn-primary:hover,
+    .btn-primary:active {
+      box-shadow: 4px 6px 16px rgba(184, 161, 78, 0.18);
+    }
   }
 
   .btn-secondary {

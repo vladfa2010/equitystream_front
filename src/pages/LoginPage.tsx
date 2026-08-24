@@ -170,14 +170,6 @@ export default function LoginPage() {
     boxShadow: '0 0 0 3px rgba(184, 161, 78, 0.08)',
   };
 
-  const primaryButtonStyle: React.CSSProperties = {
-    background: 'linear-gradient(135deg, #B8A14E 0%, #C9B25F 100%)',
-    color: '#0A0A0F',
-    borderRadius: '12px',
-    height: '48px',
-    fontWeight: 600,
-  };
-
   const tabContainerStyle: React.CSSProperties = {
     background: 'rgba(255, 255, 255, 0.03)',
     border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -447,16 +439,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 text-[15px]"
-                  style={primaryButtonStyle}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1.1)';
-                    (e.target as HTMLElement).style.boxShadow = '0 8px 24px rgba(184, 161, 78, 0.25)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1)';
-                    (e.target as HTMLElement).style.boxShadow = 'none';
-                  }}
+                  className="w-full flex items-center justify-center gap-2 disabled:opacity-60 h-12 btn-primary"
                 >
                   {loading ? (
                     <span className="w-5 h-5 border-2 border-[#0A0A0F]/30 border-t-[#0A0A0F] rounded-full animate-spin" />
@@ -594,16 +577,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 text-[15px]"
-                  style={primaryButtonStyle}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1.1)';
-                    (e.target as HTMLElement).style.boxShadow = '0 8px 24px rgba(184, 161, 78, 0.25)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1)';
-                    (e.target as HTMLElement).style.boxShadow = 'none';
-                  }}
+                  className="w-full flex items-center justify-center gap-2 disabled:opacity-60 h-12 btn-primary"
                 >
                   {loading ? (
                     <span className="w-5 h-5 border-2 border-[#0A0A0F]/30 border-t-[#0A0A0F] rounded-full animate-spin" />
@@ -660,16 +634,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 text-[15px]"
-                  style={primaryButtonStyle}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1.1)';
-                    (e.target as HTMLElement).style.boxShadow = '0 8px 24px rgba(184, 161, 78, 0.25)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1)';
-                    (e.target as HTMLElement).style.boxShadow = 'none';
-                  }}
+                  className="w-full flex items-center justify-center gap-2 disabled:opacity-60 h-12 btn-primary"
                 >
                   {loading ? (
                     <span className="w-5 h-5 border-2 border-[#0A0A0F]/30 border-t-[#0A0A0F] rounded-full animate-spin" />
@@ -735,16 +700,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading || code.length !== 6}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 text-[15px]"
-                  style={primaryButtonStyle}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1.1)';
-                    (e.target as HTMLElement).style.boxShadow = '0 8px 24px rgba(184, 161, 78, 0.25)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1)';
-                    (e.target as HTMLElement).style.boxShadow = 'none';
-                  }}
+                  className="w-full flex items-center justify-center gap-2 disabled:opacity-60 h-12 btn-primary"
                 >
                   {loading ? (
                     <span className="w-5 h-5 border-2 border-[#0A0A0F]/30 border-t-[#0A0A0F] rounded-full animate-spin" />
@@ -818,16 +774,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 text-[15px]"
-                  style={primaryButtonStyle}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1.1)';
-                    (e.target as HTMLElement).style.boxShadow = '0 8px 24px rgba(184, 161, 78, 0.25)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLElement).style.filter = 'brightness(1)';
-                    (e.target as HTMLElement).style.boxShadow = 'none';
-                  }}
+                  className="w-full flex items-center justify-center gap-2 disabled:opacity-60 h-12 btn-primary"
                 >
                   {loading ? (
                     <span className="w-5 h-5 border-2 border-[#0A0A0F]/30 border-t-[#0A0A0F] rounded-full animate-spin" />
