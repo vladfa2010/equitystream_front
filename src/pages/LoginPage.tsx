@@ -275,10 +275,11 @@ export default function LoginPage() {
           width="100%"
           height="auto"
           borderRadius={24}
+          borderWidth={0.01}
           backgroundOpacity={0.7}
           saturation={1.4}
           displace={0.5}
-          blur={11}
+          blur={1}
           distortionScale={-180}
           redOffset={0}
           greenOffset={10}
