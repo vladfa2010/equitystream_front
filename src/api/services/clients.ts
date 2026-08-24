@@ -1,43 +1,54 @@
-import {
-  getAllClients,
-  getClientById,
-  createClientLocal,
-  updateClientLocal,
-  deleteClientLocal,
-} from '../localDb';
 import type { ClientResponse, CreateClientRequest } from '../types';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://159-194-206-229.sslip.io/api';
+
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+  const token = localStorage.getItem('es_auth_token');
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export const clientsApi = {
-  getAll: async (params?: { status?: string; search?: string }) => {
-    let clients = getAllClients();
-    if (params?.status) clients = clients.filter(c => c.status === params.status);
-    if (params?.search) {
-      const q = params.search.toLowerCase();
-      clients = clients.filter(c => (c.fullName || c.name || '').toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
-    }
-    return clients;
+  getAll: async (params?: { status?: string; search?: string }): Promise<ClientResponse[]> => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.search) query.set('search', params.search);
+    return fetchWithAuth(`/clients?${query}`);
   },
 
   getById: async (id: string): Promise<ClientResponse | null> => {
-    return getClientById(id);
+    return fetchWithAuth(`/clients/${id}`);
   },
 
   create: async (data: CreateClientRequest): Promise<ClientResponse> => {
-    await new Promise(r => setTimeout(r, 500));
-    return createClientLocal(data);
+    return fetchWithAuth('/clients', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
-  update: async (id: string, data: Record<string, any>) => {
-    await new Promise(r => setTimeout(r, 300));
-    const client = updateClientLocal(id, data);
-    if (!client) throw new Error('Client not found');
-    return client;
+  update: async (id: string, data: Record<string, any>): Promise<ClientResponse> => {
+    return fetchWithAuth(`/clients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
-  delete: async (id: string) => {
-    await new Promise(r => setTimeout(r, 300));
-    deleteClientLocal(id);
-    return { success: true };
+  delete: async (id: string): Promise<{ success: boolean }> => {
+    return fetchWithAuth(`/clients/${id}`, {
+      method: 'DELETE',
+    });
   },
 
   getPortfolio: async (id: string) => {
