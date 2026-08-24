@@ -45,7 +45,7 @@ export default function GlareHover({
         cursor: 'pointer',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(201, 117, 58, 0.25)';
+        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(184, 161, 78, 0.25)';
       }}
     >
       {/* Glare layer */}

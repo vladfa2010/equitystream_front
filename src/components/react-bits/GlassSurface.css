@@ -1,0 +1,76 @@
+.glass-surface {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.26s ease-out;
+}
+
+.glass-surface__filter {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: -1;
+}
+
+.glass-surface__content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: inherit;
+  position: relative;
+  z-index: 1;
+}
+
+/* SVG displacement map glass effect */
+.glass-surface--svg {
+  background: rgba(10, 10, 15, var(--glass-frost, 0));
+  backdrop-filter: var(--filter-id, url(#glass-filter)) saturate(var(--glass-saturation, 1));
+  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter)) saturate(var(--glass-saturation, 1));
+  box-shadow:
+    /* Inner subtle edge glow */
+    0 0 2px 1px rgba(184, 161, 78, 0.08) inset,
+    0 0 10px 4px rgba(184, 161, 78, 0.04) inset,
+    /* Soft outer drop shadow */
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 16px 56px rgba(0, 0, 0, 0.2),
+    /* Inner depth shadows */
+    0 4px 16px rgba(0, 0, 0, 0.2) inset,
+    0 8px 24px rgba(0, 0, 0, 0.15) inset,
+    0 16px 56px rgba(0, 0, 0, 0.1) inset;
+}
+
+/* Fallback for Safari / Firefox */
+.glass-surface--fallback {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(184, 161, 78, 0.12);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.4),
+    0 2px 16px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 0 rgba(255, 255, 255, 0.02);
+}
+
+/* No backdrop-filter support */
+@supports not (backdrop-filter: blur(10px)) {
+  .glass-surface--fallback {
+    background: rgba(10, 10, 15, 0.8);
+    border: 1px solid rgba(184, 161, 78, 0.1);
+  }
+}
+
+/* Focus visible */
+.glass-surface:focus-visible {
+  outline: 2px solid rgba(184, 161, 78, 0.5);
+  outline-offset: 2px;
+}
