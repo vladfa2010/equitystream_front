@@ -107,9 +107,51 @@ All endpoints require `Authorization: Bearer <token>` + `isAdmin = true`.
 | Component | Path | Purpose |
 |-----------|------|---------|
 | `AuthContext.tsx` | `src/context/` | JWT management, login/register/logout, user state |
-| `LoginPage.tsx` | `src/pages/` | 5-mode: login / register / forgot / code / reset |
+| `LoginPage.tsx` | `src/pages/` | 5-mode auth form with WebThreads background + GlassSurface card + ShinyText logo |
 | `PendingApprovalPage.tsx` | `src/pages/` | Unverified user waiting screen |
 | `AdminUsersList.tsx` | `src/pages/admin/` | Full user management table |
+
+---
+
+## Login Page Design
+
+### Background — WebThreads
+- **WebGL GLSL shader** via `ogl` library
+- 4 animated threads with gold color palette (`#B8A14E` → `#C9B25F` → `#F5F5F0`)
+- Mouse interaction: threads react to cursor movement
+- Shimmer effect for liveliness
+- Grain overlay for cinematic texture
+
+### Card — GlassSurface
+- **SVG displacement map** glass effect with chromatic aberration
+- `borderWidth={0.01}`, `blur={1}` — subtle edge glow
+- `displace={0.5}`, `distortionScale={-180}` — soft refraction
+- `mixBlendMode="difference"` — RGB-split at edges
+- Fallback for Safari/Firefox: standard glassmorphism (`backdrop-filter: blur(20px)`)
+
+### Tabs (Plashki)
+Two pill-shaped tabs at the top of the card:
+- **Sign In** / **Register** — toggle between login and registration modes
+- Active tab: gold background (`rgba(184, 161, 78, 0.12)`), gold text, gold border
+- Inactive tab: transparent, muted text (`#55555E`)
+- Smooth transition between modes via `AnimatePresence` + `framer-motion`
+
+### Logo — ShinyText
+- Animated shimmer effect on "EQUITYSTREAM" text
+- Gold gradient (`#B8A14E`) with white shine (`#F5F5F0`)
+- Speed: 4 cycles per second
+
+### Input Fields
+- Background: `rgba(255, 255, 255, 0.03)`
+- Border: `1px solid rgba(255, 255, 255, 0.06)`
+- Focus: gold border + gold glow shadow
+- Icons (Mail, Lock, User) from Lucide React
+
+### Primary Button
+- Gradient: `#B8A14E` → `#C9B25F`
+- Text: `#0A0A0F` (dark)
+- Hover: brightness(1.1) + gold shadow
+- Loading state: animated spinner
 
 ---
 

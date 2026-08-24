@@ -68,6 +68,7 @@ React 19 + Vite + Tailwind CSS + Framer Motion
 - **Level 2 Order Book** — individual orders, limit/market orders
 - Position-based permissions (can only sell if holding)
 - Glassmorphism UI with warm terracotta palette
+- **Login Page** — WebThreads animated background + GlassSurface card + ShinyText logo
 
 ### Admin Panel
 - Metrics dashboard (AUM, active deals, clients, returns)
@@ -85,7 +86,7 @@ React 19 + Vite + Tailwind CSS + Framer Motion
 - **Database**: PostgreSQL 16 (users, deals, clients, materials, price history, activity log)
 - **Auth**: bcrypt (cost 12), JWT HS256, admin approval workflow
 - **Server**: Caddy (auto-SSL), Ubuntu VPS
-- **UI Effects**: React Bits (SpotlightCard, ShinyText, GlareHover, CountUp)
+- **UI Effects**: React Bits (WebThreads, GlassSurface, ShinyText, GlareHover, CountUp, SpotlightCard)
 
 ---
 
@@ -95,14 +96,14 @@ React 19 + Vite + Tailwind CSS + Framer Motion
 src/
   /api/services/          # API clients (auth, admin, deals, clients, materials)
   /components/
-    /react-bits/          # SpotlightCard, ShinyText, GlareHover, CountUp
+    /react-bits/          # WebThreads, GlassSurface, SpotlightCard, ShinyText, GlareHover, CountUp
     /ui/                  # shadcn/ui components
     Navbar.tsx, Layout.tsx, Sidebar.tsx, Globe.tsx
     /client/, /clients/, /deals/, /materials/
   /context/AuthContext.tsx  # JWT auth state + viewMode
   /data/mockData.ts        # Seed data + format utilities
   /pages/
-    LoginPage.tsx          # 5-mode auth (login/register/forgot/code/reset)
+    LoginPage.tsx          # 5-mode auth with WebThreads bg + GlassSurface card
     PendingApprovalPage.tsx
     /admin/                # Dashboard, Deals, Clients, Materials, Users
     /client/               # Dashboard, DealView, DealTrading, Market
