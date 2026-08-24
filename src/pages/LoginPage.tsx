@@ -8,7 +8,7 @@ import ShinyText from '@/components/react-bits/ShinyText';
 import GlassSurface from '@/components/react-bits/GlassSurface';
 import {
   LogIn, Eye, EyeOff, UserPlus, ArrowLeft, KeyRound,
-  Mail, User, Lock, CheckCircle, Shield, ArrowRight
+  Mail, User, Lock, CheckCircle, ArrowRight
 } from 'lucide-react';
 
 type Mode = 'login' | 'register' | 'forgot' | 'code' | 'reset';
@@ -259,7 +259,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(184, 161, 78, 0.1)' }}>
-            <Shield size={20} style={{ color: '#B8A14E' }} />
+
           </div>
           <ShinyText text="EQUITYSTREAM" speed={4} color="#B8A14E" />
         </div>
