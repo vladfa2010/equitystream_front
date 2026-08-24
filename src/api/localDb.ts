@@ -18,20 +18,20 @@ import type {
 } from './types';
 
 const DB_KEYS = {
-  deals: 'es_deals',
-  clients: 'es_clients',
-  materials: 'es_materials',
-  priceHistory: 'es_price_history',
-  reservations: 'es_reservations',
-  orders: 'es_orders',
+  deals: 'es_deals_v2',
+  clients: 'es_clients_v2',
+  materials: 'es_materials_v2',
+  priceHistory: 'es_price_history_v2',
+  reservations: 'es_reservations_v2',
+  orders: 'es_orders_v2',
 };
 
 const BACKUP_KEYS = {
-  deals: 'es_deals_backup',
-  clients: 'es_clients_backup',
-  priceHistory: 'es_price_history_backup',
-  reservations: 'es_reservations_backup',
-  orders: 'es_orders_backup',
+  deals: 'es_deals_backup_v2',
+  clients: 'es_clients_backup_v2',
+  priceHistory: 'es_price_history_backup_v2',
+  reservations: 'es_reservations_backup_v2',
+  orders: 'es_orders_backup_v2',
 };
 
 /* ═══════════════════════════════════════════
@@ -87,6 +87,7 @@ const SEED_CLIENTS: ClientResponse[] = [
   // Default system accounts
   { id: 'c_user', fullName: 'Default User', name: 'Default User', nickname: 'user', dateOfBirth: null, role: 'user', email: 'user@equitystream.com', phone: null, telegram: null, notes: 'Default user account. Password: user', contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 0, totalPnl: 0, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
   { id: 'c_admin', fullName: 'Default Admin', name: 'Default Admin', nickname: 'admin', dateOfBirth: null, role: 'admin', email: 'admin@equitystream.com', phone: null, telegram: null, notes: 'Default admin account. Password: admin', contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 0, totalPnl: 0, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'c_vlad', fullName: 'Vlad', name: 'Vlad', nickname: 'vlad', dateOfBirth: null, role: 'admin', email: 'vladfa2010@gmail.com', phone: null, telegram: null, notes: 'Main admin account', contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 70000, totalPnl: 9391, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
   { id: 'c_superadmin', fullName: 'Default Superadmin', name: 'Default Superadmin', nickname: 'superadmin', dateOfBirth: null, role: 'superadmin', email: 'superadmin@equitystream.com', phone: null, telegram: null, notes: 'Default superadmin account. Password: superadmin', contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 0, totalPnl: 0, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
   // Demo clients
   { id: 'c1', fullName: 'Alexei Volkov', name: 'Alexei Volkov', nickname: 'alexei_v', dateOfBirth: '1985-03-15', role: 'user', email: 'alexei@example.com', phone: '+7-999-123-4567', telegram: '@alexei_v', notes: 'VIP client', contractUrl: null, avatarUrl: null, idDocumentUrl: null, status: 'active', totalInvested: 187500, totalPnl: 46500, createdAt: '2024-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
@@ -123,6 +124,7 @@ const SEED_DEALS: DealResponse[] = [
       { id: 'i2', dealId: 'd1', clientId: 'c2', clientName: 'Maria Petrova', clientAvatar: null, amount: 38000, entryPrice: 175.20, shareCount: 216.89, isLead: false, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
       { id: 'i3', dealId: 'd1', clientId: 'c3', clientName: 'Dmitri Sokolov', clientAvatar: null, amount: 25000, entryPrice: 175.20, shareCount: 142.69, isLead: false, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
       { id: 'i3b', dealId: 'd1', clientId: 'c_user', clientName: 'Default User', clientAvatar: null, amount: 30000, entryPrice: 175.20, shareCount: 171.23, isLead: false, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
+      { id: 'i3c', dealId: 'd1', clientId: 'c_admin', clientName: 'Default Admin', clientAvatar: null, amount: 30000, entryPrice: 175.20, shareCount: 171.23, isLead: false, customEntryPrice: null, createdAt: '2025-05-15T10:00:00Z' },
     ],
     priceHistory: [], materials: [],
   },
@@ -136,6 +138,7 @@ const SEED_DEALS: DealResponse[] = [
     investments: [
       { id: 'i4', dealId: 'd2', clientId: 'c1', clientName: 'Alexei Volkov', clientAvatar: null, amount: 55000, entryPrice: 720.50, shareCount: 76.34, isLead: true, customEntryPrice: 700, createdAt: '2025-04-20T14:00:00Z' },
       { id: 'i5', dealId: 'd2', clientId: 'c4', clientName: 'Elena Kuznetsova', clientAvatar: null, amount: 72000, entryPrice: 720.50, shareCount: 99.93, isLead: false, customEntryPrice: null, createdAt: '2025-04-20T14:00:00Z' },
+      { id: 'i5b', dealId: 'd2', clientId: 'c_admin', clientName: 'Default Admin', clientAvatar: null, amount: 40000, entryPrice: 720.50, shareCount: 55.52, isLead: false, customEntryPrice: null, createdAt: '2025-04-20T14:00:00Z' },
     ],
     priceHistory: [], materials: [],
   },

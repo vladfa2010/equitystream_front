@@ -4,19 +4,20 @@
 
 @layer base {
   :root {
-    --bg-base: #0A0A0F;
-    --bg-surface: #111118;
-    --bg-elevated: #1A1A24;
-    --bg-input: #14141C;
+    /* Warm Terracotta / Cocoa Palette */
+    --bg-base: #0F0A06;
+    --bg-surface: #1A120B;
+    --bg-elevated: #2A1F15;
+    --bg-input: #1E140E;
 
-    --text-primary: #F5F5F0;
-    --text-secondary: #8A8A93;
-    --text-tertiary: #55555E;
-    --text-inverse: #0A0A0F;
+    --text-primary: #FDF4E3;
+    --text-secondary: #C9A882;
+    --text-tertiary: #7A5E44;
+    --text-inverse: #0F0A06;
 
-    --accent-gold: #B8A14E;
-    --accent-gold-hover: #C9B25F;
-    --accent-gold-dim: rgba(184, 161, 78, 0.12);
+    --accent-gold: #C9753A;
+    --accent-gold-hover: #E09040;
+    --accent-gold-dim: rgba(201, 117, 58, 0.12);
     --accent-blue: #4F6EF7;
     --accent-purple: #8B5CF6;
 
@@ -25,50 +26,51 @@
     --loss: #EF4444;
     --loss-dim: rgba(239, 68, 68, 0.09);
 
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-border-hover: rgba(255, 255, 255, 0.14);
-    --glass-highlight: rgba(255, 255, 255, 0.06);
+    --glass-bg: rgba(253, 244, 227, 0.03);
+    --glass-border: rgba(253, 244, 227, 0.08);
+    --glass-border-hover: rgba(201, 117, 58, 0.25);
+    --glass-highlight: rgba(253, 244, 227, 0.06);
     --glass-blur: blur(24px) saturate(140%);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(253, 244, 227, 0.06);
 
-    --grad-gold: linear-gradient(135deg, #B8A14E 0%, #C9B25F 50%, #D4C070 100%);
-    --grad-surface: linear-gradient(180deg, #111118 0%, #0A0A0F 100%);
-    --grad-card-shine: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 55%, transparent 60%);
-    --grad-hero-overlay: radial-gradient(ellipse at 50% 0%, rgba(184, 161, 78, 0.08) 0%, transparent 60%);
+    --grad-gold: linear-gradient(135deg, #C9753A 0%, #E09040 50%, #F0A860 100%);
+    --grad-surface: linear-gradient(180deg, #1A120B 0%, #0F0A06 100%);
+    --grad-card-shine: linear-gradient(105deg, transparent 40%, rgba(253, 244, 227, 0.03) 45%, rgba(253, 244, 227, 0.08) 50%, rgba(253, 244, 227, 0.03) 55%, transparent 60%);
+    --grad-hero-overlay: radial-gradient(ellipse at 50% 0%, rgba(201, 117, 58, 0.12) 0%, transparent 60%);
+    --grad-warm-glow: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(224, 144, 64, 0.15), transparent);
 
     --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
-    --background: 240 10% 4%;
-    --foreground: 40 20% 95%;
-    --card: 240 10% 7%;
-    --card-foreground: 40 20% 95%;
-    --popover: 240 10% 10%;
-    --popover-foreground: 40 20% 95%;
-    --primary: 45 40% 51%;
-    --primary-foreground: 240 10% 4%;
-    --secondary: 240 5% 12%;
-    --secondary-foreground: 40 20% 95%;
-    --muted: 240 5% 15%;
-    --muted-foreground: 240 5% 55%;
-    --accent: 240 5% 15%;
-    --accent-foreground: 40 20% 95%;
+    --background: 24 50% 4%;
+    --foreground: 40 60% 94%;
+    --card: 24 40% 8%;
+    --card-foreground: 40 60% 94%;
+    --popover: 24 35% 10%;
+    --popover-foreground: 40 60% 94%;
+    --primary: 24 60% 51%;
+    --primary-foreground: 24 50% 4%;
+    --secondary: 24 20% 12%;
+    --secondary-foreground: 40 60% 94%;
+    --muted: 24 15% 15%;
+    --muted-foreground: 30 20% 55%;
+    --accent: 24 20% 15%;
+    --accent-foreground: 40 60% 94%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100% / 0.08;
-    --input: 0 0% 100% / 0.08;
-    --ring: 45 40% 51%;
+    --border: 40 60% 94% / 0.08;
+    --input: 40 60% 94% / 0.08;
+    --ring: 24 60% 51%;
     --radius: 0.75rem;
 
-    --sidebar-background: 240 10% 7%;
-    --sidebar-foreground: 40 20% 95%;
-    --sidebar-primary: 45 40% 51%;
-    --sidebar-primary-foreground: 240 10% 4%;
-    --sidebar-accent: 240 5% 15%;
-    --sidebar-accent-foreground: 40 20% 95%;
-    --sidebar-border: 0 0% 100% / 0.06;
-    --sidebar-ring: 45 40% 51%;
+    --sidebar-background: 24 40% 7%;
+    --sidebar-foreground: 40 60% 94%;
+    --sidebar-primary: 24 60% 51%;
+    --sidebar-primary-foreground: 24 50% 4%;
+    --sidebar-accent: 24 15% 15%;
+    --sidebar-accent-foreground: 40 60% 94%;
+    --sidebar-border: 40 60% 94% / 0.06;
+    --sidebar-ring: 24 60% 51%;
   }
 
   html {
@@ -87,7 +89,6 @@
     overflow-x: hidden;
   }
 
-  /* Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -96,14 +97,13 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(253, 244, 227, 0.08);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(253, 244, 227, 0.15);
   }
 
-  /* Font features for numbers */
   .tabular-nums {
     font-feature-settings: "tnum" 1;
   }
@@ -124,7 +124,7 @@
   }
   .glass-panel-hover:hover {
     border-color: var(--glass-border-hover);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(253, 244, 227, 0.1);
     transform: translateY(-2px);
   }
 
@@ -140,7 +140,7 @@
   }
   .glass-card:hover {
     border-color: var(--glass-border-hover);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(253, 244, 227, 0.1);
   }
 
   .btn-primary {
@@ -157,13 +157,13 @@
   .btn-primary:hover {
     filter: brightness(1.1);
     transform: scale(1.02);
-    box-shadow: 0 8px 24px rgba(184, 161, 78, 0.25);
+    box-shadow: 0 8px 24px rgba(201, 117, 58, 0.3);
   }
 
   .btn-secondary {
     background: transparent;
     color: var(--text-primary);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(253, 244, 227, 0.12);
     border-radius: 10px;
     padding: 10px 20px;
     font-weight: 600;
@@ -172,8 +172,8 @@
     cursor: pointer;
   }
   .btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(201, 117, 58, 0.3);
+    background: rgba(201, 117, 58, 0.06);
   }
 
   .text-display-xl {
@@ -273,16 +273,16 @@
     font-weight: 600;
   }
   .badge-closed {
-    background: rgba(255, 255, 255, 0.06);
-    color: #8A8A93;
+    background: rgba(253, 244, 227, 0.05);
+    color: #7A5E44;
     border-radius: 6px;
     padding: 4px 10px;
     font-size: 12px;
     font-weight: 600;
   }
   .badge-premium {
-    background: rgba(184, 161, 78, 0.12);
-    color: #B8A14E;
+    background: rgba(201, 117, 58, 0.12);
+    color: #C9753A;
     border-radius: 6px;
     padding: 4px 10px;
     font-size: 12px;

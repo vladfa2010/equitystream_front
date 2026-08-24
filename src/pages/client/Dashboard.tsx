@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/Layout';
 import PortfolioMetricCard from '@/components/client/PortfolioMetricCard';
 import PositionCard from '@/components/client/PositionCard';
@@ -101,6 +102,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export default function ClientDashboard() {
+  const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('6M');
   const [apiDeals, setApiDeals] = useState<any[]>([]);
   const [apiClient, setApiClient] = useState<any>(null);
@@ -309,7 +311,7 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           >
-            {getGreeting()}, {(activeClient?.name || 'User').split(' ')[0]}
+            {getGreeting()}, {(user?.name || activeClient?.name || 'User').split(' ')[0]}
           </motion.h2>
           <motion.p
             className="text-body-l"

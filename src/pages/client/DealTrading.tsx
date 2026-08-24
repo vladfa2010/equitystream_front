@@ -2,22 +2,20 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, TrendingUp, TrendingDown, DollarSign, Users,
+  ArrowLeft,
   ArrowUpRight, ArrowDownRight, ShoppingCart, Tag,
-  X, CheckCircle2, Loader2, Trash2, Pencil, Clock, BarChart3,
+  X, Loader2, Trash2, Pencil, BarChart3,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { dealsApi, clientsApi, authApi } from '@/api';
 import type { DealResponse, Order, ClientResponse } from '@/api';
-import { formatCurrency } from '@/data/mockData';
+
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 // Colors for order book
 const ASK_BG = 'rgba(239,68,68,0.08)';
-const ASK_FILL = 'rgba(239,68,68,0.6)';
 const BID_BG = 'rgba(16,185,129,0.08)';
-const BID_FILL = 'rgba(16,185,129,0.6)';
 
 export default function DealTrading() {
   const { id } = useParams<{ id: string }>();
@@ -62,8 +60,15 @@ export default function DealTrading() {
         if (me) {
           const clientOrders = await dealsApi.getClientOrders(me.id);
           setMyOrders(clientOrders.filter(o => o.dealId === id));
-          // Find my position in this deal
-          const inv = dealData?.investments?.find((i: any) => i.clientId === me.id);
+          // Find my position in this deal — try multiple sources
+          const meAny = me as any;
+          let inv = dealData?.investments?.find((i: any) => i.clientId === me.id);
+          if (!inv && meAny.investments) {
+            inv = meAny.investments.find((i: any) => i.dealId === id);
+          }
+          if (!inv && meAny.positions) {
+            inv = meAny.positions.find((p: any) => p.dealId === id);
+          }
           setMyPosition(inv || null);
         }
       }
@@ -80,27 +85,20 @@ export default function DealTrading() {
     }
   }, [toast]);
 
-  // Build order book from orders
+  // Build order book from orders — each order shown individually (Level 2)
   const { bids, asks, bestBid, bestAsk, lastPrice } = useMemo(() => {
-    const buyOrders = orders.filter(o => o.side === 'buy' && o.status === 'pending' && o.type === 'limit' && o.price);
-    const sellOrders = orders.filter(o => o.side === 'sell' && o.status === 'pending' && o.type === 'limit' && o.price);
+    const buyOrders = orders
+      .filter(o => o.side === 'buy' && o.status === 'pending' && o.type === 'limit' && o.price)
+      .sort((a, b) => b.price! - a.price!);
+    const sellOrders = orders
+      .filter(o => o.side === 'sell' && o.status === 'pending' && o.type === 'limit' && o.price)
+      .sort((a, b) => a.price! - b.price!);
 
-    // Group by price and sum quantities
-    const bidMap = new Map<number, number>();
-    buyOrders.forEach(o => { bidMap.set(o.price!, (bidMap.get(o.price!) || 0) + o.quantity); });
-    const askMap = new Map<number, number>();
-    sellOrders.forEach(o => { askMap.set(o.price!, (askMap.get(o.price!) || 0) + o.quantity); });
-
-    const bidsArr = Array.from(bidMap.entries()).map(([price, quantity]) => ({ price, quantity }))
-      .sort((a, b) => b.price - a.price).slice(0, 8);
-    const asksArr = Array.from(askMap.entries()).map(([price, quantity]) => ({ price, quantity }))
-      .sort((a, b) => a.price - b.price).slice(0, 8);
-
-    const bb = bidsArr.length > 0 ? bidsArr[0].price : (deal?.currentPrice || 0);
-    const ba = asksArr.length > 0 ? asksArr[0].price : (deal?.currentPrice || 0);
+    const bb = buyOrders.length > 0 ? buyOrders[0].price! : (deal?.currentPrice || 0);
+    const ba = sellOrders.length > 0 ? sellOrders[0].price! : (deal?.currentPrice || 0);
     const lp = deal?.currentPrice || deal?.entryPrice || 0;
 
-    return { bids: bidsArr, asks: asksArr, bestBid: bb, bestAsk: ba, lastPrice: lp };
+    return { bids: buyOrders, asks: sellOrders, bestBid: bb, bestAsk: ba, lastPrice: lp };
   }, [orders, deal]);
 
   const spread = bestAsk - bestBid;
@@ -172,8 +170,8 @@ export default function DealTrading() {
     }
   };
 
-  const totalBidQty = bids.reduce((s, b) => s + b.quantity, 0);
-  const totalAskQty = asks.reduce((s, a) => s + a.quantity, 0);
+  const maxBidQty = bids.length > 0 ? Math.max(...bids.map(b => b.quantity)) : 0;
+  const maxAskQty = asks.length > 0 ? Math.max(...asks.map(a => a.quantity)) : 0;
 
   if (loading) {
     return (
@@ -248,9 +246,24 @@ export default function DealTrading() {
             className="lg:col-span-2"
           >
             <div className="glass-panel p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 size={16} style={{ color: '#B8A14E' }} />
-                <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>Order Book</h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 size={16} style={{ color: '#B8A14E' }} />
+                  <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>Order Book</h2>
+                </div>
+                {myPosition && (
+                  <div className="flex items-center gap-2 text-[11px] px-2.5 py-1 rounded-lg" style={{ background: 'rgba(16,185,129,0.1)' }}>
+                    <span style={{ color: '#55555E' }}>My Position:</span>
+                    <span style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>{maxSellShares.toFixed(2)} shares</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Column headers */}
+              <div className="flex items-center px-0 py-1 mb-1" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <span className="text-[10px] uppercase w-20 text-right pr-3" style={{ color: '#55555E' }}>Price</span>
+                <span className="text-[10px] uppercase w-20 text-right pr-3" style={{ color: '#55555E' }}>Size</span>
+                <span className="text-[10px] uppercase flex-1" style={{ color: '#55555E' }}>Trader</span>
               </div>
 
               {/* Spread */}
@@ -275,22 +288,23 @@ export default function DealTrading() {
                 </div>
               </div>
 
-              {/* Asks (sells) — red, sorted ascending */}
+              {/* Asks (sells) — each order individually, red, sorted ascending by price */}
               <div className="mb-1">
                 {asks.length === 0 && <p className="text-[12px] text-center py-4" style={{ color: '#55555E' }}>No sell orders</p>}
-                {asks.map((ask, i) => {
-                  const width = totalAskQty > 0 ? (ask.quantity / totalAskQty) * 100 : 0;
+                {asks.map((ask) => {
+                  const width = maxAskQty > 0 ? (ask.quantity / maxAskQty) * 100 : 0;
                   return (
-                    <div key={`ask-${i}`} className="flex items-center relative py-0.5">
-                      <div className="absolute inset-0 rounded" style={{ background: ASK_BG, width: `${Math.min(100, width)}%`, right: 0, left: 'auto' }} />
-                      <span className="relative z-10 text-[12px] w-24 text-right pr-3" style={{ color: '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
-                        ${ask.price.toFixed(2)}
+                    <div key={ask.id} className="flex items-center py-0.5 rounded"
+                      style={{ background: `linear-gradient(to left, ${ASK_BG} ${Math.min(100, width)}%, transparent ${Math.min(100, width)}%)` }}
+                      title={`${ask.clientName} — ${new Date(ask.createdAt).toLocaleString()}`}>
+                      <span className="text-[12px] w-20 text-right pr-3" style={{ color: '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
+                        ${ask.price!.toFixed(2)}
                       </span>
-                      <span className="relative z-10 text-[12px] flex-1" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                      <span className="text-[12px] w-20 text-right pr-3" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
                         {ask.quantity.toFixed(2)}
                       </span>
-                      <span className="relative z-10 text-[11px] w-20 text-right" style={{ color: '#55555E' }}>
-                        ${(ask.price * ask.quantity).toFixed(0)}
+                      <span className="text-[11px] flex-1 truncate" style={{ color: '#55555E' }}>
+                        {ask.clientName}
                       </span>
                     </div>
                   );
@@ -305,22 +319,23 @@ export default function DealTrading() {
                 </span>
               </div>
 
-              {/* Bids (buys) — green, sorted descending */}
+              {/* Bids (buys) — each order individually, green, sorted descending by price */}
               <div className="mt-1">
                 {bids.length === 0 && <p className="text-[12px] text-center py-4" style={{ color: '#55555E' }}>No buy orders</p>}
-                {bids.map((bid, i) => {
-                  const width = totalBidQty > 0 ? (bid.quantity / totalBidQty) * 100 : 0;
+                {bids.map((bid) => {
+                  const width = maxBidQty > 0 ? (bid.quantity / maxBidQty) * 100 : 0;
                   return (
-                    <div key={`bid-${i}`} className="flex items-center relative py-0.5">
-                      <div className="absolute inset-0 rounded" style={{ background: BID_BG, width: `${Math.min(100, width)}%`, right: 0, left: 'auto' }} />
-                      <span className="relative z-10 text-[12px] w-24 text-right pr-3" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>
-                        ${bid.price.toFixed(2)}
+                    <div key={bid.id} className="flex items-center py-0.5 rounded"
+                      style={{ background: `linear-gradient(to left, ${BID_BG} ${Math.min(100, width)}%, transparent ${Math.min(100, width)}%)` }}
+                      title={`${bid.clientName} — ${new Date(bid.createdAt).toLocaleString()}`}>
+                      <span className="text-[12px] w-20 text-right pr-3" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>
+                        ${bid.price!.toFixed(2)}
                       </span>
-                      <span className="relative z-10 text-[12px] flex-1" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                      <span className="text-[12px] w-20 text-right pr-3" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
                         {bid.quantity.toFixed(2)}
                       </span>
-                      <span className="relative z-10 text-[11px] w-20 text-right" style={{ color: '#55555E' }}>
-                        ${(bid.price * bid.quantity).toFixed(0)}
+                      <span className="text-[11px] flex-1 truncate" style={{ color: '#55555E' }}>
+                        {bid.clientName}
                       </span>
                     </div>
                   );

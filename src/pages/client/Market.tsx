@@ -2,13 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, TrendingUp, TrendingDown, DollarSign,
+  ArrowLeft, TrendingUp, TrendingDown,
   Users, Activity, ChevronRight,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { dealsApi, authApi } from '@/api';
+import { dealsApi } from '@/api';
 import type { DealResponse } from '@/api';
-import { formatCurrency } from '@/data/mockData';
+
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 

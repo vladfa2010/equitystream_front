@@ -7,6 +7,7 @@ import {
   UserPlus,
   FolderOpen,
   Settings,
+  ShieldCheck,
 } from 'lucide-react';
 
 const sidebarSections = [
@@ -28,6 +29,12 @@ const sidebarSections = [
     items: [
       { label: 'All Clients', path: '/admin/clients', icon: Users },
       { label: 'Add Client', path: '/admin/clients/new', icon: UserPlus },
+    ],
+  },
+  {
+    title: 'MANAGEMENT',
+    items: [
+      { label: 'Users', path: '/admin/users', icon: ShieldCheck },
     ],
   },
   {

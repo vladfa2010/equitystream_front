@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -10,7 +10,11 @@ import {
   Bell,
   Menu,
   X,
+  LogOut,
+  Shield,
+  ArrowRightLeft,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface NavbarProps {
   role?: 'user' | 'admin' | 'superadmin';
@@ -31,10 +35,14 @@ const clientNavItems = [
 
 export default function Navbar({ role = 'admin' }: NavbarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAdmin, setViewMode, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isAdminNav = role === 'admin' || role === 'superadmin';
-  const navItems = isAdminNav ? adminNavItems : clientNavItems;
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const showAdminNav = isAdminRoute;
+  const navItems = showAdminNav ? adminNavItems : clientNavItems;
+
   const isActive = (path: string) => {
     if (path === '/admin/deals') return location.pathname.startsWith('/admin/deals');
     if (path === '/admin/clients') return location.pathname.startsWith('/admin/clients');
@@ -42,6 +50,8 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
     if (path === '/market') return location.pathname.startsWith('/market');
     return location.pathname === path;
   };
+
+  const effectiveRole = user?.role ?? role;
 
   return (
     <>
@@ -56,7 +66,7 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
         }}
       >
         {/* Left: Logo */}
-        <Link to={isAdminNav ? '/admin' : '/dashboard'} className="flex items-center gap-3">
+        <Link to={showAdminNav ? '/admin' : '/dashboard'} className="flex items-center gap-3">
           <img src="/logo-mark.svg" alt="EquityStream" className="w-7 h-7" />
           <span
             className="hidden sm:inline text-[14px] font-semibold tracking-[0.08em] text-[#F5F5F0]"
@@ -91,18 +101,41 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
               </Link>
             );
           })}
+
+          {/* Admin/User toggle button for admins */}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                if (showAdminNav) {
+                  setViewMode('user');
+                  navigate('/dashboard');
+                } else {
+                  setViewMode('admin');
+                  navigate('/admin');
+                }
+              }}
+              className="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors hover:bg-white/5"
+              style={{
+                color: '#B8A14E',
+                border: '1px solid rgba(184,161,78,0.2)',
+              }}
+            >
+              <ArrowRightLeft size={14} />
+              {showAdminNav ? 'User' : 'Admin'}
+            </button>
+          )}
         </div>
 
-        {/* Right: Role Badge, Notification, Avatar */}
+        {/* Right: Role Badge, Notification, Avatar, Logout */}
         <div className="flex items-center gap-3">
           <span
             className="hidden sm:inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-md uppercase"
             style={{
-              background: role === 'superadmin' ? 'rgba(239,68,68,0.12)' : role === 'admin' ? 'rgba(184,161,78,0.12)' : 'rgba(79,110,247,0.12)',
-              color: role === 'superadmin' ? '#EF4444' : role === 'admin' ? '#B8A14E' : '#4F6EF7',
+              background: effectiveRole === 'superadmin' ? 'rgba(239,68,68,0.12)' : effectiveRole === 'admin' ? 'rgba(184,161,78,0.12)' : 'rgba(79,110,247,0.12)',
+              color: effectiveRole === 'superadmin' ? '#EF4444' : effectiveRole === 'admin' ? '#B8A14E' : '#4F6EF7',
             }}
           >
-            {role === 'superadmin' ? 'SUPERADMIN' : role === 'admin' ? 'ADMIN' : 'USER'}
+            {effectiveRole === 'superadmin' ? 'SUPERADMIN' : effectiveRole === 'admin' ? 'ADMIN' : 'USER'}
           </span>
 
           <button className="relative p-2 rounded-lg hover:bg-white/5 transition-colors">
@@ -118,11 +151,19 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
             style={{ border: '2px solid rgba(255, 255, 255, 0.1)' }}
           >
             <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin"
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${effectiveRole}`}
               alt="User"
               className="w-full h-full object-cover"
             />
           </div>
+
+          <button
+            onClick={logout}
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+            title="Sign out"
+          >
+            <LogOut size={18} style={{ color: '#8A8A93' }} />
+          </button>
 
           {/* Mobile hamburger */}
           <button
@@ -184,6 +225,43 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
                     </Link>
                   );
                 })}
+
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      if (showAdminNav) {
+                        setViewMode('user');
+                        navigate('/dashboard');
+                      } else {
+                        setViewMode('admin');
+                        navigate('/admin');
+                      }
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mt-2"
+                    style={{
+                      border: '1px solid rgba(184,161,78,0.2)',
+                      color: '#B8A14E',
+                    }}
+                  >
+                    <Shield size={18} />
+                    <span className="text-[14px] font-medium">
+                      {showAdminNav ? 'Switch to User' : 'Switch to Admin'}
+                    </span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    logout();
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mt-4"
+                  style={{ color: '#EF4444' }}
+                >
+                  <LogOut size={18} />
+                  <span className="text-[14px] font-medium">Sign Out</span>
+                </button>
               </div>
             </motion.div>
           </>
