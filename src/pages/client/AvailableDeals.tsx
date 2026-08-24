@@ -41,7 +41,7 @@ export default function AvailableDeals() {
       // Filter open deals
       const openDeals = allDeals.filter(d => OPEN_STATUSES.includes(d.status));
       // Exclude deals where client already invested
-      const me = allClients.find(c => c.email === user?.email) || allClients.find(c => c.id === 'c_user');
+      const me = allClients.find(c => c.email === user?.email) || allClients.find(c => c.id === user?.id);
       setClient(me || null);
       const available = openDeals.filter(d => !d.investments?.some((i: any) => i.clientId === me?.id));
       setDeals(available);

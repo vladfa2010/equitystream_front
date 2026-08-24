@@ -11,12 +11,11 @@ import PortfolioMetricCard from '@/components/client/PortfolioMetricCard';
 import PositionCard from '@/components/client/PositionCard';
 import MaterialMiniCard from '@/components/client/MaterialMiniCard';
 import {
-  deals, clients, formatCurrency, formatPercent, getPortfolioHistory, timeAgo,
+  formatCurrency, formatPercent, getPortfolioHistory, timeAgo,
 } from '@/data/mockData';
-import type { Deal, PricePoint } from '@/data/mockData';
+import type { PricePoint } from '@/data/mockData';
 import type { ActivityItem, Reservation } from '@/api';
 
-const CLIENT_ID = 'c1';
 const TIME_RANGES = [
   { label: '1M', days: 30 },
   { label: '3M', days: 90 },
@@ -114,8 +113,9 @@ export default function ClientDashboard() {
       import('@/api').then(m => m.dealsApi.getAll()),
       import('@/api').then(m => m.clientsApi.getAll()),
     ]).then(([allDeals, allClients]) => {
-      // Find the logged-in client (c_user for demo)
-      const client = allClients.find((c: any) => c.id === 'c_user') || allClients[0];
+      // Find the logged-in client by user.id or user.email
+      const client = allClients.find((c: any) => c.id === user?.id)
+        || allClients.find((c: any) => c.email === user?.email);
       setApiClient(client);
       // Filter deals where this client has investments
       const clientDeals = allDeals
@@ -130,16 +130,11 @@ export default function ClientDashboard() {
         .then(setReservations)
         .catch(() => {});
     }).catch(() => {});
-  }, []);
+  }, [user?.id, user?.email]);
 
-  // Use API data if available, fallback to mockData
-  const activeClient = apiClient || clients.find(c => c.id === CLIENT_ID)!;
-  const clientDeals = apiDeals.length > 0 ? apiDeals : deals
-    .map(deal => {
-      const investment = deal.clientInvestments.find(ci => ci.clientId === CLIENT_ID);
-      return investment ? { deal, investment } : null;
-    })
-    .filter((d): d is { deal: Deal; investment: { clientId: string; amount: number; entryPrice: number } } => d !== null);
+  // Use API data only — no mock fallback
+  const activeClient = apiClient;
+  const clientDeals = apiDeals;
 
   // Calculate metrics from real data
   const { totalInvested, portfolioValue, totalPnl, isProfit } = useMemo(() => {

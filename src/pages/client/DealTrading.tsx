@@ -54,7 +54,7 @@ export default function DealTrading() {
 
       if (user) {
         const allClients = await clientsApi.getAll();
-        const me = allClients.find(c => c.email === user.email) || allClients.find(c => c.id === 'c_user');
+        const me = allClients.find(c => c.email === user.email) || allClients.find(c => c.id === user.id);
         setClient(me || null);
 
         if (me) {
