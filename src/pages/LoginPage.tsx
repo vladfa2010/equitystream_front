@@ -151,8 +151,8 @@ export default function LoginPage() {
     zIndex: 10,
     background: 'rgba(10, 10, 15, 0.7)',
     borderRadius: '24px',
-    padding: '48px 40px',
-    maxWidth: '420px',
+    padding: 'clamp(24px, 6vw, 48px) clamp(20px, 5vw, 40px)',
+    maxWidth: 'min(420px, calc(100vw - 32px))',
     width: '100%',
   };
 

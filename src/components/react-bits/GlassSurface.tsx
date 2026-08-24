@@ -153,17 +153,13 @@ export default function GlassSurface({
       return false;
     }
 
-    const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isFirefox = /Firefox/.test(navigator.userAgent);
-
-    if (isWebkit || isFirefox) {
-      return false;
-    }
-
+    // Test actual feature support instead of UA sniffing
+    // Safari iOS 15+ supports SVG filters in backdrop-filter
     const div = document.createElement('div');
     div.style.backdropFilter = `url(#${filterId})`;
+    const supportsBackdropFilterUrl = div.style.backdropFilter !== '';
 
-    return div.style.backdropFilter !== '';
+    return supportsBackdropFilterUrl;
   };
 
   const containerStyle: React.CSSProperties = {
