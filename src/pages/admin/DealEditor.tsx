@@ -9,9 +9,9 @@ import {
 } from 'lucide-react';
 import StepIndicator from '../../components/deals/StepIndicator';
 import CurrencyInput from '../../components/deals/CurrencyInput';
-import { clients, formatCurrency as fmtCur } from '../../data/mockData';
+import { formatCurrency as fmtCur } from '../../data/mockData';
 import type { Client } from '../../data/mockData';
-import { dealsApi } from '../../api';
+import { dealsApi, clientsApi } from '../../api';
 import type { CreateDealRequest } from '../../api';
 
 // =============================================================================
@@ -582,17 +582,42 @@ function AddClientModal({ isOpen, onClose, onAdd, existingClientIds, sharePrice,
   const [entryPrice, setEntryPrice] = useState(sharePrice);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
+  const [allClients, setAllClients] = useState<Client[]>([]);
 
   const totalVolume = parseNum(sharePrice) > 0 ? remaining + 0 : 0;
 
+  // Load clients from API when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      clientsApi.getAll({ status: 'active' })
+        .then(data => {
+          // Map ClientResponse to Client shape used by DealEditor
+          const mapped = data.map(c => ({
+            id: c.id,
+            name: c.fullName || c.name || '',
+            email: c.email,
+            avatar: c.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
+            totalInvested: c.totalInvested || 0,
+            totalPnl: c.totalPnl || 0,
+            pnlPercent: 0,
+            dealCount: 0,
+            status: c.status as 'active' | 'inactive',
+            joinDate: c.createdAt ? c.createdAt.split('T')[0] : '',
+          }));
+          setAllClients(mapped);
+        })
+        .catch(() => setAllClients([]));
+    }
+  }, [isOpen]);
+
   const availableClients = useMemo(() =>
-    clients.filter(c => c.status === 'active' && !existingClientIds.includes(c.id) &&
+    allClients.filter(c => c.status === 'active' && !existingClientIds.includes(c.id) &&
       (c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase()))),
-    [existingClientIds, searchQuery]
+    [allClients, existingClientIds, searchQuery]
   );
 
   // Selected client info (used for display in modal)
-  const _selectedClient = clients.find(c => c.id === selectedClientId);
+  const _selectedClient = allClients.find(c => c.id === selectedClientId);
   void _selectedClient;
 
   const finalAmount = useMemo(() => {
@@ -807,9 +832,10 @@ interface Step2Props {
   setAllocations: React.Dispatch<React.SetStateAction<ClientAllocation[]>>;
   totalVolume: number;
   sharePrice: number;
+  allClients: Client[];
 }
 
-function Step2ClientAllocations({ allocations, setAllocations, totalVolume, sharePrice }: Step2Props) {
+function Step2ClientAllocations({ allocations, setAllocations, totalVolume, sharePrice, allClients }: Step2Props) {
   const [showModal, setShowModal] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -822,7 +848,7 @@ function Step2ClientAllocations({ allocations, setAllocations, totalVolume, shar
   const remaining = totalVolume - totalAllocated;
   const allocationPercent = totalVolume > 0 ? (totalAllocated / totalVolume) * 100 : 0;
   const leadClient = allocations.find(a => a.isLead);
-  const leadName = leadClient ? clients.find(c => c.id === leadClient.clientId)?.name : 'None';
+  const leadName = leadClient ? allClients.find(c => c.id === leadClient.clientId)?.name : 'None';
 
   const handleAdd = useCallback((allocation: ClientAllocation) => {
     setAllocations(prev => {
@@ -962,7 +988,7 @@ function Step2ClientAllocations({ allocations, setAllocations, totalVolume, shar
       ) : (
         <div className="space-y-2">
           {allocations.map((alloc, index) => {
-            const client = clients.find(c => c.id === alloc.clientId);
+            const client = allClients.find(c => c.id === alloc.clientId);
             if (!client) return null;
             const amt = parseNum(alloc.amount);
             const pct = totalVolume > 0 ? (amt / totalVolume) * 100 : 0;
@@ -1042,7 +1068,7 @@ function Step2ClientAllocations({ allocations, setAllocations, totalVolume, shar
       {editIndex !== null && allocations[editIndex] && (
         <EditAllocationModal
           allocation={allocations[editIndex]}
-          client={clients.find(c => c.id === allocations[editIndex].clientId)!}
+          client={allClients.find(c => c.id === allocations[editIndex].clientId)!}
           onSave={(updated) => handleUpdate(editIndex, updated)}
           onClose={() => setEditIndex(null)}
           totalVolume={totalVolume}
@@ -1245,9 +1271,10 @@ interface Step3Props {
   allocations: ClientAllocation[];
   totalVolume: number;
   sharePrice: number;
+  allClients: Client[];
 }
 
-function Step3Review({ form, allocations, totalVolume, sharePrice }: Step3Props) {
+function Step3Review({ form, allocations, totalVolume, sharePrice, allClients }: Step3Props) {
   const totalAllocated = useMemo(() => allocations.reduce((s, a) => s + parseNum(a.amount), 0), [allocations]);
   const allocationPercent = totalVolume > 0 ? (totalAllocated / totalVolume) * 100 : 0;
   const remaining = totalVolume - totalAllocated;
@@ -1370,7 +1397,7 @@ function Step3Review({ form, allocations, totalVolume, sharePrice }: Step3Props)
             <div className="space-y-3">
               {/* Lead Card */}
               {leadClient && (() => {
-                const client = clients.find(c => c.id === leadClient.clientId);
+                const client = allClients.find(c => c.id === leadClient.clientId);
                 if (!client) return null;
                 const amt = parseNum(leadClient.amount);
                 const pct = totalVolume > 0 ? (amt / totalVolume) * 100 : 0;
@@ -1404,7 +1431,7 @@ function Step3Review({ form, allocations, totalVolume, sharePrice }: Step3Props)
 
               {/* Other Investors */}
               {allocations.filter(a => !a.isLead).map(alloc => {
-                const client = clients.find(c => c.id === alloc.clientId);
+                const client = allClients.find(c => c.id === alloc.clientId);
                 if (!client) return null;
                 const amt = parseNum(alloc.amount);
                 const pct = totalVolume > 0 ? (amt / totalVolume) * 100 : 0;
@@ -1468,7 +1495,7 @@ function Step3Review({ form, allocations, totalVolume, sharePrice }: Step3Props)
               <div className="flex justify-between items-center">
                 <span className="text-[12px]" style={{ color: '#8A8A93' }}>Lead Investor</span>
                 <span className="text-[12px] font-semibold flex items-center gap-1" style={{ color: '#B8A14E' }}>
-                  <Crown size={11} /> {clients.find(c => c.id === leadClient.clientId)?.name}
+                  <Crown size={11} /> {allClients.find(c => c.id === leadClient.clientId)?.name}
                 </span>
               </div>
             )}
@@ -1525,6 +1552,28 @@ export default function DealEditor() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [sendEmail, setSendEmail] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [allClients, setAllClients] = useState<Client[]>([]);
+
+  // Load clients from API on mount
+  useEffect(() => {
+    clientsApi.getAll({ status: 'active' })
+      .then(data => {
+        const mapped = data.map(c => ({
+          id: c.id,
+          name: c.fullName || c.name || '',
+          email: c.email,
+          avatar: c.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
+          totalInvested: c.totalInvested || 0,
+          totalPnl: c.totalPnl || 0,
+          pnlPercent: 0,
+          dealCount: 0,
+          status: c.status as 'active' | 'inactive',
+          joinDate: c.createdAt ? c.createdAt.split('T')[0] : '',
+        }));
+        setAllClients(mapped);
+      })
+      .catch(() => setAllClients([]));
+  }, []);
 
   const [form, setForm] = useState<CompanyForm>({
     companyName: '',
@@ -1730,6 +1779,7 @@ export default function DealEditor() {
                   setAllocations={setAllocations}
                   totalVolume={totalVolumeNum}
                   sharePrice={sharePriceNum}
+                  allClients={allClients}
                 />
               )}
               {step === 2 && (
@@ -1738,6 +1788,7 @@ export default function DealEditor() {
                   allocations={allocations}
                   totalVolume={totalVolumeNum}
                   sharePrice={sharePriceNum}
+                  allClients={allClients}
                 />
               )}
             </motion.div>
