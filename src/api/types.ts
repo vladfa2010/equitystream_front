@@ -113,19 +113,13 @@ export interface UpdatePriceHistoryRequest {
 // ===== CLIENTS =====
 export interface ClientResponse {
   id: string;
-  fullName: string;
-  name: string;              // backward compatibility
-  nickname: string;
-  dateOfBirth: string | null;
-  role: 'user' | 'admin' | 'superadmin';
+  name: string;
   email: string;
-  phone: string | null;
-  telegram: string | null;
-  notes: string | null;
-  contractUrl: string | null;
+  role: 'admin' | 'client';
   avatarUrl: string | null;
-  idDocumentUrl: string | null;
-  status: 'active' | 'pending' | 'inactive';
+  phone: string | null;
+  notes: string | null;
+  status: 'active' | 'inactive';
   totalInvested: number;
   totalPnl: number;
   createdAt: string;
@@ -133,18 +127,14 @@ export interface ClientResponse {
 }
 
 export interface CreateClientRequest {
-  fullName: string;
-  dateOfBirth?: string;
-  nickname: string;
-  password: string;
-  role: 'user' | 'admin' | 'superadmin';
+  name: string;
   email: string;
+  password: string;
+  role: 'client';
   phone?: string;
-  telegram?: string;
   notes?: string;
-  contractFile?: string;
-  avatarFile?: string;
-  idDocumentFile?: string;
+  status?: 'active' | 'inactive';
+  avatarUrl?: string;
 }
 
 // ===== MATERIALS =====

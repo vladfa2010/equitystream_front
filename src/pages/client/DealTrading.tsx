@@ -53,7 +53,8 @@ export default function DealTrading() {
       setOrders(allOrders.filter(o => o.status === 'pending'));
 
       if (user) {
-        const allClients = await clientsApi.getAll();
+        const clientsEnvelope = await clientsApi.getAll();
+        const allClients = clientsEnvelope.data || [];
         const me = allClients.find(c => c.email === user.email) || allClients.find(c => c.id === user.id);
         setClient(me || null);
 
@@ -128,7 +129,7 @@ export default function DealTrading() {
         dealName: deal.companyName,
         dealTicker: deal.ticker,
         clientId: client.id,
-        clientName: client.name || client.fullName || 'Unknown',
+        clientName: client.name || 'Unknown',
         type: orderType,
         side: orderSide,
         price,

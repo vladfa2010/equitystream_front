@@ -10,7 +10,7 @@ interface ClientCardProps {
 }
 
 function getName(c: ClientResponse): string {
-  return c.fullName || c.name || 'Unknown';
+  return c.name || 'Unknown';
 }
 
 function getPnlPercent(c: ClientResponse): number {
@@ -145,15 +145,15 @@ export default function ClientCard({ client, index }: ClientCardProps) {
           <span
             className="text-mono-s uppercase"
             style={{
-              color: client.role === 'superadmin' ? '#EF4444' : client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
-              background: client.role === 'superadmin' ? 'rgba(239,68,68,0.12)' : client.role === 'admin' ? 'rgba(139,92,246,0.12)' : 'rgba(79,110,247,0.12)',
+              color: client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+              background: client.role === 'admin' ? 'rgba(139,92,246,0.12)' : 'rgba(79,110,247,0.12)',
               borderRadius: 6,
               padding: '2px 8px',
               fontSize: 11,
               fontWeight: 600,
             }}
           >
-            {client.role === 'superadmin' ? 'SUPERADMIN' : client.role === 'admin' ? 'ADMIN' : 'USER'}
+            {client.role === 'admin' ? 'ADMIN' : 'CLIENT'}
           </span>
         </div>
         <div>

@@ -590,11 +590,11 @@ function AddClientModal({ isOpen, onClose, onAdd, existingClientIds, sharePrice,
   useEffect(() => {
     if (isOpen) {
       clientsApi.getAll({ status: 'active' })
-        .then(data => {
+        .then(envelope => {
           // Map ClientResponse to Client shape used by DealEditor
-          const mapped = data.map(c => ({
+          const mapped = envelope.data.map(c => ({
             id: c.id,
-            name: c.fullName || c.name || '',
+            name: c.name || '',
             email: c.email,
             avatar: c.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
             totalInvested: c.totalInvested || 0,
@@ -1557,10 +1557,10 @@ export default function DealEditor() {
   // Load clients from API on mount
   useEffect(() => {
     clientsApi.getAll({ status: 'active' })
-      .then(data => {
-        const mapped = data.map(c => ({
+      .then(envelope => {
+        const mapped = envelope.data.map(c => ({
           id: c.id,
-          name: c.fullName || c.name || '',
+          name: c.name || '',
           email: c.email,
           avatar: c.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
           totalInvested: c.totalInvested || 0,

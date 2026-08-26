@@ -48,7 +48,8 @@ export default function ClientDealView() {
           setDeal(dealData);
           setPriceHistory(ph || []);
           // Find client by matching email or use first investment client
-          clientsApi.getAll().then(allClients => {
+          clientsApi.getAll().then(envelope => {
+            const allClients = envelope.data || [];
             const matched = allClients.find(
               (c: ClientResponse) => c.email === user?.email || dealData.investments?.some((i: any) => i.clientId === c.id)
             );

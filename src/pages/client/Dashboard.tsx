@@ -112,7 +112,8 @@ export default function ClientDashboard() {
     Promise.all([
       import('@/api').then(m => m.dealsApi.getAll()),
       import('@/api').then(m => m.clientsApi.getAll()),
-    ]).then(([allDeals, allClients]) => {
+    ]).then(([allDeals, clientsEnvelope]) => {
+      const allClients = clientsEnvelope.data || [];
       // Find the logged-in client by user.id or user.email
       const client = allClients.find((c: any) => c.id === user?.id)
         || allClients.find((c: any) => c.email === user?.email);

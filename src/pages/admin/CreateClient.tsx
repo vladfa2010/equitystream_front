@@ -1008,18 +1008,13 @@ export default function CreateClient() {
 
     try {
       const payload: CreateClientRequest = {
-        fullName: form.fullName.trim(),
-        dateOfBirth: form.dateOfBirth || undefined,
-        nickname: form.nickname.trim(),
-        password: form.password,
-        role: form.role,
+        name: form.fullName.trim(),
         email: form.email.trim(),
+        password: form.password,
+        role: 'client',
         phone: form.phone || undefined,
-        telegram: form.telegram || undefined,
         notes: form.notes || undefined,
-        contractFile: form.contractBase64 || undefined,
-        avatarFile: form.avatarBase64 || undefined,
-        idDocumentFile: form.idDocumentBase64 || undefined,
+        status: 'active',
       };
 
       await clientsApi.create(payload);

@@ -10,7 +10,6 @@ import ClientsList from '@/pages/admin/ClientsList';
 import ClientDetailAdmin from '@/pages/admin/ClientDetail';
 import CreateClient from '@/pages/admin/CreateClient';
 import MaterialsLibrary from '@/pages/admin/MaterialsLibrary';
-import AdminUsersList from '@/pages/admin/AdminUsersList';
 import ClientDashboard from '@/pages/client/Dashboard';
 import ClientDealView from '@/pages/client/DealView';
 import AvailableDeals from '@/pages/client/AvailableDeals';
@@ -77,7 +76,6 @@ function AppRoutes() {
       <Route path="/admin/clients/new" element={<ProtectedRoute requireAdmin><CreateClient /></ProtectedRoute>} />
       <Route path="/admin/clients/:id" element={<ProtectedRoute requireAdmin><ClientDetailAdmin /></ProtectedRoute>} />
       <Route path="/admin/materials" element={<ProtectedRoute requireAdmin><MaterialsLibrary /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsersList /></ProtectedRoute>} />
     </Routes>
   );
 }

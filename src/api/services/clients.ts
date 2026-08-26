@@ -14,48 +14,71 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    throw new Error(err.error || err.message || `HTTP ${res.status}`);
   }
   return res.json();
 }
 
+function unwrap<T>(res: any): T {
+  // Backend wraps responses in { success: true, data: T }
+  if (res && res.data !== undefined) return res.data as T;
+  return res as T;
+}
+
+export interface ClientListEnvelope {
+  data: ClientResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const clientsApi = {
-  getAll: async (params?: { status?: string; search?: string }): Promise<ClientResponse[]> => {
+  getAll: async (params?: { status?: string; search?: string; page?: number; limit?: number }): Promise<ClientListEnvelope> => {
     const query = new URLSearchParams();
     if (params?.status) query.set('status', params.status);
     if (params?.search) query.set('search', params.search);
-    return fetchWithAuth(`/clients?${query}`);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    const res = await fetchWithAuth(`/users/clients?${query}`);
+    return unwrap<ClientListEnvelope>(res);
   },
 
-  getById: async (id: string): Promise<ClientResponse | null> => {
-    return fetchWithAuth(`/clients/${id}`);
+  getById: async (id: string): Promise<ClientResponse> => {
+    const res = await fetchWithAuth(`/users/clients/${id}`);
+    return unwrap<ClientResponse>(res);
   },
 
   create: async (data: CreateClientRequest): Promise<ClientResponse> => {
-    return fetchWithAuth('/clients', {
+    const res = await fetchWithAuth('/users', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, role: 'client' }),
     });
+    return unwrap<ClientResponse>(res);
   },
 
-  update: async (id: string, data: Record<string, any>): Promise<ClientResponse> => {
-    return fetchWithAuth(`/clients/${id}`, {
-      method: 'PUT',
+  update: async (id: string, data: Partial<ClientResponse>): Promise<ClientResponse> => {
+    const res = await fetchWithAuth(`/users/clients/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
+    return unwrap<ClientResponse>(res);
   },
 
-  delete: async (id: string): Promise<{ success: boolean }> => {
-    return fetchWithAuth(`/clients/${id}`, {
+  delete: async (id: string): Promise<{ message: string }> => {
+    const res = await fetchWithAuth(`/users/clients/${id}`, {
       method: 'DELETE',
     });
+    return unwrap<{ message: string }>(res);
   },
 
   getPortfolio: async (id: string) => {
-    const { getAllDeals } = await import('../localDb');
-    const deals = getAllDeals().filter((d: any) =>
-      d.investments?.some((i: any) => i.clientId === id)
-    );
-    return deals;
+    const res = await fetchWithAuth(`/users/clients/${id}/portfolio`);
+    return unwrap(res);
+  },
+
+  getSummary: async (): Promise<any> => {
+    const res = await fetchWithAuth('/users/clients/summary');
+    return unwrap(res);
   },
 };

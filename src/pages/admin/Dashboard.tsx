@@ -36,7 +36,7 @@ const Globe = lazy(() => import('@/components/Globe'));
 
 // ===== HELPERS =====
 function getClientName(c: ClientResponse): string {
-  return c.fullName || c.name || 'Unknown';
+  return c.name || 'Unknown';
 }
 
 function getClientPnlPercent(c: ClientResponse): number {
@@ -486,7 +486,7 @@ export default function AdminDashboard() {
       dealsApi.getPendingReservations(),
     ]).then(([dealsData, clientsData, dashData, reservationsData]) => {
       setDeals(dealsData || []);
-      setClients(clientsData || []);
+      setClients(clientsData.data || []);
       setDashboardData({
         totalAum: dashData?.totalAum || 0,
         activeDealCount: dashData?.activeDealCount || 0,

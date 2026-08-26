@@ -33,11 +33,12 @@ export default function AvailableDeals() {
   const load = async () => {
     setLoading(true);
     try {
-      const [allDeals, allClients, user] = await Promise.all([
+      const [allDeals, clientsEnvelope, user] = await Promise.all([
         dealsApi.getAll(),
         clientsApi.getAll(),
         authApi.me(),
       ]);
+      const allClients = clientsEnvelope.data || [];
       // Filter open deals
       const openDeals = allDeals.filter(d => OPEN_STATUSES.includes(d.status));
       // Exclude deals where client already invested
@@ -72,7 +73,7 @@ export default function AvailableDeals() {
         dealName: selectedDeal.companyName,
         dealTicker: selectedDeal.ticker,
         clientId: client.id,
-        clientName: client.name || client.fullName || 'Unknown',
+        clientName: client.name || 'Unknown',
         amount,
         entryPrice: selectedDeal.entryPrice || selectedDeal.currentPrice || 0,
         isLead,

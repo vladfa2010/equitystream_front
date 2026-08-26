@@ -38,36 +38,68 @@ function getPnlPercent(c: ClientResponse): number {
 
 // Helper: get display name
 function getName(c: ClientResponse): string {
-  return c.fullName || c.name || 'Unknown';
+  return c.name || 'Unknown';
+}
+
+interface ClientSummary {
+  totalClients: number;
+  activeClients: number;
+  totalInvested: number;
+  totalPnl: number;
+  avgReturnPercent: number;
+  newClientsThisMonth: number;
 }
 
 export default function ClientsList() {
   const navigate = useNavigate();
   const [clientList, setClientList] = useState<ClientResponse[]>([]);
-  const [, setLoading] = useState(true);
-
-  // Load clients from localStorage API on mount
-  useEffect(() => {
-    clientsApi.getAll().then(data => {
-      setClientList(data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<ClientSummary | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Summary stats
+  // Load clients and summary from backend API
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    const status = statusFilter === 'all' ? undefined : statusFilter;
+    const params = {
+      status,
+      search: searchQuery.trim() || undefined,
+      page,
+      limit: 20,
+    };
+
+    Promise.all([
+      clientsApi.getAll(params),
+      clientsApi.getSummary().catch(() => null as ClientSummary | null),
+    ]).then(([list, sum]) => {
+      if (cancelled) return;
+      setClientList(list.data);
+      setTotalPages(list.totalPages || 1);
+      if (sum) setSummary(sum);
+      setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [statusFilter, searchQuery, page]);
+
+  // Summary stats (from API summary)
   const stats = useMemo(() => {
-    const totalClients = clientList.length;
-    const activeClients = clientList.filter((c) => c.status === 'active').length;
-    const totalInvested = clientList.reduce((sum, c) => sum + c.totalInvested, 0);
+    const totalClients = summary?.totalClients ?? clientList.length;
+    const activeClients = summary?.activeClients ?? clientList.filter((c) => c.status === 'active').length;
+    const totalInvested = summary?.totalInvested ?? clientList.reduce((sum, c) => sum + c.totalInvested, 0);
     const avgInvestment = totalClients > 0 ? totalInvested / totalClients : 0;
-    const avgPnl =
-      totalClients > 0
-        ? clientList.reduce((sum, c) => sum + getPnlPercent(c), 0) / totalClients
-        : 0;
+    const avgPnl = summary?.avgReturnPercent ?? (totalClients > 0
+      ? clientList.reduce((sum, c) => sum + getPnlPercent(c), 0) / totalClients
+      : 0);
     const topPerformer = clientList.length > 0
       ? clientList.reduce(
           (best, c) => (getPnlPercent(c) > getPnlPercent(best) ? c : best),
@@ -75,26 +107,11 @@ export default function ClientsList() {
         )
       : null;
     return { totalClients, activeClients, totalInvested, avgInvestment, avgPnl, topPerformer };
-  }, [clientList]);
+  }, [clientList, summary]);
 
-  // Filtered & sorted clients
-  const filteredClients = useMemo(() => {
-    let result = [...clientList];
-
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (c) => getName(c).toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      result = result.filter((c) => c.status === statusFilter);
-    }
-
-    // Sort
+  // Sort clients on the current page
+  const sortedClients = useMemo(() => {
+    const result = [...clientList];
     switch (sortBy) {
       case 'name-asc':
         result.sort((a, b) => getName(a).localeCompare(getName(b)));
@@ -115,9 +132,8 @@ export default function ClientsList() {
         result.sort((a, b) => getPnlPercent(a) - getPnlPercent(b));
         break;
     }
-
     return result;
-  }, [clientList, searchQuery, statusFilter, sortBy]);
+  }, [clientList, sortBy]);
 
 
 
@@ -365,7 +381,11 @@ export default function ClientsList() {
         </motion.div>
 
         {/* Client List Content */}
-        {filteredClients.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-white/20 border-t-[#B8A14E] rounded-full animate-spin" />
+          </div>
+        ) : sortedClients.length === 0 ? (
           /* Empty State */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -396,7 +416,7 @@ export default function ClientsList() {
         ) : viewMode === 'grid' ? (
           /* Grid View */
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredClients.map((client, i) => (
+            {sortedClients.map((client, i) => (
               <ClientCard key={client.id} client={client} index={i} />
             ))}
           </div>
@@ -429,7 +449,7 @@ export default function ClientsList() {
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.map((client, i) => (
+                {sortedClients.map((client, i) => (
                   <ClientTableRow key={client.id} client={client} index={i} />
                 ))}
               </tbody>
@@ -437,18 +457,43 @@ export default function ClientsList() {
           </motion.div>
         )}
 
-        {/* Results count */}
-        {filteredClients.length > 0 && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-caption mt-4"
-            style={{ color: '#55555E' }}
-          >
-            Showing {filteredClients.length} of {clientList.length} client
-            {clientList.length !== 1 ? 's' : ''}
-          </motion.p>
+        {/* Results count & pagination */}
+        {!loading && sortedClients.length > 0 && (
+          <div className="flex items-center justify-between mt-4">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-caption"
+              style={{ color: '#55555E' }}
+            >
+              Showing {sortedClients.length} of {stats.totalClients} client
+              {stats.totalClients !== 1 ? 's' : ''}
+            </motion.p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 rounded-lg text-[13px] disabled:opacity-40 hover:bg-white/5"
+                  style={{ color: '#8A8A93', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  Prev
+                </button>
+                <span className="text-[13px]" style={{ color: '#8A8A93' }}>
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1 rounded-lg text-[13px] disabled:opacity-40 hover:bg-white/5"
+                  style={{ color: '#8A8A93', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

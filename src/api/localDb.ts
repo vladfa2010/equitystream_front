@@ -167,7 +167,7 @@ export function createDealLocal(data: CreateDealRequest): DealResponse {
         id: `i_${Date.now()}_${idx}`,
         dealId: `d_${Date.now()}`,
         clientId: c.clientId,
-        clientName: client?.fullName || client?.name || 'Unknown',
+        clientName: client?.name || 'Unknown',
         clientAvatar: null,
         amount: c.amount,
         entryPrice,
@@ -221,10 +221,9 @@ export function deleteDealLocal(id: string): boolean {
    ROLE MAPPING — backward compatibility
    ═══════════════════════════════════════════ */
 
-function normalizeRole(role: string): 'user' | 'admin' | 'superadmin' {
-  if (role === 'superadmin') return 'superadmin';
+function normalizeRole(role: string): 'admin' | 'client' {
   if (role === 'admin') return 'admin';
-  return 'user'; // 'client' or any other → 'user'
+  return 'client'; // 'user' or any other → 'client'
 }
 
 function normalizeClient(client: any): ClientResponse {
@@ -252,19 +251,13 @@ export function createClientLocal(data: CreateClientRequest): ClientResponse {
   const clients = getAllClients();
   const newClient: ClientResponse = {
     id: `c_${Date.now()}`,
-    fullName: data.fullName,
-    name: data.fullName,
-    nickname: data.nickname,
-    dateOfBirth: data.dateOfBirth || null,
-    role: data.role,
+    name: data.name,
     email: data.email,
+    role: 'client',
+    avatarUrl: data.avatarUrl || null,
     phone: data.phone || null,
-    telegram: data.telegram ? (data.telegram.startsWith('@') ? data.telegram : `@${data.telegram}`) : null,
     notes: data.notes || null,
-    contractUrl: data.contractFile || null,
-    avatarUrl: data.avatarFile || null,
-    idDocumentUrl: data.idDocumentFile || null,
-    status: 'active',
+    status: data.status || 'active',
     totalInvested: 0,
     totalPnl: 0,
     createdAt: new Date().toISOString(),

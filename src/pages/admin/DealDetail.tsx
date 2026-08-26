@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 
 function getClientName(c: ClientResponse | any): string {
-  return c?.fullName || c?.name || 'Unknown';
+  return c?.name || 'Unknown';
 }
 
 /* ─── input style helpers ─── */
@@ -98,7 +98,7 @@ export default function DealDetail() {
     Promise.all([dealsApi.getById(id), clientsApi.getAll(), dealsApi.getPriceHistory(id), authApi.me()])
       .then(([d, c, ph, admin]) => {
         setDeal(d);
-        setAllClients(c || []);
+        setAllClients(c.data || []);
         setPriceHistory(ph || []);
         setAddPriceAdmin(admin?.name || 'Admin');
         setLoading(false);

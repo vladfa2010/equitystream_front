@@ -6,7 +6,7 @@ import type { ClientResponse } from '@/api';
 interface EditClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (client: ClientResponse) => void;
+  onSave: (client: Partial<ClientResponse>) => void;
   onDelete?: (clientId: string) => void;
   client: ClientResponse | null;
 }
@@ -36,60 +36,49 @@ const focusHandlers = {
 };
 
 export default function EditClientModal({ isOpen, onClose, onSave, onDelete, client }: EditClientModalProps) {
-  // All form fields
-  const [fullName, setFullName] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [role, setRole] = useState<'user' | 'admin' | 'superadmin'>('user');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<'admin' | 'client'>('client');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [telegram, setTelegram] = useState('');
   const [notes, setNotes] = useState('');
+  const [status, setStatus] = useState<'active' | 'inactive'>('active');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load client data into form
   useEffect(() => {
     if (client) {
-      setFullName(client.fullName || client.name || '');
-      setNickname(client.nickname || '');
-      setDateOfBirth(client.dateOfBirth ? client.dateOfBirth.split('T')[0] : '');
-      setRole((client.role as any) || 'user');
+      setName(client.name || '');
+      setRole(client.role || 'client');
       setEmail(client.email || '');
       setPhone(client.phone || '');
-      setTelegram(client.telegram ? client.telegram.replace('@', '') : '');
       setNotes(client.notes || '');
+      setStatus(client.status || 'active');
       setShowDeleteConfirm(false);
       setDeleteConfirmName('');
     }
   }, [client]);
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-  const canSubmit = fullName.trim().length > 0 && isValidEmail(email) && !isSubmitting;
+  const canSubmit = name.trim().length > 0 && isValidEmail(email) && !isSubmitting;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !client) return;
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     onSave({
-      ...client,
-      fullName: fullName.trim(),
-      name: fullName.trim(),
-      nickname: nickname.trim(),
-      dateOfBirth: dateOfBirth || null,
+      name: name.trim(),
       role,
       email: email.trim(),
       phone: phone.trim() || null,
-      telegram: telegram.trim() ? (telegram.trim().startsWith('@') ? telegram.trim() : `@${telegram.trim()}`) : null,
       notes: notes.trim() || null,
-      updatedAt: new Date().toISOString(),
-    } as ClientResponse);
+      status,
+    });
 
     setIsSubmitting(false);
     onClose();
@@ -103,27 +92,14 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
   };
 
   const handleDelete = async () => {
-    if (!client || deleteConfirmName !== (client.fullName || client.name)) return;
+    if (!client || deleteConfirmName !== client.name) return;
     setIsDeleting(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     onDelete?.(client.id);
     setIsDeleting(false);
     setShowDeleteConfirm(false);
     setDeleteConfirmName('');
     onClose();
-  };
-
-  const resetForm = () => {
-    if (client) {
-      setFullName(client.fullName || client.name || '');
-      setNickname(client.nickname || '');
-      setDateOfBirth(client.dateOfBirth ? client.dateOfBirth.split('T')[0] : '');
-      setRole((client.role as any) || 'user');
-      setEmail(client.email || '');
-      setPhone(client.phone || '');
-      setTelegram(client.telegram ? client.telegram.replace('@', '') : '');
-      setNotes(client.notes || '');
-    }
   };
 
   return (
@@ -136,7 +112,6 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Backdrop */}
           <motion.div
             className="absolute inset-0"
             style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
@@ -146,7 +121,6 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
             exit={{ opacity: 0 }}
           />
 
-          {/* Modal */}
           <motion.div
             className="relative w-full max-w-[560px] max-h-[90vh] overflow-y-auto"
             style={{
@@ -162,7 +136,6 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               onClick={handleClose}
               className="absolute top-4 right-4 p-2 rounded-lg transition-colors"
@@ -177,216 +150,127 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
               Edit Profile
             </h2>
             <p className="text-sm mb-6" style={{ color: '#8A8A93' }}>
-              {client.fullName || client.name}
+              {client.name}
             </p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
-              {/* Section: Personal Information */}
               <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <h3 className="text-xs uppercase tracking-wider mb-4 font-semibold" style={{ color: '#B8A14E' }}>
                   Personal Information
                 </h3>
-
                 <div className="flex flex-col gap-4">
-                  {/* Full Name */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs" style={{ color: '#8A8A93' }}>Full Name <span style={{ color: '#EF4444' }}>*</span></label>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required style={inputStyle} {...focusHandlers} />
+                    <label className="text-xs" style={{ color: '#8A8A93' }}>Name <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} {...focusHandlers} />
                   </div>
 
-                  {/* Nickname */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs" style={{ color: '#8A8A93' }}>Nickname / Username</label>
-                    <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="@username" style={inputStyle} {...focusHandlers} />
-                  </div>
-
-                  {/* Date of Birth */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs" style={{ color: '#8A8A93' }}>Date of Birth</label>
-                    <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={inputStyle} {...focusHandlers} />
-                  </div>
-
-                  {/* Role */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs" style={{ color: '#8A8A93' }}>Role</label>
-                    <select value={role} onChange={(e) => setRole(e.target.value as 'user' | 'admin' | 'superadmin')} style={inputStyle} {...focusHandlers}>
-                      <option value="user">User</option>
+                    <select value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'client')} style={inputStyle} {...focusHandlers}>
+                      <option value="client">Client</option>
                       <option value="admin">Admin</option>
-                      <option value="superadmin">Superadmin</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs" style={{ color: '#8A8A93' }}>Status</label>
+                    <select value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')} style={inputStyle} {...focusHandlers}>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Section: Contact Information */}
               <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <h3 className="text-xs uppercase tracking-wider mb-4 font-semibold" style={{ color: '#B8A14E' }}>
                   Contact Information
                 </h3>
-
                 <div className="flex flex-col gap-4">
-                  {/* Email */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs" style={{ color: '#8A8A93' }}>Email <span style={{ color: '#EF4444' }}>*</span></label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      style={{ ...inputStyle, borderColor: !isValidEmail(email) && email ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)' }}
-                      {...focusHandlers}
-                    />
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} {...focusHandlers} />
                   </div>
-
-                  {/* Phone */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs" style={{ color: '#8A8A93' }}>Phone</label>
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 123-4567" style={inputStyle} {...focusHandlers} />
+                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1-555-123-4567" style={inputStyle} {...focusHandlers} />
                   </div>
-
-                  {/* Telegram */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs" style={{ color: '#8A8A93' }}>Telegram</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#55555E' }}>@</span>
-                      <input
-                        type="text"
-                        value={telegram}
-                        onChange={(e) => setTelegram(e.target.value)}
-                        placeholder="username"
-                        style={{ ...inputStyle, paddingLeft: 28 }}
-                        {...focusHandlers}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Notes */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs" style={{ color: '#8A8A93' }}>Notes</label>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any additional notes..."
-                      rows={3}
-                      className="resize-none"
-                      style={inputStyle}
-                      {...focusHandlers}
-                    />
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notes about the client..." style={inputStyle} {...focusHandlers} />
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-3 pt-2">
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-3 rounded-xl text-[14px] font-medium transition-colors flex items-center gap-2"
+                  style={{ color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="flex-1 py-3 rounded-xl text-[14px] font-medium transition-colors hover:bg-white/5"
+                  style={{ color: '#8A8A93', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="flex-1 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}
+                >
+                  {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+
+            {showDeleteConfirm && (
+              <div className="mt-6 p-4 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.16)' }}>
+                <div className="flex items-start gap-3 mb-3">
+                  <AlertTriangle size={20} style={{ color: '#EF4444' }} />
+                  <div>
+                    <h3 className="text-[16px] font-semibold mb-1" style={{ color: '#F5F5F0' }}>Deactivate client?</h3>
+                    <p className="text-[13px]" style={{ color: '#8A8A93' }}>
+                      Type <strong style={{ color: '#F5F5F0' }}>{client.name}</strong> to confirm deactivation.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={deleteConfirmName}
+                  onChange={(e) => setDeleteConfirmName(e.target.value)}
+                  placeholder="Type client name"
+                  style={inputStyle}
+                  className="mb-3"
+                />
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={handleClose}
-                    disabled={isSubmitting}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 py-2 rounded-xl text-[13px] transition-colors hover:bg-white/5"
+                    style={{ color: '#8A8A93', border: '1px solid rgba(255,255,255,0.1)' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    onClick={resetForm}
-                    disabled={isSubmitting}
-                    className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.05)', color: '#8A8A93', border: '1px solid rgba(255,255,255,0.08)' }}
+                    onClick={handleDelete}
+                    disabled={deleteConfirmName !== client.name || isDeleting}
+                    className="flex-1 py-2 rounded-xl text-[13px] font-medium transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2"
+                    style={{ background: '#EF4444', color: '#fff' }}
                   >
-                    Reset
+                    {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Deactivate'}
                   </button>
-                  <button
-                    type="submit"
-                    disabled={!canSubmit}
-                    className="flex-[2] py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
-                    style={{
-                      background: canSubmit ? 'linear-gradient(135deg, #B8A14E, #C9B25F)' : 'rgba(184,161,78,0.2)',
-                      color: '#0A0A0F',
-                      opacity: canSubmit ? 1 : 0.5,
-                      cursor: canSubmit ? 'pointer' : 'not-allowed',
-                    }}
-                  >
-                    {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                    {isSubmitting ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-
-                {/* Delete Account Section */}
-                <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(239,68,68,0.15)' }}>
-                  {!showDeleteConfirm ? (
-                    <button
-                      type="button"
-                      onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmName(''); }}
-                      className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors"
-                      style={{ color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}
-                    >
-                      <Trash2 size={14} /> Delete Account
-                    </button>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="p-4 rounded-xl"
-                      style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}
-                    >
-                      <div className="flex items-center gap-2 mb-3">
-                        <AlertTriangle size={16} style={{ color: '#EF4444' }} />
-                        <span className="text-sm font-semibold" style={{ color: '#EF4444' }}>Delete Account</span>
-                      </div>
-                      <p className="text-xs mb-3" style={{ color: '#8A8A93' }}>
-                        This will permanently delete the client and all associated data. Type the client's full name to confirm:
-                      </p>
-                      <p className="text-sm font-semibold mb-3" style={{ color: '#B8A14E' }}>
-                        {client.fullName || client.name}
-                      </p>
-                      <input
-                        type="text"
-                        value={deleteConfirmName}
-                        onChange={(e) => setDeleteConfirmName(e.target.value)}
-                        placeholder={`Type "${client.fullName || client.name}" to confirm`}
-                        className="w-full px-4 py-2.5 rounded-xl text-sm mb-3 outline-none"
-                        style={{
-                          background: '#0A0A0F',
-                          border: `1px solid ${deleteConfirmName === (client.fullName || client.name) ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                          color: '#F5F5F0',
-                        }}
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); }}
-                          className="flex-1 py-2 rounded-lg text-xs font-medium"
-                          style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          disabled={deleteConfirmName !== (client.fullName || client.name) || isDeleting}
-                          onClick={handleDelete}
-                          className="flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all"
-                          style={{
-                            background: deleteConfirmName === (client.fullName || client.name) && !isDeleting ? '#EF4444' : 'rgba(239,68,68,0.2)',
-                            color: '#F5F5F0',
-                            opacity: deleteConfirmName === (client.fullName || client.name) && !isDeleting ? 1 : 0.4,
-                            cursor: deleteConfirmName === (client.fullName || client.name) && !isDeleting ? 'pointer' : 'not-allowed',
-                          }}
-                        >
-                          {isDeleting && <Loader2 size={12} className="animate-spin" />}
-                          {isDeleting ? 'Deleting...' : 'Delete Account'}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
                 </div>
               </div>
-            </form>
+            )}
           </motion.div>
         </motion.div>
       )}

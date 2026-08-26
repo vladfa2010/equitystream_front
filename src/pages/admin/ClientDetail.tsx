@@ -11,10 +11,7 @@ import {
   Briefcase,
   Mail,
   Phone,
-  Send,
-  FileText,
   Image,
-  Shield,
   Link2,
   Calendar,
   Clock,
@@ -41,7 +38,7 @@ import EditClientModal from '@/components/clients/EditClientModal';
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 function getClientName(c: ClientResponse): string {
-  return c.fullName || c.name || 'Unknown';
+  return c.name || 'Unknown';
 }
 
 /* ═══════════════════════════════════════════
@@ -280,27 +277,25 @@ export default function ClientDetail() {
   }, [client]);
 
   const handleSaveClient = useCallback(
-    async (updated: ClientResponse) => {
+    async (updated: Partial<ClientResponse>) => {
+      if (!client) return;
       try {
-        await clientsApi.update(updated.id, {
-          fullName: updated.fullName,
-          nickname: updated.nickname,
-          dateOfBirth: updated.dateOfBirth || undefined,
+        await clientsApi.update(client.id, {
+          name: updated.name,
           role: updated.role,
           email: updated.email,
           phone: updated.phone || undefined,
-          telegram: updated.telegram || undefined,
           notes: updated.notes || undefined,
+          status: updated.status,
         });
-        setClient(updated);
-        // Refresh client data from storage
-        const refreshed = await clientsApi.getById(updated.id);
+        // Refresh client data from backend
+        const refreshed = await clientsApi.getById(client.id);
         if (refreshed) setClient(refreshed);
       } catch (err) {
         console.error('Failed to update client:', err);
       }
     },
-    []
+    [client]
   );
 
   const handleDeleteClient = useCallback(
@@ -447,11 +442,11 @@ export default function ClientDetail() {
               <span
                 className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
                 style={{
-                  background: client.role === 'superadmin' ? 'rgba(239,68,68,0.15)' : client.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
-                  color: client.role === 'superadmin' ? '#EF4444' : client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+                  background: client.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
+                  color: client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
                 }}
               >
-                {client.role === 'superadmin' ? 'SUPERADMIN' : client.role === 'admin' ? 'ADMIN' : 'USER'}
+                {client.role === 'admin' ? 'ADMIN' : 'CLIENT'}
               </span>
             </div>
             <motion.p
@@ -550,20 +545,14 @@ export default function ClientDetail() {
               <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>Personal Info</h3>
             </div>
             <div className="flex flex-col gap-3">
-              <ProfileField label="Full Name" value={client.fullName || '—'} />
-              <ProfileField label="Display Name" value={client.name || '—'} />
-              <ProfileField label="Nickname" value={client.nickname || '—'} />
-              <ProfileField
-                label="Date of Birth"
-                value={client.dateOfBirth ? new Date(client.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}
-              />
+              <ProfileField label="Name" value={client.name || '—'} />
               <div className="flex items-center gap-2">
                 <span className="text-[11px] uppercase" style={{ color: '#55555E', fontWeight: 500, minWidth: 90 }}>Role</span>
                 <span
                   className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase"
                   style={{
-                    background: client.role === 'superadmin' ? 'rgba(239,68,68,0.15)' : client.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
-                    color: client.role === 'superadmin' ? '#EF4444' : client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
+                    background: client.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
+                    color: client.role === 'admin' ? '#8B5CF6' : '#4F6EF7',
                   }}
                 >
                   {client.role}
@@ -574,8 +563,8 @@ export default function ClientDetail() {
                 <span
                   className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase"
                   style={{
-                    background: client.status === 'active' ? 'rgba(16,185,129,0.15)' : client.status === 'pending' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)',
-                    color: client.status === 'active' ? '#10B981' : client.status === 'pending' ? '#F59E0B' : '#6B7280',
+                    background: client.status === 'active' ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
+                    color: client.status === 'active' ? '#10B981' : '#6B7280',
                   }}
                 >
                   {client.status}
@@ -608,16 +597,10 @@ export default function ClientDetail() {
                 icon={<Phone size={12} style={{ color: '#55555E' }} />}
                 href={client.phone ? `tel:${client.phone}` : undefined}
               />
-              <ProfileField
-                label="Telegram"
-                value={client.telegram || '—'}
-                icon={<Send size={12} style={{ color: '#55555E' }} />}
-                href={client.telegram ? `https://t.me/${client.telegram.replace('@', '')}` : undefined}
-              />
             </div>
           </motion.div>
 
-          {/* Documents */}
+          {/* Avatar */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -625,13 +608,11 @@ export default function ClientDetail() {
             className="glass-panel p-5"
           >
             <div className="flex items-center gap-2 mb-4">
-              <FileText size={16} style={{ color: '#10B981' }} />
-              <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#10B981' }}>Documents</h3>
+              <Image size={16} style={{ color: '#10B981' }} />
+              <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#10B981' }}>Avatar</h3>
             </div>
             <div className="flex flex-col gap-3">
-              <DocLink label="Contract" url={client.contractUrl} icon={<FileText size={12} />} />
-              <DocLink label="Avatar" url={client.avatarUrl} icon={<Image size={12} />} />
-              <DocLink label="ID Document" url={client.idDocumentUrl} icon={<Shield size={12} />} />
+              <DocLink label="Avatar URL" url={client.avatarUrl} icon={<Image size={12} />} />
             </div>
           </motion.div>
 
