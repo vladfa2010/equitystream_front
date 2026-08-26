@@ -81,4 +81,11 @@ export const clientsApi = {
     const res = await fetchWithAuth('/users/clients/summary');
     return unwrap(res);
   },
+
+  resetPassword: async (id: string): Promise<{ userId: string; emailSent: boolean; emailError?: string }> => {
+    const res = await fetchWithAuth(`/users/${id}/reset-password`, {
+      method: 'POST',
+    });
+    return unwrap(res);
+  },
 };

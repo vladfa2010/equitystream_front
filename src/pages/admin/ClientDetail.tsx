@@ -18,6 +18,7 @@ import {
   User,
   ExternalLink,
   StickyNote,
+  KeyRound,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -133,6 +134,7 @@ export default function ClientDetail() {
   const [, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
+  const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Load client from localStorage API
   useEffect(() => {
@@ -319,6 +321,26 @@ export default function ClientDetail() {
     [navigate]
   );
 
+  const handleResetPassword = useCallback(async () => {
+    if (!client) return;
+    if (!window.confirm(`Reset password for ${client.name || client.email}? A new password will be emailed to ${client.email}.`)) {
+      return;
+    }
+    try {
+      const result = await clientsApi.resetPassword(client.id);
+      if (result.emailSent) {
+        setResetMessage({ type: 'success', text: `Password reset. New password emailed to ${client.email}.` });
+      } else {
+        setResetMessage({
+          type: 'error',
+          text: `Password was changed, but email was not sent: ${result.emailError || 'unknown error'}. Check RESEND_API_KEY.`,
+        });
+      }
+    } catch (err: any) {
+      setResetMessage({ type: 'error', text: err.message || 'Failed to reset password.' });
+    }
+  }, [client]);
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -476,6 +498,24 @@ export default function ClientDetail() {
             transition={{ duration: 0.4, delay: 0.2, ease: easeExpo }}
             className="flex gap-3 shrink-0"
           >
+            <button
+              onClick={handleResetPassword}
+              className="flex items-center gap-2"
+              style={{
+                background: 'rgba(184,161,78,0.12)',
+                border: '1px solid rgba(184,161,78,0.25)',
+                color: '#B8A14E',
+                borderRadius: 10,
+                padding: '10px 20px',
+                fontWeight: 600,
+                fontSize: 14,
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                cursor: 'pointer',
+              }}
+            >
+              <KeyRound size={14} />
+              Reset Password
+            </button>
             <button onClick={() => setIsEditModalOpen(true)} className="btn-secondary flex items-center gap-2">
               <Pencil size={14} />
               Edit Profile
@@ -500,6 +540,21 @@ export default function ClientDetail() {
             </button>
           </motion.div>
         </motion.div>
+
+        {resetMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-xl text-[14px]"
+            style={{
+              background: resetMessage.type === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+              border: `1px solid ${resetMessage.type === 'success' ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`,
+              color: resetMessage.type === 'success' ? '#10B981' : '#EF4444',
+            }}
+          >
+            {resetMessage.text}
+          </motion.div>
+        )}
 
         {/* Metrics Row */}
         <motion.div
