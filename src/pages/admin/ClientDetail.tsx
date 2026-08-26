@@ -274,11 +274,8 @@ export default function ClientDetail() {
     if (!client) return;
     const newStatus = client.status === 'active' ? 'inactive' : 'active';
     try {
-      await clientsApi.update(client.id, { status: newStatus });
-      setClient({
-        ...client,
-        status: newStatus,
-      });
+      const updated = await clientsApi.update(client.id, { status: newStatus });
+      setClient(updated);
     } catch (err) {
       console.error('Failed to update status:', err);
     }
