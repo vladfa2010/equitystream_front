@@ -2,17 +2,13 @@ import type { LoginRequest, LoginResponse, UserDto } from '../types';
 
 // Default credentials for demo
 const DEFAULT_USERS: Record<string, { password: string; user: UserDto }> = {
-  'user@equitystream.com': {
-    password: 'user',
-    user: { id: 'u_user', email: 'user@equitystream.com', name: 'User', role: 'user', avatarUrl: null },
+  'client@equitystream.com': {
+    password: 'client',
+    user: { id: 'u_client', email: 'client@equitystream.com', name: 'Client', role: 'client', avatarUrl: null },
   },
   'admin@equitystream.com': {
     password: 'admin',
     user: { id: 'u_admin', email: 'admin@equitystream.com', name: 'Admin', role: 'admin', avatarUrl: null },
-  },
-  'superadmin@equitystream.com': {
-    password: 'superadmin',
-    user: { id: 'u_superadmin', email: 'superadmin@equitystream.com', name: 'Superadmin', role: 'superadmin', avatarUrl: null },
   },
 };
 
@@ -33,7 +29,7 @@ export const authApi = {
 
     const entry = DEFAULT_USERS[data.email.toLowerCase()];
     if (!entry || entry.password !== data.password) {
-      throw new Error('Invalid email or password. Try: user@equitystream.com / user, admin@equitystream.com / admin, or superadmin@equitystream.com / superadmin');
+      throw new Error('Invalid email or password. Try: client@equitystream.com / client or admin@equitystream.com / admin');
     }
 
     const token = `demo_token_${Date.now()}`;

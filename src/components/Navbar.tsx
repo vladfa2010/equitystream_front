@@ -16,8 +16,16 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
+type NavbarRole = 'user' | 'admin' | 'client' | 'superadmin';
+
 interface NavbarProps {
-  role?: 'user' | 'admin' | 'superadmin';
+  role?: NavbarRole;
+}
+
+function normalizeNavbarRole(role?: NavbarRole): 'admin' | 'client' | 'user' {
+  if (role === 'admin' || role === 'superadmin') return 'admin';
+  if (role === 'client') return 'client';
+  return 'user';
 }
 
 const adminNavItems = [
@@ -51,7 +59,7 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
     return location.pathname === path;
   };
 
-  const effectiveRole = user?.role ?? role;
+  const effectiveRole = user?.role ?? normalizeNavbarRole(role);
 
   return (
     <>
@@ -131,11 +139,11 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
           <span
             className="hidden sm:inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-md uppercase"
             style={{
-              background: effectiveRole === 'superadmin' ? 'rgba(239,68,68,0.12)' : effectiveRole === 'admin' ? 'rgba(184,161,78,0.12)' : 'rgba(79,110,247,0.12)',
-              color: effectiveRole === 'superadmin' ? '#EF4444' : effectiveRole === 'admin' ? '#B8A14E' : '#4F6EF7',
+              background: effectiveRole === 'admin' ? 'rgba(184,161,78,0.12)' : effectiveRole === 'client' ? 'rgba(79,110,247,0.12)' : 'rgba(79,110,247,0.12)',
+              color: effectiveRole === 'admin' ? '#B8A14E' : effectiveRole === 'client' ? '#4F6EF7' : '#4F6EF7',
             }}
           >
-            {effectiveRole === 'superadmin' ? 'SUPERADMIN' : effectiveRole === 'admin' ? 'ADMIN' : 'USER'}
+            {effectiveRole === 'admin' ? 'ADMIN' : effectiveRole === 'client' ? 'CLIENT' : 'USER'}
           </span>
 
           <button className="relative p-2 rounded-lg hover:bg-white/5 transition-colors">

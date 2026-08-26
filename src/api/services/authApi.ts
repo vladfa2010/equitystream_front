@@ -1,36 +1,11 @@
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData {
-  email: string;
-  username: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    isAdmin: boolean;
-    isBlocked: boolean;
-    isVerified: boolean;
-  };
-}
-
-export interface User {
-  id: string;
-  email: string;
-  username: string;
-  isAdmin: boolean;
-  isBlocked: boolean;
-  isVerified: boolean;
-}
+import type { LoginRequest, LoginResponse, UserDto } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+function unwrap<T>(res: any): T {
+  if (res && res.data !== undefined) return res.data as T;
+  return res as T;
+}
 
 async function api(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('es_auth_token');
@@ -46,58 +21,61 @@ async function api(endpoint: string, options: RequestInit = {}) {
   const data = await res.json().catch(() => ({ error: 'Network error' }));
 
   if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
+    throw new Error(data.error || data.message || `HTTP ${res.status}`);
   }
 
   return data;
 }
 
+export interface AuthUser extends UserDto {
+  isVerified: boolean;
+}
+
+function normalizeUser(user: UserDto): AuthUser {
+  return { ...user, isVerified: true };
+}
+
 export const authApi = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const data = await api('/auth/login', {
+  async login(credentials: LoginRequest): Promise<AuthUser> {
+    const res = await api('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-    if (data.token) {
-      localStorage.setItem('es_auth_token', data.token);
+    const { accessToken, user } = unwrap<LoginResponse>(res);
+    if (accessToken) {
+      localStorage.setItem('es_auth_token', accessToken);
     }
-    return data;
+    return normalizeUser(user);
   },
 
-  async register(data: RegisterData): Promise<AuthResponse> {
+  async register(data: { email: string; name: string; password: string; role?: 'admin' | 'client' }): Promise<AuthUser> {
     const res = await api('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (res.token) {
-      localStorage.setItem('es_auth_token', res.token);
+    const { accessToken, user } = unwrap<LoginResponse>(res);
+    if (accessToken) {
+      localStorage.setItem('es_auth_token', accessToken);
     }
-    return res;
+    return normalizeUser(user);
   },
 
-  async me(): Promise<{ user: User }> {
-    return api('/auth/me');
+  async me(): Promise<AuthUser | null> {
+    const res = await api('/auth/me');
+    const user = unwrap<UserDto | null>(res);
+    return user ? normalizeUser(user) : null;
   },
 
-  async forgotPassword(email: string): Promise<any> {
-    return api('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    });
+  async forgotPassword(_email: string): Promise<void> {
+    throw new Error('Password reset is not available. Please contact support.');
   },
 
-  async verifyCode(email: string, code: string): Promise<{ resetToken: string }> {
-    return api('/auth/verify-code', {
-      method: 'POST',
-      body: JSON.stringify({ email, code }),
-    });
+  async verifyCode(_email: string, _code: string): Promise<{ resetToken: string }> {
+    throw new Error('Password reset is not available. Please contact support.');
   },
 
-  async resetPassword(resetToken: string, newPassword: string): Promise<any> {
-    return api('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ resetToken, newPassword }),
-    });
+  async resetPassword(_resetToken: string, _newPassword: string): Promise<void> {
+    throw new Error('Password reset is not available. Please contact support.');
   },
 
   logout() {
@@ -107,39 +85,4 @@ export const authApi = {
   },
 };
 
-export const adminApi = {
-  async getUsers(filter?: string, page = 1, limit = 20): Promise<any> {
-    const params = new URLSearchParams();
-    if (filter) params.append('filter', filter);
-    params.append('page', String(page));
-    params.append('limit', String(limit));
-    return api(`/admin/users?${params}`);
-  },
-
-  async getUser(id: string): Promise<any> {
-    return api(`/admin/users/${id}`);
-  },
-
-  async toggleAdmin(id: string): Promise<any> {
-    return api(`/admin/users/${id}/toggle-admin`, { method: 'POST' });
-  },
-
-  async toggleBlock(id: string): Promise<any> {
-    return api(`/admin/users/${id}/toggle-block`, { method: 'POST' });
-  },
-
-  async approveUser(id: string): Promise<any> {
-    return api(`/admin/users/${id}/approve`, { method: 'POST' });
-  },
-
-  async resetPassword(id: string, newPassword: string): Promise<any> {
-    return api(`/admin/users/${id}/reset-password`, {
-      method: 'POST',
-      body: JSON.stringify({ newPassword }),
-    });
-  },
-
-  async deleteUser(id: string): Promise<any> {
-    return api(`/admin/users/${id}`, { method: 'DELETE' });
-  },
-};
+export type { LoginRequest, LoginResponse, UserDto };

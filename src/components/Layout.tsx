@@ -6,10 +6,18 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 
+type LayoutRole = 'user' | 'admin' | 'client' | 'superadmin';
+
 interface LayoutProps {
   children: ReactNode;
-  role?: 'user' | 'admin' | 'superadmin';
+  role?: LayoutRole;
   showFooter?: boolean;
+}
+
+function normalizeRole(role?: LayoutRole): 'admin' | 'client' | 'user' {
+  if (role === 'admin' || role === 'superadmin') return 'admin';
+  if (role === 'client') return 'client';
+  return 'user';
 }
 
 export default function Layout({ children, role: propRole, showFooter = false }: LayoutProps) {
@@ -18,7 +26,7 @@ export default function Layout({ children, role: propRole, showFooter = false }:
   const location = useLocation();
 
   // Determine effective role: prop takes priority for backward compat, else derive from auth
-  const effectiveRole = propRole ?? (user?.role || 'user');
+  const effectiveRole = propRole ? normalizeRole(propRole) : (user?.role || 'user');
 
   // Admin view mode: if we're on an admin route, we're in admin view
   const isAdminRoute = location.pathname.startsWith('/admin');

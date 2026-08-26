@@ -13,7 +13,7 @@ export interface UserDto {
   id: string;
   email: string;
   name: string;
-  role: 'user' | 'admin' | 'superadmin';
+  role: 'admin' | 'client';
   avatarUrl: string | null;
 }
 

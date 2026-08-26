@@ -1,42 +1,24 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { authApi } from '@/api/services/authApi';
+import type { AuthUser } from '@/api/services/authApi';
 
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  role: 'user' | 'admin' | 'superadmin';
-  isVerified: boolean;
-  avatarUrl: string | null;
-}
+export type { AuthUser };
 
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isClient: boolean;
   isVerified: boolean;
   viewMode: 'admin' | 'user';
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<void>;
+  register: (email: string, name: string, password: string, role?: 'admin' | 'client') => Promise<void>;
   logout: () => void;
   setViewMode: (mode: 'admin' | 'user') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
-
-function api(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('es_auth_token');
-  return fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -53,19 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    api('/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          const u = data.user;
-          setUser({
-            id: u.id,
-            name: u.username,
-            email: u.email,
-            role: u.isAdmin ? 'admin' : 'user',
-            isVerified: u.isVerified,
-            avatarUrl: null,
-          });
+    authApi.me()
+      .then((u) => {
+        if (u) {
+          setUser(u);
         } else {
           localStorage.removeItem('es_auth_token');
         }
@@ -81,60 +54,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [viewMode]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await api('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
-
-    localStorage.setItem('es_auth_token', data.token);
-    const u = data.user;
-    setUser({
-      id: u.id,
-      name: u.username,
-      email: u.email,
-      role: u.isAdmin ? 'admin' : 'user',
-      isVerified: u.isVerified,
-      avatarUrl: null,
-    });
+    const u = await authApi.login({ email, password });
+    setUser(u);
   }, []);
 
-  const register = useCallback(async (email: string, username: string, password: string) => {
-    const res = await api('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, username, password }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Registration failed');
-
-    localStorage.setItem('es_auth_token', data.token);
-    const u = data.user;
-    setUser({
-      id: u.id,
-      name: u.username,
-      email: u.email,
-      role: u.isAdmin ? 'admin' : 'user',
-      isVerified: u.isVerified,
-      avatarUrl: null,
-    });
+  const register = useCallback(async (email: string, name: string, password: string, role?: 'admin' | 'client') => {
+    const u = await authApi.register({ email, name, password, role });
+    setUser(u);
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     setViewModeState('user');
-    localStorage.removeItem('es_auth_token');
-    localStorage.removeItem('es_view_mode');
-    localStorage.removeItem('es_logged_in_user');
+    authApi.logout();
   }, []);
 
   const setViewMode = useCallback((mode: 'admin' | 'user') => {
     setViewModeState(mode);
   }, []);
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isAdmin = user?.role === 'admin';
+  const isClient = user?.role === 'client';
   const isVerified = user?.isVerified ?? false;
 
   return (
@@ -143,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         isAdmin,
+        isClient,
         isVerified,
         viewMode,
         isLoading,
