@@ -1,6 +1,6 @@
 import type { ClientResponse, CreateClientRequest } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://159-194-206-229.sslip.io/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('es_auth_token');

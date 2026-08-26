@@ -24,7 +24,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://159-194-206-229.sslip.io/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 function api(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('es_auth_token');
