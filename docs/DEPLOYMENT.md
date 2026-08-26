@@ -1,11 +1,11 @@
-# EquityStream — Deployment Guide
+# EquityStream — Frontend Deployment Guide
 
 ## Production Environment
 
 | Component | Host | URL |
 |-----------|------|-----|
-| Frontend | VPS (static files via Caddy) | https://159-194-206-229.sslip.io |
-| Backend API | VPS (Express on localhost:3001) | https://159-194-206-229.sslip.io/api |
+| Frontend | VPS (static files via nginx) | https://159-194-206-229.sslip.io |
+| Backend API | VPS (NestJS on localhost:3001) | https://159-194-206-229.sslip.io/api/v1 |
 | PostgreSQL | VPS (localhost:5432) | — |
 
 ---
@@ -14,7 +14,7 @@
 
 - **OS**: Ubuntu 22.04/24.04 LTS
 - **IP**: 159.194.206.229
-- **Domain**: sslip.io (auto via Caddy ACME)
+- **Domain**: sslip.io (auto via Let's Encrypt / certbot, or Caddy if used)
 - **SSL**: Let's Encrypt (auto-renewal)
 
 ---
@@ -24,121 +24,152 @@
 ### 1. Server Prerequisites
 
 ```bash
-# Node.js 20
+# Node.js 22 (backend requirement)
 sudo apt update && sudo apt install -y curl gnupg
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
 sudo apt install -y nodejs
 
 # PostgreSQL 16
 sudo apt install -y postgresql postgresql-contrib
 sudo systemctl enable postgresql
 
-# Caddy (auto-SSL)
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt update && sudo apt install caddy
+# nginx
+sudo apt install -y nginx certbot python3-certbot-nginx
 ```
 
 ### 2. PostgreSQL Setup
 
 ```bash
 sudo -u postgres psql
-CREATE USER equitystream WITH PASSWORD 'es_password_2025';
+CREATE USER equitystream WITH PASSWORD '<strong_password>';
 CREATE DATABASE equitystream OWNER equitystream;
 GRANT ALL PRIVILEGES ON DATABASE equitystream TO equitystream;
 \q
 
-# Run migrations
-psql -U equitystream -d equitystream -f /opt/equitystream-backend/src/migrations/001_initial.sql
+# Run migrations (from backend repo)
+cd /root/equitystream
+npx typeorm-ts-node-commonjs migration:run -d ./src/config/database.config.ts
 ```
 
 ### 3. Backend Deploy
 
 ```bash
 # Directory
-sudo mkdir -p /opt/equitystream-backend
-sudo chown -R root:root /opt/equitystream-backend
+sudo mkdir -p /root/equitystream
+sudo chown -R root:root /root/equitystream
 
-# Copy files (from local build)
-cp -r backend/* /opt/equitystream-backend/
-cd /opt/equitystream-backend
-npm install
-npm run build  # compiles to dist/
+# Copy files (from local build or via git)
+cd /root/equitystream
+npm install --legacy-peer-deps
+npm run build
 
-# Environment
-cat > /opt/equitystream-backend/.env << 'EOF'
-DATABASE_URL=postgresql://equitystream:es_password_2025@localhost:5432/equitystream
-JWT_SECRET=es_jwt_secret_2025_change_in_production
-FRONTEND_URL=https://159-194-206-229.sslip.io
+# Environment — edit .env with real secrets
+cat > /root/equitystream/.env << 'EOF'
 PORT=3001
+HOST=127.0.0.1
 NODE_ENV=production
-EMAIL_PROVIDER=none
-EMAIL_FROM=EquityStream <noreply@equitystream.ru>
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=equitystream
+DB_USER=equitystream
+DB_PASSWORD=<strong_password>
+JWT_SECRET=<min_32_bytes_base64>
+JWT_EXPIRES_IN=7d
+REDIS_URL=redis://localhost:6379
+CORS_ORIGIN=https://159-194-206-229.sslip.io
+RESEND_API_KEY=<resend_key>
+RESEND_FROM_EMAIL=noreply@equitystream.com
+EMAIL_ENABLED=true
+UPLOAD_BASE_URL=https://159-194-206-229.sslip.io
+SEED_ON_STARTUP=false
 EOF
 
 # Systemd service
-cat > /etc/systemd/system/equitystream-api.service << 'EOF'
+cat > /etc/systemd/system/equitystream.service << 'EOF'
 [Unit]
-Description=EquityStream API
-After=network.target postgresql.service
+Description=EquityStream NestJS API
+After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/equitystream-backend
-ExecStart=/usr/bin/node dist/index.js
-Restart=always
+WorkingDirectory=/root/equitystream
+EnvironmentFile=/root/equitystream/.env
+ExecStart=/usr/bin/node dist/main.js
+Restart=on-failure
 RestartSec=5
-Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable equitystream-api
-sudo systemctl start equitystream-api
+sudo systemctl enable --now equitystream
 ```
 
 ### 4. Frontend Deploy
 
 ```bash
-# Build locally
+# Build locally (from equitystream_front repo)
+cd /path/to/equitystream_front
+npm install
 npm run build   # → dist/
 
 # Deploy to server
-rm -rf /var/www/equitystream
-mkdir -p /var/www/equitystream
-cp -r dist/* /var/www/equitystream/
-chown -R caddy:caddy /var/www/equitystream
+ssh root@159.194.206.229 "rm -rf /var/www/equitystream && mkdir -p /var/www/equitystream"
+scp -r dist/* root@159.194.206.229:/var/www/equitystream/
+ssh root@159.194.206.229 "chown -R www-data:www-data /var/www/equitystream"
 ```
 
-### 5. Caddy Config
+### 5. nginx Config
 
-```caddy
-159-194-206-229.sslip.io {
-    # API → backend
-    handle /api/* {
-        uri strip_prefix /api
-        reverse_proxy localhost:3001
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name 159-194-206-229.sslip.io;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    # Frontend static files + SPA fallback
+    root /var/www/equitystream;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
     }
 
-    # Static files + SPA fallback
-    handle {
-        root * /var/www/equitystream
-        file_server
-        try_files {path} /index.html
-        encode gzip
+    # Backend API
+    location /api/v1/ {
+        proxy_pass http://127.0.0.1:3001/api/v1/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    header /assets/* Cache-Control "public, max-age=31536000, immutable"
+    # GraphQL (optional, restrict in production if not used)
+    location /graphql {
+        proxy_pass http://127.0.0.1:3001/graphql;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name 159-194-206-229.sslip.io;
+    return 301 https://$host$request_uri;
 }
 ```
 
 ```bash
-sudo systemctl reload caddy
+nginx -t
+systemctl reload nginx
 ```
 
 ---
@@ -147,12 +178,13 @@ sudo systemctl reload caddy
 
 | Task | Command |
 |------|---------|
-| Restart API | `sudo systemctl restart equitystream-api` |
-| Check API logs | `sudo journalctl -u equitystream-api -f` |
-| Check Caddy | `sudo systemctl status caddy` |
-| Caddy reload | `sudo systemctl reload caddy` |
+| Restart API | `sudo systemctl restart equitystream` |
+| Check API logs | `sudo journalctl -u equitystream -f` |
+| Check nginx | `sudo systemctl status nginx` |
+| nginx reload | `sudo systemctl reload nginx` |
 | DB connect | `sudo -u postgres psql -d equitystream` |
-| API health | `curl https://159-194-206-229.sslip.io/api/health` |
+| API health | `curl https://159-194-206-229.sslip.io/health` |
+| API docs | `curl https://159-194-206-229.sslip.io/api/docs` |
 
 ---
 
@@ -160,11 +192,33 @@ sudo systemctl reload caddy
 
 | Path | Purpose |
 |------|---------|
-| `/opt/equitystream-backend/` | Backend source + compiled dist |
+| `/root/equitystream/` | Backend source + compiled dist |
 | `/var/www/equitystream/` | Frontend static files |
-| `/etc/caddy/Caddyfile` | Web server config |
-| `/etc/systemd/system/equitystream-api.service` | API systemd service |
-| `/opt/equitystream-backend/.env` | Backend environment |
+| `/etc/nginx/sites-available/equitystream` | Web server config |
+| `/etc/systemd/system/equitystream.service` | API systemd service |
+| `/root/equitystream/.env` | Backend environment |
+
+---
+
+## Post-Deploy Verification
+
+```bash
+# 1. Health check
+curl https://159-194-206-229.sslip.io/health
+
+# 2. Swagger UI available
+curl -I https://159-194-206-229.sslip.io/api/docs
+
+# 3. Public registration creates pending user
+curl -X POST https://159-194-206-229.sslip.io/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","name":"Test","password":"TestPass123"}'
+
+# 4. Admin login
+curl -X POST https://159-194-206-229.sslip.io/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"vladfa2010@gmail.com","password":"Bmw335cabrio!+!"}'
+```
 
 ---
 
@@ -172,7 +226,9 @@ sudo systemctl reload caddy
 
 - [ ] Change `JWT_SECRET` from default
 - [ ] Change PostgreSQL password from default
-- [ ] Configure Resend API key for email (`EMAIL_PROVIDER=resend`)
-- [ ] Set up firewall (ufw allow 22, 80, 443)
+- [ ] Configure Resend API key for email (`RESEND_API_KEY`, `EMAIL_ENABLED=true`)
+- [ ] Set up firewall (`ufw allow 22, 80, 443`)
+- [ ] Frontend `.env.production` uses `VITE_API_URL=/api/v1`
+- [ ] `SEED_ON_STARTUP=false` in production
 - [ ] Regular PostgreSQL backups
 - [ ] Monitor `user_logins` table for suspicious activity

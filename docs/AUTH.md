@@ -2,7 +2,9 @@
 
 ## Overview
 
-Full-stack auth system with PostgreSQL backend, JWT tokens, bcrypt password hashing, admin approval workflow, and role-based access control (RBAC).
+Full-stack auth system with PostgreSQL backend, JWT tokens, bcrypt password hashing (cost 12), admin approval workflow, and role-based access control (RBAC).
+
+All auth endpoints use the backend prefix `/api/v1/auth`. The frontend service `src/api/services/authApi.ts` wraps these calls and normalizes `isVerified` from `user.status === 'active'`.
 
 ---
 
@@ -11,94 +13,100 @@ Full-stack auth system with PostgreSQL backend, JWT tokens, bcrypt password hash
 ### 1. Login
 ```
 User enters email + password
-    → POST /api/auth/login
+    → POST /api/v1/auth/login
     → Backend validates credentials (bcrypt compare)
-    → If !isVerified → redirect to /pending
-    → If isVerified → JWT token + user data
-    → Frontend stores token in localStorage
-    → Redirect to /dashboard
+    → If user.status === 'pending' → 401 "Account is pending admin approval."
+    → If user.status === 'inactive' → 401
+    → If user.status === 'active' → JWT token + user data
+    → Frontend stores token in localStorage (key: es_auth_token)
+    → AuthContext normalizes user: isVerified = status === 'active'
+    → Redirect to /dashboard (client) or /admin (admin)
 ```
 
 ### 2. Registration
 ```
-User enters email + username + password (min 8 chars)
-    → POST /api/auth/register
+User enters email + name + password (min 8 chars)
+    → POST /api/v1/auth/register  (no auth required)
     → Backend hashes password (bcrypt cost 12)
-    → Creates user with isVerified = false, isAdmin = false
-    → Returns JWT token
-    → Frontend stores token, redirects to /pending
+    → Creates user with role='client', status='pending'
+    → Returns user object WITHOUT accessToken
+    → Frontend shows PendingApprovalPage
     → User sees: "Thank you for registering. Your application is under review."
 ```
 
+> Public registration always creates a pending client. Admins cannot be created through this endpoint.
+
 ### 3. Admin Approval
 ```
-New user appears in Admin → Users with filter "Pending"
-    → Admin clicks Approve (shield icon)
-    → POST /api/admin/users/:id/approve
-    → Backend sets isVerified = true
+New user appears in Admin → All Clients with status='pending'
+    → Admin opens client card / All Clients list
+    → PATCH /api/v1/users/clients/:id { status: 'active' }
+    → Backend sets status='active'
     → User can now login and access platform
 ```
 
-### 4. Password Recovery
+### 4. Password Management
+
+#### Admin resets password (email)
 ```
-User clicks "Forgot password?"
-    → POST /api/auth/forgot-password (sends 6-digit code)
-    → Backend stores hashed code with 15 min TTL, max 5 attempts
-    → User enters 6-digit code
-    → POST /api/auth/verify-code
-    → Returns resetToken
-    → User sets new password (min 8 chars)
-    → POST /api/auth/reset-password
+Admin → client card → Reset Password
+    → POST /api/v1/users/:id/reset-password
+    → Backend generates random password, saves hash, emails via Resend
+    → Response: { userId, emailSent, emailError? }
 ```
 
-### 5. Admin User Management
+#### Admin sets password manually
 ```
-Admin navigates to /admin/users
-    → GET /api/admin/users?filter=active|blocked|pending|admin
-    → Actions per user:
-        - Approve (pending users only)
-        - Toggle Admin role
-        - Block / Unblock
-        - Reset Password (force new password)
-        - Delete (cannot delete self or other admins)
+Admin → client card → Set Password
+    → POST /api/v1/users/:id/set-password { newPassword }
+    → Backend saves hash
+    → Response: { userId, newPassword }
+    → Admin copies password and sends it to client outside the system
 ```
+
+#### User changes own password
+```
+Client → Profile → Change Password
+    → POST /api/v1/auth/change-password { currentPassword, newPassword }
+    → Backend verifies current password and saves new hash
+```
+
+> There is no public "Forgot password" self-service flow in the current implementation.
 
 ---
 
 ## Roles & Permissions
 
-| Role | Route Access | Capabilities |
-|------|-------------|--------------|
-| **user** (unverified) | /pending only | View approval screen, sign out |
-| **user** (verified) | /dashboard, /deals/*, /market | Portfolio, deals, marketplace |
-| **admin** | /admin/* + all client routes | Full platform access + user management |
+| Role | Status | Route Access | Capabilities |
+|------|--------|--------------|--------------|
+| **client** | pending | /pending only | View approval screen, sign out |
+| **client** | active | /dashboard, /deals/*, /market | Portfolio, deals, marketplace |
+| **admin** | active | /admin/* + all client routes | Full platform access + user management |
 
 ---
 
 ## API Endpoints
 
-### Auth (`/api/auth`)
-| Method | Endpoint | Body | Response |
-|--------|----------|------|----------|
-| POST | `/login` | `{email, password}` | `{token, user}` |
-| POST | `/register` | `{email, username, password}` | `{token, user}` |
-| GET | `/me` | — | `{user}` |
-| POST | `/forgot-password` | `{email}` | `{message}` |
-| POST | `/verify-code` | `{email, code}` | `{resetToken}` |
-| POST | `/reset-password` | `{resetToken, newPassword}` | `{message}` |
+### Auth (`/api/v1/auth`)
+| Method | Endpoint | Body | Response | Auth |
+|--------|----------|------|----------|------|
+| POST | `/login` | `{email, password}` | `{accessToken, user}` | No |
+| POST | `/register` | `{email, name, password, role?}` | `{accessToken?, user}` | No |
+| GET | `/me` | — | `{user}` | Yes |
+| POST | `/change-password` | `{currentPassword, newPassword}` | `{message}` | Yes |
 
-### Admin (`/api/admin`)
-All endpoints require `Authorization: Bearer <token>` + `isAdmin = true`.
+### Users / Admin (`/api/v1/users`)
+All endpoints require `Authorization: Bearer <token>` + `role='admin'` unless noted.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/users?filter=&page=&limit=` | List users with pagination |
-| GET | `/users/:id` | User detail + activity + logins |
-| POST | `/users/:id/toggle-admin` | Toggle admin role |
-| POST | `/users/:id/toggle-block` | Block/unblock user |
-| POST | `/users/:id/approve` | **Set isVerified = true** |
-| POST | `/users/:id/reset-password` | Force password reset |
-| DELETE | `/users/:id` | Delete user (self-protected) |
+| GET | `/users/clients?status=pending` | List clients filtered by status |
+| GET | `/users/clients/:id` | Client detail |
+| PATCH | `/users/clients/:id` | Update client / approve pending registration |
+| DELETE | `/users/clients/:id` | Deactivate client (status='inactive') |
+| POST | `/users/:id/reset-password` | Reset password and email it |
+| POST | `/users/:id/set-password` | Set password manually |
+| DELETE | `/users/:id` | Hard delete user |
 
 ---
 
@@ -106,10 +114,12 @@ All endpoints require `Authorization: Bearer <token>` + `isAdmin = true`.
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| `AuthContext.tsx` | `src/context/` | JWT management, login/register/logout, user state |
+| `AuthContext.tsx` | `src/context/` | JWT management, login/register/logout, user state, `isVerified` flag |
+| `authApi.ts` | `src/api/services/` | Real backend auth API client |
+| `auth.ts` | `src/api/services/` | Legacy mock auth service (not used in production build) |
 | `LoginPage.tsx` | `src/pages/` | 5-mode auth form with WebThreads background + GlassSurface card + ShinyText logo |
 | `PendingApprovalPage.tsx` | `src/pages/` | Unverified user waiting screen |
-| `AdminUsersList.tsx` | `src/pages/admin/` | Full user management table |
+| `AdminAllClientsPage.tsx` / `ClientCardPage.tsx` | `src/pages/admin/` | User management, approve / deactivate / reset password / set password |
 
 ---
 
@@ -158,9 +168,9 @@ Two pill-shaped tabs at the top of the card:
 ## Security
 
 - **bcrypt** with cost factor 12 for password hashing
-- **JWT HS256** with `es_jwt_secret_2025_change_in_production`
-- **Rate limiting** on auth endpoints (5 requests / 15 min window)
+- **JWT HS256** with server-side secret
+- **Rate limiting** on auth endpoints (5 requests / 15 min window) — planned via backend
 - **helmet** headers on backend
 - **CORS** whitelist: `https://159-194-206-229.sslip.io`
 - **Audit logging**: all login attempts recorded in `user_logins` and `activity_log`
-- **Password recovery**: 6-digit codes, 15 min TTL, max 5 attempts, hashed storage
+- **Pending approval gate**: new registrations cannot log in until admin sets `status='active'`
