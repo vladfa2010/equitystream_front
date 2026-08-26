@@ -19,6 +19,8 @@ import {
   ExternalLink,
   StickyNote,
   KeyRound,
+  Lock,
+  Copy,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -133,6 +135,10 @@ export default function ClientDetail() {
   const [clientDeals, setClientDeals] = useState<any[]>([]);
   const [, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSetPasswordModalOpen, setIsSetPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordCopied, setPasswordCopied] = useState(false);
+  const [setPasswordMessage, setSetPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -344,6 +350,28 @@ export default function ClientDetail() {
     }
   }, [client]);
 
+  const handleSetPassword = useCallback(async () => {
+    if (!client || !newPassword) return;
+    try {
+      const result = await clientsApi.setPassword(client.id, newPassword);
+      setSetPasswordMessage({ type: 'success', text: `Password set for ${client.name || client.email}. Copy and send it manually.` });
+      setNewPassword(result.newPassword);
+    } catch (err: any) {
+      setSetPasswordMessage({ type: 'error', text: err.message || 'Failed to set password.' });
+    }
+  }, [client, newPassword]);
+
+  const handleCopyPassword = useCallback(async () => {
+    if (!newPassword) return;
+    try {
+      await navigator.clipboard.writeText(newPassword);
+      setPasswordCopied(true);
+      setTimeout(() => setPasswordCopied(false), 2000);
+    } catch {
+      setSetPasswordMessage({ type: 'error', text: 'Failed to copy to clipboard.' });
+    }
+  }, [newPassword]);
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -519,6 +547,24 @@ export default function ClientDetail() {
               <KeyRound size={14} />
               Reset Password
             </button>
+            <button
+              onClick={() => setIsSetPasswordModalOpen(true)}
+              className="flex items-center gap-2"
+              style={{
+                background: 'rgba(79,110,247,0.12)',
+                border: '1px solid rgba(79,110,247,0.25)',
+                color: '#4F6EF7',
+                borderRadius: 10,
+                padding: '10px 20px',
+                fontWeight: 600,
+                fontSize: 14,
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                cursor: 'pointer',
+              }}
+            >
+              <Lock size={14} />
+              Set Password
+            </button>
             <button onClick={() => setIsEditModalOpen(true)} className="btn-secondary flex items-center gap-2">
               <Pencil size={14} />
               Edit Profile
@@ -556,6 +602,89 @@ export default function ClientDetail() {
             }}
           >
             {resetMessage.text}
+          </motion.div>
+        )}
+
+        {isSetPasswordModalOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-5 rounded-xl"
+            style={{
+              background: 'rgba(79,110,247,0.08)',
+              border: '1px solid rgba(79,110,247,0.25)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[14px] font-semibold" style={{ color: '#4F6EF7' }}>
+                Set Password Manually
+              </h3>
+              <button
+                onClick={() => {
+                  setIsSetPasswordModalOpen(false);
+                  setNewPassword('');
+                  setSetPasswordMessage(null);
+                  setPasswordCopied(false);
+                }}
+                className="text-[12px]"
+                style={{ color: '#8A8A93' }}
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <input
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="flex-1 px-4 py-2.5 rounded-lg text-[14px]"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#F5F5F0',
+                  outline: 'none',
+                }}
+              />
+              <button
+                onClick={handleSetPassword}
+                disabled={!newPassword}
+                className="px-5 py-2.5 rounded-lg text-[14px] font-semibold disabled:opacity-50"
+                style={{
+                  background: '#4F6EF7',
+                  color: '#fff',
+                }}
+              >
+                Set Password
+              </button>
+            </div>
+            {newPassword && (
+              <div className="flex items-center gap-3 p-3 rounded-lg mb-3" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <code className="flex-1 text-[14px] break-all" style={{ color: '#F5F5F0' }}>{newPassword}</code>
+                <button
+                  onClick={handleCopyPassword}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold"
+                  style={{
+                    background: passwordCopied ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.08)',
+                    color: passwordCopied ? '#10B981' : '#B8A14E',
+                    border: `1px solid ${passwordCopied ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.1)'}`,
+                  }}
+                >
+                  {passwordCopied ? <UserCheck size={12} /> : <Copy size={12} />}
+                  {passwordCopied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            )}
+            {setPasswordMessage && (
+              <div
+                className="text-[13px]"
+                style={{
+                  color: setPasswordMessage.type === 'success' ? '#10B981' : '#EF4444',
+                }}
+              >
+                {setPasswordMessage.text}
+              </div>
+            )}
           </motion.div>
         )}
 

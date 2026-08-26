@@ -89,4 +89,12 @@ export const clientsApi = {
     });
     return unwrap(res);
   },
+
+  setPassword: async (id: string, newPassword: string): Promise<{ userId: string; newPassword: string }> => {
+    const res = await fetchWithAuth(`/users/${id}/set-password`, {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    });
+    return unwrap(res);
+  },
 };
