@@ -41,7 +41,7 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [status, setStatus] = useState<'active' | 'inactive' | 'pending'>('active');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -174,9 +174,10 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs" style={{ color: '#8A8A93' }}>Status</label>
-                    <select value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')} style={inputStyle} {...focusHandlers}>
+                    <select value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive' | 'pending')} style={inputStyle} {...focusHandlers}>
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
+                      <option value="pending">Pending</option>
                     </select>
                   </div>
                 </div>

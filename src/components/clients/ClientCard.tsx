@@ -105,15 +105,22 @@ export default function ClientCard({ client, index }: ClientCardProps) {
             background:
               client.status === 'active'
                 ? 'rgba(16, 185, 129, 0.12)'
+                : client.status === 'pending'
+                ? 'rgba(245, 158, 11, 0.12)'
                 : 'rgba(255, 255, 255, 0.06)',
-            color: client.status === 'active' ? '#10B981' : '#8A8A93',
+            color:
+              client.status === 'active'
+                ? '#10B981'
+                : client.status === 'pending'
+                ? '#F59E0B'
+                : '#8A8A93',
             borderRadius: 6,
             padding: '4px 10px',
             fontSize: 12,
             fontWeight: 600,
           }}
         >
-          {client.status === 'active' ? 'Active' : 'Inactive'}
+          {client.status === 'active' ? 'Active' : client.status === 'pending' ? 'Pending' : 'Inactive'}
         </span>
       </div>
 

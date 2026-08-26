@@ -32,7 +32,7 @@ export interface AuthUser extends UserDto {
 }
 
 function normalizeUser(user: UserDto): AuthUser {
-  return { ...user, isVerified: true };
+  return { ...user, isVerified: user.status === 'active' };
 }
 
 export const authApi = {

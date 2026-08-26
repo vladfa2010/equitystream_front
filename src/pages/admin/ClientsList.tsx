@@ -19,7 +19,7 @@ import ClientCard from '@/components/clients/ClientCard';
 import ClientTableRow from '@/components/clients/ClientTableRow';
 
 type ViewMode = 'grid' | 'list';
-type StatusFilter = 'all' | 'active' | 'inactive';
+type StatusFilter = 'all' | 'active' | 'inactive' | 'pending';
 type SortOption =
   | 'name-asc'
   | 'name-desc'
@@ -324,6 +324,7 @@ export default function ClientsList() {
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+              <option value="pending">Pending Approval</option>
             </select>
 
             {/* Sort By */}

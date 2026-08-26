@@ -21,6 +21,7 @@ import {
   KeyRound,
   Lock,
   Copy,
+  CheckCircle,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -284,6 +285,16 @@ export default function ClientDetail() {
       setClient(updated);
     } catch (err) {
       console.error('Failed to update status:', err);
+    }
+  }, [client]);
+
+  const handleApprove = useCallback(async () => {
+    if (!client) return;
+    try {
+      const updated = await clientsApi.update(client.id, { status: 'active' });
+      setClient(updated);
+    } catch (err) {
+      console.error('Failed to approve client:', err);
     }
   }, [client]);
 
@@ -565,28 +576,50 @@ export default function ClientDetail() {
               <Lock size={14} />
               Set Password
             </button>
+            {client.status === 'pending' && (
+              <button
+                onClick={handleApprove}
+                className="flex items-center gap-2"
+                style={{
+                  background: 'rgba(16,185,129,0.15)',
+                  border: '1px solid rgba(16,185,129,0.3)',
+                  color: '#10B981',
+                  borderRadius: 10,
+                  padding: '10px 20px',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  cursor: 'pointer',
+                }}
+              >
+                <CheckCircle size={14} />
+                Approve
+              </button>
+            )}
             <button onClick={() => setIsEditModalOpen(true)} className="btn-secondary flex items-center gap-2">
               <Pencil size={14} />
               Edit Profile
             </button>
-            <button
-              onClick={handleToggleStatus}
-              className="flex items-center gap-2"
-              style={{
-                background: client.status === 'active' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
-                border: `1px solid ${client.status === 'active' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
-                color: client.status === 'active' ? '#EF4444' : '#10B981',
-                borderRadius: 10,
-                padding: '10px 20px',
-                fontWeight: 600,
-                fontSize: 14,
-                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                cursor: 'pointer',
-              }}
-            >
-              {client.status === 'active' ? <UserX size={14} /> : <UserCheck size={14} />}
-              {client.status === 'active' ? 'Deactivate' : 'Activate'}
-            </button>
+            {client.status !== 'pending' && (
+              <button
+                onClick={handleToggleStatus}
+                className="flex items-center gap-2"
+                style={{
+                  background: client.status === 'active' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                  border: `1px solid ${client.status === 'active' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                  color: client.status === 'active' ? '#EF4444' : '#10B981',
+                  borderRadius: 10,
+                  padding: '10px 20px',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  cursor: 'pointer',
+                }}
+              >
+                {client.status === 'active' ? <UserX size={14} /> : <UserCheck size={14} />}
+                {client.status === 'active' ? 'Deactivate' : 'Activate'}
+              </button>
+            )}
           </motion.div>
         </motion.div>
 
@@ -750,8 +783,18 @@ export default function ClientDetail() {
                 <span
                   className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase"
                   style={{
-                    background: client.status === 'active' ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
-                    color: client.status === 'active' ? '#10B981' : '#6B7280',
+                    background:
+                      client.status === 'active'
+                        ? 'rgba(16,185,129,0.15)'
+                        : client.status === 'pending'
+                        ? 'rgba(245,158,11,0.15)'
+                        : 'rgba(107,114,128,0.15)',
+                    color:
+                      client.status === 'active'
+                        ? '#10B981'
+                        : client.status === 'pending'
+                        ? '#F59E0B'
+                        : '#6B7280',
                   }}
                 >
                   {client.status}

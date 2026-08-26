@@ -4,11 +4,11 @@ import type { LoginRequest, LoginResponse, UserDto } from '../types';
 const DEFAULT_USERS: Record<string, { password: string; user: UserDto }> = {
   'client@equitystream.com': {
     password: 'client',
-    user: { id: 'u_client', email: 'client@equitystream.com', name: 'Client', role: 'client', avatarUrl: null },
+    user: { id: 'u_client', email: 'client@equitystream.com', name: 'Client', role: 'client', status: 'active', avatarUrl: null },
   },
   'admin@equitystream.com': {
     password: 'admin',
-    user: { id: 'u_admin', email: 'admin@equitystream.com', name: 'Admin', role: 'admin', avatarUrl: null },
+    user: { id: 'u_admin', email: 'admin@equitystream.com', name: 'Admin', role: 'admin', status: 'active', avatarUrl: null },
   },
 };
 

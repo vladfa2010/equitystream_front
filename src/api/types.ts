@@ -5,7 +5,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  accessToken: string;
+  accessToken?: string;
   user: UserDto;
 }
 
@@ -14,6 +14,7 @@ export interface UserDto {
   email: string;
   name: string;
   role: 'admin' | 'client';
+  status: 'active' | 'inactive' | 'pending';
   avatarUrl: string | null;
 }
 
@@ -119,7 +120,7 @@ export interface ClientResponse {
   avatarUrl: string | null;
   phone: string | null;
   notes: string | null;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'pending';
   totalInvested: number;
   totalPnl: number;
   createdAt: string;
@@ -133,7 +134,7 @@ export interface CreateClientRequest {
   role: 'client';
   phone?: string;
   notes?: string;
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive' | 'pending';
   avatarUrl?: string;
 }
 
