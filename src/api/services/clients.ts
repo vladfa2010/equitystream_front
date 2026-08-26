@@ -66,7 +66,8 @@ export const clientsApi = {
   },
 
   delete: async (id: string): Promise<{ message: string }> => {
-    const res = await fetchWithAuth(`/users/clients/${id}`, {
+    // Hard delete (removes the user record entirely). Requires admin role.
+    const res = await fetchWithAuth(`/users/${id}`, {
       method: 'DELETE',
     });
     return unwrap<{ message: string }>(res);

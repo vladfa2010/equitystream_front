@@ -270,12 +270,18 @@ export default function ClientDetail() {
     })).slice(0, 8);
   }, [client, positions]);
 
-  const handleToggleStatus = useCallback(() => {
+  const handleToggleStatus = useCallback(async () => {
     if (!client) return;
-    setClient({
-      ...client,
-      status: client.status === 'active' ? 'inactive' : 'active',
-    });
+    const newStatus = client.status === 'active' ? 'inactive' : 'active';
+    try {
+      await clientsApi.update(client.id, { status: newStatus });
+      setClient({
+        ...client,
+        status: newStatus,
+      });
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    }
   }, [client]);
 
   const handleSaveClient = useCallback(

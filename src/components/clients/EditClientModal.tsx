@@ -236,9 +236,9 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
                 <div className="flex items-start gap-3 mb-3">
                   <AlertTriangle size={20} style={{ color: '#EF4444' }} />
                   <div>
-                    <h3 className="text-[16px] font-semibold mb-1" style={{ color: '#F5F5F0' }}>Deactivate client?</h3>
+                    <h3 className="text-[16px] font-semibold mb-1" style={{ color: '#F5F5F0' }}>Delete client?</h3>
                     <p className="text-[13px]" style={{ color: '#8A8A93' }}>
-                      Type <strong style={{ color: '#F5F5F0' }}>{client.name}</strong> to confirm deactivation.
+                      Type <strong style={{ color: '#F5F5F0' }}>{client.name}</strong> to confirm deletion. This cannot be undone.
                     </p>
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function EditClientModal({ isOpen, onClose, onSave, onDelete, cli
                     className="flex-1 py-2 rounded-xl text-[13px] font-medium transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2"
                     style={{ background: '#EF4444', color: '#fff' }}
                   >
-                    {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Deactivate'}
+                    {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Delete'}
                   </button>
                 </div>
               </div>
