@@ -41,7 +41,8 @@ export const dealsApi = {
     if (params?.status) query.set('status', params.status);
     if (params?.clientId) query.set('clientId', params.clientId);
     const res = await fetchWithAuth(`/deals?${query}`);
-    return unwrap<DealResponse[]>(res);
+    const unwrapped = unwrap<any>(res);
+    return Array.isArray(unwrapped) ? unwrapped : unwrapped?.data || [];
   },
 
   getById: async (id: string): Promise<DealResponse> => {
