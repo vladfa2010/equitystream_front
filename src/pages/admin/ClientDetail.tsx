@@ -201,20 +201,21 @@ export default function ClientDetail() {
 
       let totalValue = 0;
       for (const pos of positions) {
-        const ph = pos.deal.priceHistory.find((p: PricePoint) => p.date === dateStr);
+        const priceHistory = pos.deal.priceHistory || [];
+        const ph = priceHistory.find((p: PricePoint) => p.date === dateStr);
         if (ph) {
           const val = pos.shares * ph.price;
           totalValue += val;
-        } else {
+        } else if (priceHistory.length > 0) {
           // interpolate from nearest point
-          const nearest = pos.deal.priceHistory.reduce(
+          const nearest = priceHistory.reduce(
             (closest: PricePoint, p: PricePoint) => {
               const pd = new Date(p.date).getTime();
               const cd = new Date(closest.date).getTime();
               const td = date.getTime();
               return Math.abs(pd - td) < Math.abs(cd - td) ? p : closest;
             },
-            pos.deal.priceHistory[0]
+            priceHistory[0]
           );
           if (nearest) {
             totalValue += pos.shares * nearest.price;

@@ -20,7 +20,7 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
   const isProfit = pnl >= 0;
 
   // Generate 7-day sparkline from price history
-  const sparkData = deal.priceHistory
+  const sparkData = (deal.priceHistory || [])
     .slice(-7)
     .map(p => ({ value: p.price }));
 

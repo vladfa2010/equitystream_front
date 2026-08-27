@@ -44,7 +44,8 @@ function getClientPnlPercent(c: ClientResponse): number {
 }
 
 function getDealAllocatedPercent(deal: DealResponse): number {
-  const invested = deal.investments.reduce((s, i) => s + i.amount, 0);
+  const investments = deal.investments || [];
+  const invested = investments.reduce((s, i) => s + i.amount, 0);
   return deal.totalPackageAmount > 0 ? Math.round((invested / deal.totalPackageAmount) * 100) : 0;
 }
 
@@ -144,11 +145,12 @@ function StatCard({ label, value, prefix, suffix, color, delay, icon: Icon }: {
 // ===== DEAL CARD COMPONENT =====
 function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; index: number; allClients: ClientResponse[]; onDeleted?: () => void }) {
   const navigate = useNavigate();
+  const dealInvestments = deal.investments || [];
   const allocatedPercent = getDealAllocatedPercent(deal);
   // Real allocated amount = sum of all client investments
-  const allocatedAmount = deal.investments.reduce((s, i) => s + i.amount, 0);
+  const allocatedAmount = dealInvestments.reduce((s, i) => s + i.amount, 0);
   // Real current value = sum of (shares × currentPrice) for each investment
-  const currentValue = deal.investments.reduce((s, i) => {
+  const currentValue = dealInvestments.reduce((s, i) => {
     const shares = i.amount / i.entryPrice;
     return s + shares * deal.currentPrice;
   }, 0);
@@ -183,7 +185,7 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
     return map[s] || map['draft'];
   };
 
-  const cardClients = deal.investments.slice(0, 5).map(ci =>
+  const cardClients = dealInvestments.slice(0, 5).map(ci =>
     allClients.find(c => c.id === ci.clientId)
   ).filter(Boolean) as ClientResponse[];
 
@@ -273,7 +275,7 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
             {formatCurrency(allocatedAmount)} of {formatCurrency(deal.totalPackageAmount)} ({allocatedPercent}%)
           </span>
           <span className="text-caption tabular-nums" style={{ color: '#55555E' }}>
-            {deal.investments.length} clients
+            {dealInvestments.length} clients
           </span>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -301,9 +303,9 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
             />
           ))}
         </div>
-        {deal.investments.length > 5 && (
+        {dealInvestments.length > 5 && (
           <span className="ml-2 text-caption" style={{ color: '#55555E' }}>
-            +{deal.investments.length - 5}
+            +{dealInvestments.length - 5}
           </span>
         )}
       </div>

@@ -219,13 +219,13 @@ export default function ClientDashboard() {
   const clientMaterials = useMemo(() => {
     const mats: Array<{ material: typeof clientDeals[0]['deal']['materials'][0]; dealName: string }> = [];
     for (const { deal } of clientDeals) {
-      for (const material of deal.materials) {
+      for (const material of (deal.materials || [])) {
         mats.push({ material, dealName: deal.companyName });
       }
     }
-    // Sort by uploadedAt desc, take latest 8
+    // Sort by uploadedAt/createdAt desc, take latest 8
     return mats
-      .sort((a, b) => new Date(b.material.uploadedAt).getTime() - new Date(a.material.uploadedAt).getTime())
+      .sort((a, b) => new Date(b.material.uploadedAt || b.material.createdAt).getTime() - new Date(a.material.uploadedAt || a.material.createdAt).getTime())
       .slice(0, 8);
   }, [clientDeals]);
 
