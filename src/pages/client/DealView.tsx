@@ -175,10 +175,10 @@ export default function ClientDealView() {
                     'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
                     Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
                   };
-                  return c[deal.status] || c['draft'];
+                  return c[deal.pipelineStatus] || c['draft'];
                 })()}
               >
-                {deal.status}
+                {deal.pipelineStatus}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-[13px]" style={{ color: '#8A8A93' }}>

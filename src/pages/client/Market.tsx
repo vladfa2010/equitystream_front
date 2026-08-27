@@ -21,7 +21,7 @@ export default function Market() {
 
   useEffect(() => {
     dealsApi.getAll().then(all => {
-      const tradeDeals = all.filter(d => TRADE_STATUSES.includes(d.status));
+      const tradeDeals = all.filter(d => TRADE_STATUSES.includes(d.pipelineStatus));
       setDeals(tradeDeals);
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -94,10 +94,10 @@ export default function Market() {
                         {deal.ticker}
                       </span>
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase" style={{
-                        background: deal.status === 'Founding' ? 'rgba(245,158,11,0.15)' : deal.status === 'Reserve' ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)',
-                        color: deal.status === 'Founding' ? '#F59E0B' : deal.status === 'Reserve' ? '#8B5CF6' : '#10B981',
+                        background: deal.pipelineStatus === 'Founding' ? 'rgba(245,158,11,0.15)' : deal.pipelineStatus === 'Reserve' ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)',
+                        color: deal.pipelineStatus === 'Founding' ? '#F59E0B' : deal.pipelineStatus === 'Reserve' ? '#8B5CF6' : '#10B981',
                       }}>
-                        {deal.status}
+                        {deal.pipelineStatus}
                       </span>
                     </div>
                     <ChevronRight size={16} style={{ color: '#55555E' }} />

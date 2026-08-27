@@ -10,7 +10,7 @@ export const dashboardApi = {
     const deals = getAllDeals();
     const clients = getAllClients();
 
-    const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
+    const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
     // Total AUM = sum of all client positions at current price
     // For each investment: shares = amount / entryPrice, currentValue = shares * deal.currentPrice
     const totalAum = activeDeals.reduce((sum, deal) => {
@@ -39,7 +39,7 @@ export const dashboardApi = {
           id: d.id,
           companyName: d.companyName,
           ticker: d.ticker,
-          status: d.status,
+          status: d.pipelineStatus,
           totalPackageAmount: d.totalPackageAmount,
           allocatedAmount: alloc,
           currentValue: currVal,
@@ -52,7 +52,7 @@ export const dashboardApi = {
     const activities: ActivityItem[] = deals.slice(0, 5).map((d, i) => ({
       id: `a_${i}`,
       type: 'deal_created' as const,
-      title: `Deal "${d.companyName}" — ${d.status}`,
+      title: `Deal "${d.companyName}" — ${d.pipelineStatus}`,
       detail: `${d.ticker} — $${(d.totalPackageAmount / 1000).toFixed(0)}K package`,
       timestamp: d.createdAt,
     }));
@@ -69,7 +69,7 @@ export const dashboardApi = {
 
   getClient: async () => {
     await new Promise(r => setTimeout(r, 300));
-    const deals = getAllDeals().filter(d => ACTIVE_STATUSES.includes(d.status));
+    const deals = getAllDeals().filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
     const portfolioValue = deals.reduce((s, d) => {
       const ratio = d.currentPrice / d.entryPrice;
       return s + d.totalPackageAmount * ratio;

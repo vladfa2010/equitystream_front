@@ -125,7 +125,7 @@ export default function DealDetail() {
       managementFeePercent: deal.managementFeePercent,
       targetPrice: deal.targetPrice,
       timeHorizon: deal.timeHorizon,
-      status: deal.status,
+      pipelineStatus: deal.pipelineStatus,
     });
     setShowEdit(true);
   };
@@ -265,9 +265,9 @@ export default function DealDetail() {
                     'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
                     Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
                   };
-                  return c[deal.status] || c['draft'];
+                  return c[deal.pipelineStatus] || c['draft'];
                 })()}
-              >{deal.status}</span>
+              >{deal.pipelineStatus}</span>
             </div>
             <h1 className="text-3xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>{deal.companyName}</h1>
           </div>
@@ -515,7 +515,7 @@ export default function DealDetail() {
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Ticker *</label><input type="text" value={editForm.ticker || ''} onChange={e => setEditForm({ ...editForm, ticker: e.target.value.toUpperCase() })} style={inpBase} {...inpFocus} /></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Exchange</label><select value={editForm.exchange || ''} onChange={e => setEditForm({ ...editForm, exchange: e.target.value })} style={inpBase} {...inpFocus}><option>NASDAQ</option><option>NYSE</option><option>AMEX</option><option>OTC</option><option>OTHER</option></select></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Sector</label><select value={editForm.sector || ''} onChange={e => setEditForm({ ...editForm, sector: e.target.value })} style={inpBase} {...inpFocus}><option>Technology</option><option>Healthcare</option><option>Finance</option><option>Energy</option><option>Consumer</option><option>Industrial</option><option>Materials</option><option>Utilities</option><option>Real Estate</option><option>Telecom</option></select></div>
-                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Status</label><select value={editForm.status || ''} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })} style={inpBase} {...inpFocus}><option value="draft">Draft</option><option value="Pipeline">Pipeline</option><option value="Skip">Skip</option><option value="Reserve">Reserve</option><option value="Founding">Founding</option><option value="Deal done">Deal done</option><option value="Wait IPO">Wait IPO</option><option value="Lock-up">Lock-up</option><option value="Exit">Exit</option></select></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Status</label><select value={editForm.pipelineStatus || ''} onChange={e => setEditForm({ ...editForm, pipelineStatus: e.target.value as any })} style={inpBase} {...inpFocus}><option value="draft">Draft</option><option value="Pipeline">Pipeline</option><option value="Skip">Skip</option><option value="Reserve">Reserve</option><option value="Founding">Founding</option><option value="Deal done">Deal done</option><option value="Wait IPO">Wait IPO</option><option value="Lock-up">Lock-up</option><option value="Exit">Exit</option></select></div>
                     <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Description</label><textarea value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={2} style={inpBase} {...inpFocus} /></div>
                   </div>
                 </div>

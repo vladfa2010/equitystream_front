@@ -246,7 +246,7 @@ export default function ClientDashboard() {
         id: `act_deal_${deal.id}`,
         type: 'deal_created',
         title: `Joined "${deal.companyName}"`,
-        detail: `${deal.ticker} — ${deal.status}`,
+        detail: `${deal.ticker} — ${deal.pipelineStatus}`,
         timestamp: deal.createdAt,
       });
     }

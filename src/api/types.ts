@@ -55,7 +55,16 @@ export interface CreateDealPayload {
   totalPackageAmount: number;
   entryPrice: number;
   currentPrice: number;
-  status: 'active' | 'pending' | 'closed';
+  status?: 'active' | 'pending' | 'closed';
+  pipelineStatus: 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
+  description?: string;
+  marketCap?: number;
+  website?: string;
+  founder?: string;
+  logoUrl?: string;
+  managementFeePercent?: number;
+  targetPrice?: number;
+  timeHorizon?: string;
 }
 
 export interface DealResponse {
@@ -73,10 +82,11 @@ export interface DealResponse {
   website: string | null;
   founder: string | null;
   logoUrl: string | null;
-  managementFeePercent: number;
+  managementFeePercent: number | null;
   targetPrice: number | null;
   timeHorizon: string | null;
-  status: 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
+  status: 'active' | 'pending' | 'closed';
+  pipelineStatus: 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   createdBy: string;
   createdAt: string;
   updatedAt: string;

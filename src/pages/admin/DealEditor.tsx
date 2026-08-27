@@ -1661,12 +1661,6 @@ export default function DealEditor() {
       const totalPackageAmount = parseNum(form.totalVolume);
       const entryPrice = parseNum(form.sharePrice);
 
-      // Map UI pipeline status to backend enum (active/pending/closed)
-      const backendStatus: CreateDealPayload['status'] =
-        form.status === 'draft' ? 'pending' :
-        form.status === 'Exit' ? 'closed' :
-        'active';
-
       const payload: CreateDealPayload = {
         companyName: form.companyName.trim(),
         ticker: form.ticker.trim().toUpperCase(),
@@ -1675,20 +1669,29 @@ export default function DealEditor() {
         totalPackageAmount,
         entryPrice,
         currentPrice: entryPrice,
-        status: backendStatus,
+        pipelineStatus: form.status as CreateDealPayload['pipelineStatus'],
+        description: form.description || undefined,
+        marketCap: form.marketCap ? parseNum(form.marketCap) : undefined,
+        website: form.website || undefined,
+        founder: form.founders || undefined,
+        logoUrl: form.logoPreview || undefined,
+        managementFeePercent: form.managementFee ? parseNum(form.managementFee) : undefined,
+        targetPrice: form.targetPrice ? parseNum(form.targetPrice) : undefined,
+        timeHorizon: form.timeHorizon || undefined,
       };
 
       const response = await dealsApi.create(payload);
       const dealId = (response as unknown as { id: string }).id;
 
       // Add client investments separately via the dedicated endpoint.
-      // Backend accepts { userId, amount } only and calculates entryPrice/shareCount from the deal.
       if (allocations.length > 0 && dealId) {
         await Promise.all(
           allocations.map(a =>
             dealsApi.addInvestment(dealId, {
               clientId: a.clientId,
               amount: parseNum(a.amount),
+              isLead: a.isLead,
+              customEntryPrice: parseNum(a.entryPrice) !== entryPrice ? parseNum(a.entryPrice) : undefined,
             })
           )
         );

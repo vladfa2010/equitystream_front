@@ -211,9 +211,9 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
           </span>
           <span
             className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
-            style={getStatusStyle(deal.status)}
+            style={getStatusStyle(deal.pipelineStatus)}
           >
-            {deal.status}
+            {deal.pipelineStatus}
           </span>
         </div>
         <div className="relative" ref={menuRef}>
@@ -537,7 +537,7 @@ export default function AdminDashboard() {
 
     // Aggregate price history from all active deals
     const ACTIVE_STATUSES = ['Pipeline', 'Skip', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
-    const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
+    const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
     if (activeDeals.length === 0) return [];
 
     // Use the first active deal's price history as proxy
@@ -551,7 +551,7 @@ export default function AdminDashboard() {
   }, [deals, chartRange]);
 
   const filteredDeals = deals.filter(d => {
-    const matchesFilter = dealFilter === 'all' || d.status === dealFilter;
+    const matchesFilter = dealFilter === 'all' || d.pipelineStatus === dealFilter;
     const matchesSearch = !dealSearch || d.companyName.toLowerCase().includes(dealSearch.toLowerCase()) || d.ticker.toLowerCase().includes(dealSearch.toLowerCase());
     return matchesFilter && matchesSearch;
   });

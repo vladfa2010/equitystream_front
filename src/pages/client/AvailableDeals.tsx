@@ -40,7 +40,7 @@ export default function AvailableDeals() {
       ]);
       const allClients = clientsEnvelope.data || [];
       // Filter open deals
-      const openDeals = allDeals.filter(d => OPEN_STATUSES.includes(d.status));
+      const openDeals = allDeals.filter(d => OPEN_STATUSES.includes(d.pipelineStatus));
       // Exclude deals where client already invested
       const me = allClients.find(c => c.email === user?.email) || allClients.find(c => c.id === user?.id);
       setClient(me || null);
@@ -163,9 +163,9 @@ export default function AvailableDeals() {
                       </span>
                       <span
                         className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
-                        style={(statusColors[deal.status] || { bg: 'rgba(107,114,128,0.15)', text: '#6B7280' }) as any}
+                        style={(statusColors[deal.pipelineStatus] || { bg: 'rgba(107,114,128,0.15)', text: '#6B7280' }) as any}
                       >
-                        {deal.status}
+                        {deal.pipelineStatus}
                       </span>
                     </div>
                     <ChevronRight size={16} style={{ color: '#55555E' }} />

@@ -74,13 +74,14 @@ export const dealsApi = {
   },
 
   // ─── Investments ───
-  // Backend AddInvestmentDto accepts { userId, amount } only.
   addInvestment: async (dealId: string, data: ClientAllocationRequest): Promise<DealResponse> => {
     const res = await fetchWithAuth(`/deals/${dealId}/investments`, {
       method: 'POST',
       body: JSON.stringify({
         userId: data.clientId,
         amount: data.amount,
+        isLead: data.isLead,
+        customEntryPrice: data.customEntryPrice,
       }),
     });
     return unwrap<DealResponse>(res);

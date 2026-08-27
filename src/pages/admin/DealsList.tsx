@@ -70,9 +70,9 @@ export default function DealsList() {
 
     if (statusFilter !== 'all') {
       if (statusFilter === 'active') {
-        result = result.filter(d => ACTIVE_STATUSES.includes(d.status));
+        result = result.filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
       } else {
-        result = result.filter(d => d.status === statusFilter);
+        result = result.filter(d => d.pipelineStatus === statusFilter);
       }
     }
 
@@ -105,7 +105,7 @@ export default function DealsList() {
   const ACTIVE_STATUSES = ['Pipeline', 'Skip', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
 
   const stats = useMemo(() => {
-    const active = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
+    const active = deals.filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
     const totalAum = active.reduce((s, d) => s + d.totalPackageAmount, 0);
     const avgReturn = active.length
       ? active.reduce((s, d) => s + getPriceChange(d), 0) / active.length
@@ -280,9 +280,9 @@ export default function DealsList() {
                         'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
                         Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
                       };
-                      return c[deal.status] || c['draft'];
+                      return c[deal.pipelineStatus] || c['draft'];
                     })()}>
-                      {deal.status}
+                      {deal.pipelineStatus}
                     </span>
                   </div>
 

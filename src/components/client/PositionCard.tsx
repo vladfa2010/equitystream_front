@@ -79,10 +79,10 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
               'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
               Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
             };
-            return c[deal.status] || c['draft'];
+            return c[deal.pipelineStatus] || c['draft'];
           })()}
         >
-          {deal.status}
+          {deal.pipelineStatus}
         </span>
       </div>
 

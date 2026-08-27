@@ -25,7 +25,10 @@ export interface Deal {
   id: string;
   ticker: string;
   companyName: string;
-  status: 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
+  // Backend business status
+  status: 'active' | 'pending' | 'closed';
+  // UI pipeline stage
+  pipelineStatus: 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   totalAmount: number;
   allocatedAmount: number;
   currentPrice: number;
@@ -86,7 +89,8 @@ export const deals: Deal[] = [
     id: 'd1',
     ticker: 'AAPL',
     companyName: 'Apple Inc.',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 500000,
     allocatedAmount: 310000,
     currentPrice: 198.45,
@@ -114,7 +118,8 @@ export const deals: Deal[] = [
     id: 'd2',
     ticker: 'NVDA',
     companyName: 'NVIDIA Corporation',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 750000,
     allocatedAmount: 620000,
     currentPrice: 875.40,
@@ -145,7 +150,8 @@ export const deals: Deal[] = [
     id: 'd3',
     ticker: 'TSLA',
     companyName: 'Tesla, Inc.',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 420000,
     allocatedAmount: 380000,
     currentPrice: 248.35,
@@ -177,7 +183,8 @@ export const deals: Deal[] = [
     id: 'd4',
     ticker: 'MSFT',
     companyName: 'Microsoft Corporation',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 380000,
     allocatedAmount: 290000,
     currentPrice: 432.15,
@@ -200,7 +207,8 @@ export const deals: Deal[] = [
     id: 'd5',
     ticker: 'GOOGL',
     companyName: 'Alphabet Inc.',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 320000,
     allocatedAmount: 195000,
     currentPrice: 168.90,
@@ -224,7 +232,8 @@ export const deals: Deal[] = [
     id: 'd6',
     ticker: 'AMZN',
     companyName: 'Amazon.com Inc.',
-    status: 'Pipeline',
+    status: 'active',
+    pipelineStatus: 'Pipeline',
     totalAmount: 280000,
     allocatedAmount: 120000,
     currentPrice: 198.75,
@@ -245,7 +254,8 @@ export const deals: Deal[] = [
     id: 'd7',
     ticker: 'META',
     companyName: 'Meta Platforms, Inc.',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 260000,
     allocatedAmount: 235000,
     currentPrice: 498.25,
@@ -271,7 +281,8 @@ export const deals: Deal[] = [
     id: 'd8',
     ticker: 'AMD',
     companyName: 'Advanced Micro Devices, Inc.',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 180000,
     allocatedAmount: 145000,
     currentPrice: 156.80,
@@ -292,7 +303,8 @@ export const deals: Deal[] = [
     id: 'd9',
     ticker: 'CRM',
     companyName: 'Salesforce, Inc.',
-    status: 'Exit',
+    status: 'closed',
+    pipelineStatus: 'Exit',
     totalAmount: 150000,
     allocatedAmount: 150000,
     currentPrice: 278.45,
@@ -312,7 +324,8 @@ export const deals: Deal[] = [
     id: 'd10',
     ticker: 'COIN',
     companyName: 'Coinbase Global, Inc.',
-    status: 'Pipeline',
+    status: 'active',
+    pipelineStatus: 'Pipeline',
     totalAmount: 120000,
     allocatedAmount: 45000,
     currentPrice: 245.60,
@@ -330,7 +343,8 @@ export const deals: Deal[] = [
     id: 'd11',
     ticker: 'NFLX',
     companyName: 'Netflix, Inc.',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 200000,
     allocatedAmount: 165000,
     currentPrice: 685.40,
@@ -351,7 +365,8 @@ export const deals: Deal[] = [
     id: 'd12',
     ticker: 'DIS',
     companyName: 'Walt Disney Co.',
-    status: 'Founding',
+    status: 'active',
+    pipelineStatus: 'Founding',
     totalAmount: 165000,
     allocatedAmount: 88000,
     currentPrice: 112.35,
@@ -386,13 +401,13 @@ export const activities: ActivityItem[] = [
 // Aggregated metrics
 export const totalAUM = deals.reduce((sum, d) => sum + d.allocatedAmount, 0);
 const ACTIVE_STATUSES = ['Pipeline', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
-export const activeDealCount = deals.filter(d => ACTIVE_STATUSES.includes(d.status)).length;
+export const activeDealCount = deals.filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus)).length;
 export const totalClients = clients.length;
 export const avgReturn = clients.reduce((sum, c) => sum + c.pnlPercent, 0) / clients.length;
 
 // Portfolio value over time (aggregate)
 export function getPortfolioHistory(days: number = 180): PricePoint[] {
-  const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
+  const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
   const history: PricePoint[] = [];
   const now = new Date();
 
