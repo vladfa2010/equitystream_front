@@ -12,7 +12,7 @@ import CurrencyInput from '../../components/deals/CurrencyInput';
 import { formatCurrency as fmtCur } from '../../data/mockData';
 import type { Client } from '../../data/mockData';
 import { dealsApi, clientsApi } from '../../api';
-import type { CreateDealRequest } from '../../api';
+import type { CreateDealPayload } from '../../api';
 
 // =============================================================================
 // TYPES
@@ -1643,7 +1643,6 @@ export default function DealEditor() {
 
   // ---- Creation via API ----
   const handleCreate = useCallback(async () => {
-    const status = form.status as any;
     if (!validateStep1()) {
       setStep(0);
       return;
@@ -1659,33 +1658,41 @@ export default function DealEditor() {
     setIsCreating(true);
 
     try {
-      const payload: CreateDealRequest = {
+      const totalPackageAmount = parseNum(form.totalVolume);
+      const entryPrice = parseNum(form.sharePrice);
+
+      // Map UI pipeline status to backend enum (active/pending/closed)
+      const backendStatus: CreateDealPayload['status'] =
+        form.status === 'draft' ? 'pending' :
+        form.status === 'Exit' ? 'closed' :
+        'active';
+
+      const payload: CreateDealPayload = {
         companyName: form.companyName.trim(),
         ticker: form.ticker.trim().toUpperCase(),
         exchange: form.exchange,
-        sector: form.sector || undefined,
-        description: form.description || undefined,
-        totalVolume: parseNum(form.totalVolume),
-        sharePrice: parseNum(form.sharePrice),
-        marketCap: form.marketCap ? parseNum(form.marketCap) : undefined,
-        website: form.website || undefined,
-        founder: form.founders || undefined,
-        logoUrl: form.logoPreview || undefined,
-        managementFeePercent: form.managementFee ? parseNum(form.managementFee) : 0,
-        targetPrice: form.targetPrice ? parseNum(form.targetPrice) : undefined,
-        timeHorizon: form.timeHorizon || undefined,
-        status,
-        clients: allocations.map(a => ({
-          clientId: a.clientId,
-          amount: parseNum(a.amount),
-          isLead: a.isLead,
-          customEntryPrice: parseNum(a.entryPrice) !== sharePriceNum ? parseNum(a.entryPrice) : undefined,
-        })),
-        sendNotifications: sendEmail,
+        sector: form.sector || 'Other',
+        totalPackageAmount,
+        entryPrice,
+        currentPrice: entryPrice,
+        status: backendStatus,
       };
 
       const response = await dealsApi.create(payload);
       const dealId = (response as unknown as { id: string }).id;
+
+      // Add client investments separately via the dedicated endpoint.
+      // Backend accepts { userId, amount } only and calculates entryPrice/shareCount from the deal.
+      if (allocations.length > 0 && dealId) {
+        await Promise.all(
+          allocations.map(a =>
+            dealsApi.addInvestment(dealId, {
+              clientId: a.clientId,
+              amount: parseNum(a.amount),
+            })
+          )
+        );
+      }
 
       setToast({ message: `Deal created with status: ${form.status}`, type: 'success' });
 

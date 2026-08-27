@@ -1,6 +1,6 @@
 import type {
   DealResponse,
-  CreateDealRequest,
+  CreateDealPayload,
   ClientAllocationRequest,
   PriceHistoryItem,
   Reservation,
@@ -50,7 +50,7 @@ export const dealsApi = {
     return unwrap<DealResponse>(res);
   },
 
-  create: async (data: CreateDealRequest): Promise<{ id: string }> => {
+  create: async (data: CreateDealPayload): Promise<{ id: string }> => {
     const res = await fetchWithAuth('/deals', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -74,10 +74,14 @@ export const dealsApi = {
   },
 
   // ─── Investments ───
+  // Backend AddInvestmentDto accepts { userId, amount } only.
   addInvestment: async (dealId: string, data: ClientAllocationRequest): Promise<DealResponse> => {
     const res = await fetchWithAuth(`/deals/${dealId}/investments`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        userId: data.clientId,
+        amount: data.amount,
+      }),
     });
     return unwrap<DealResponse>(res);
   },

@@ -46,6 +46,18 @@ export interface CreateDealRequest {
   sendNotifications?: boolean;
 }
 
+// Payload actually accepted by POST /api/v1/deals (matches backend CreateDealDto)
+export interface CreateDealPayload {
+  companyName: string;
+  ticker: string;
+  exchange: string;
+  sector: string;
+  totalPackageAmount: number;
+  entryPrice: number;
+  currentPrice: number;
+  status: 'active' | 'pending' | 'closed';
+}
+
 export interface DealResponse {
   id: string;
   companyName: string;
