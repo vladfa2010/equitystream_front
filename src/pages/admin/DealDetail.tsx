@@ -95,11 +95,12 @@ export default function DealDetail() {
   const load = useCallback(() => {
     if (!id) { setLoading(false); return; }
     setLoading(true);
-    Promise.all([dealsApi.getById(id), clientsApi.getAll(), dealsApi.getPriceHistory(id), authApi.me()])
-      .then(([d, c, ph, admin]) => {
+    Promise.all([dealsApi.getById(id), clientsApi.getAll(), authApi.me()])
+      .then(([d, c, admin]) => {
         setDeal(d);
         setAllClients(c.data || []);
-        setPriceHistory(ph || []);
+        // priceHistory already comes inside deal detail; backend has no separate GET endpoint
+        setPriceHistory(d.priceHistory || []);
         setAddPriceAdmin(admin?.name || 'Admin');
         setLoading(false);
       })
