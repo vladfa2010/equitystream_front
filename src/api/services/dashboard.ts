@@ -1,79 +1,164 @@
-import { getAllDeals, getAllClients } from '../localDb';
-import type { AdminDashboardResponse, DealSummary, ActivityItem } from '../types';
+import type { AdminDashboardResponse, ActivityItem, DealSummary } from '../types';
 
-// Statuses that count as "active" (deal is still in progress)
-const ACTIVE_STATUSES = ['Pipeline', 'Reserve', 'Founding', 'Deal done', 'Wait IPO'];
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+  const token = localStorage.getItem('es_auth_token');
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || err.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+function unwrap<T>(res: any): T {
+  if (res && res.data !== undefined) return res.data as T;
+  return res as T;
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
+interface BackendAdminDashboard {
+  metrics: {
+    totalAum: number;
+    totalDeals: number;
+    activeDeals: number;
+    totalClients: number;
+    activeClients: number;
+    totalPnl: number;
+    avgReturn: number;
+    materialsCount: number;
+  };
+  recentActivity: {
+    recentDeals: Array<{
+      id: string;
+      companyName: string;
+      ticker: string;
+      status: string;
+      currentPrice: number;
+      createdAt: string;
+    }>;
+    recentPriceChanges: Array<{
+      id: string;
+      dealId: string;
+      dealName: string;
+      ticker: string;
+      price: number;
+      createdAt: string;
+    }>;
+    recentClients: Array<{
+      id: string;
+      name: string;
+      email: string;
+      status: string;
+      totalInvested: number;
+      totalPnl: number;
+      createdAt: string;
+    }>;
+    recentMaterials: Array<{
+      id: string;
+      title: string;
+      type: string;
+      dealId: string | null;
+      dealName: string | null;
+      createdAt: string;
+    }>;
+  };
+  chartData: {
+    aumBySector: Array<{ sector: string; amount: number }>;
+    clientGrowth: Array<{ month: string; count: number }>;
+    pnlByDeal: Array<{
+      dealId: string;
+      companyName: string;
+      ticker: string;
+      pnl: number;
+      pnlPercent: number;
+    }>;
+    sectorDistribution: Array<{ sector: string; count: number }>;
+  };
+}
+
+function toActivityItem(raw: any, type: string, index: number): ActivityItem {
+  let title = raw.title || '';
+  let detail = raw.detail || '';
+
+  if (type === 'deal_created') {
+    title = `Deal "${raw.companyName}" — ${raw.status}`;
+    detail = `${raw.ticker} — ${formatCurrency(raw.currentPrice || 0)}`;
+  } else if (type === 'price_change') {
+    title = `${raw.dealName || 'Deal'} price updated`;
+    detail = `${raw.ticker || 'N/A'} — ${formatCurrency(raw.price || 0)}`;
+  } else if (type === 'client_joined') {
+    title = `Client ${raw.name} joined`;
+    detail = `${raw.email} — ${raw.status}`;
+  } else if (type === 'material_uploaded') {
+    title = `Material "${raw.title}"`;
+    detail = raw.dealName || 'General';
+  }
+
+  return {
+    id: raw.id ? `${type}_${raw.id}` : `${type}_${index}`,
+    type,
+    title,
+    detail,
+    timestamp: raw.createdAt || new Date().toISOString(),
+  };
+}
 
 export const dashboardApi = {
   getAdmin: async (): Promise<AdminDashboardResponse> => {
-    await new Promise(r => setTimeout(r, 300));
-    const deals = getAllDeals();
-    const clients = getAllClients();
+    const res = await fetchWithAuth('/dashboard/admin');
+    const data = unwrap<BackendAdminDashboard>(res);
 
-    const activeDeals = deals.filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
-    // Total AUM = sum of all client positions at current price
-    // For each investment: shares = amount / entryPrice, currentValue = shares * deal.currentPrice
-    const totalAum = activeDeals.reduce((sum, deal) => {
-      return sum + deal.investments.reduce((dealSum, inv) => {
-        const shares = inv.amount / inv.entryPrice;
-        return dealSum + shares * deal.currentPrice;
-      }, 0);
-    }, 0);
-    // Avg return weighted by investment amount
-    const totalInvestedAll = activeDeals.reduce((s, d) => s + d.investments.reduce((ds, i) => ds + i.amount, 0), 0);
-    const totalCurrentAll = totalAum;
-    const avgReturn = totalInvestedAll > 0
-      ? ((totalCurrentAll - totalInvestedAll) / totalInvestedAll) * 100
-      : 0;
+    const { metrics, recentActivity } = data;
 
-    const recentDeals: DealSummary[] = deals
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5)
-      .map(d => {
-        const alloc = d.investments.reduce((s, i) => s + i.amount, 0);
-        const currVal = d.investments.reduce((s, i) => {
-          const shares = i.amount / i.entryPrice;
-          return s + shares * d.currentPrice;
-        }, 0);
-        return {
-          id: d.id,
-          companyName: d.companyName,
-          ticker: d.ticker,
-          status: d.pipelineStatus,
-          totalPackageAmount: d.totalPackageAmount,
-          allocatedAmount: alloc,
-          currentValue: currVal,
-          currentPrice: d.currentPrice,
-          clientCount: d.investments.length,
-          createdAt: d.createdAt,
-        };
-      });
+    const activities: ActivityItem[] = [
+      ...(recentActivity?.recentDeals || []).map((d, i) => toActivityItem(d, 'deal_created', i)),
+      ...(recentActivity?.recentPriceChanges || []).map((p, i) => toActivityItem(p, 'price_change', i)),
+      ...(recentActivity?.recentClients || []).map((c, i) => toActivityItem(c, 'client_joined', i)),
+      ...(recentActivity?.recentMaterials || []).map((m, i) => toActivityItem(m, 'material_uploaded', i)),
+    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10);
 
-    const activities: ActivityItem[] = deals.slice(0, 5).map((d, i) => ({
-      id: `a_${i}`,
-      type: 'deal_created' as const,
-      title: `Deal "${d.companyName}" — ${d.pipelineStatus}`,
-      detail: `${d.ticker} — $${(d.totalPackageAmount / 1000).toFixed(0)}K package`,
-      timestamp: d.createdAt,
+    const recentDeals: DealSummary[] = (recentActivity?.recentDeals || []).map((d) => ({
+      id: d.id,
+      companyName: d.companyName,
+      ticker: d.ticker,
+      status: d.status,
+      totalPackageAmount: 0,
+      allocatedAmount: 0,
+      currentValue: 0,
+      currentPrice: d.currentPrice,
+      clientCount: 0,
+      createdAt: d.createdAt,
     }));
 
     return {
-      totalAum,
-      activeDealCount: activeDeals.length,
-      totalClients: clients.length,
-      avgReturn,
+      totalAum: metrics?.totalAum || 0,
+      activeDealCount: metrics?.activeDeals || 0,
+      totalClients: metrics?.totalClients || 0,
+      avgReturn: metrics?.avgReturn || 0,
       recentDeals,
       recentActivity: activities,
     };
   },
 
   getClient: async () => {
-    await new Promise(r => setTimeout(r, 300));
-    const deals = getAllDeals().filter(d => ACTIVE_STATUSES.includes(d.pipelineStatus));
-    const portfolioValue = deals.reduce((s, d) => {
-      const ratio = d.currentPrice / d.entryPrice;
-      return s + d.totalPackageAmount * ratio;
-    }, 0);
-    return { portfolioValue, deals };
+    const res = await fetchWithAuth('/dashboard/client');
+    return unwrap(res);
   },
 };
