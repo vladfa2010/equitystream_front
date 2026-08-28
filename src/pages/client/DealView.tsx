@@ -41,12 +41,12 @@ export default function ClientDealView() {
     Promise.all([
       dealsApi.getById(id),
       authApi.me(),
-      dealsApi.getPriceHistory(id),
     ])
-      .then(([dealData, user, ph]) => {
+      .then(([dealData, user]) => {
         if (dealData) {
           setDeal(dealData);
-          setPriceHistory(ph || []);
+          // priceHistory already comes inside deal detail; backend has no separate GET endpoint
+          setPriceHistory(dealData.priceHistory || []);
           // Find client by matching email or use first investment client
           clientsApi.getAll().then(envelope => {
             const allClients = envelope.data || [];
