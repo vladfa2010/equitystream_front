@@ -7,7 +7,7 @@ import Sparkline from './Sparkline';
 
 interface PositionCardProps {
   deal: Deal;
-  investment: { clientId: string; amount: number; entryPrice: number };
+  investment: { userId: string; amount: number; entryPrice: number };
   index?: number;
 }
 

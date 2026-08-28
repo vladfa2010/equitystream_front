@@ -98,9 +98,9 @@ export interface DealResponse {
 export interface ClientInvestmentResponse {
   id: string;
   dealId: string;
-  clientId: string;
-  clientName: string;
-  clientAvatar: string | null;
+  userId: string;
+  userName: string;
+  userAvatar: string | null;
   amount: number;
   entryPrice: number;
   shareCount: number;

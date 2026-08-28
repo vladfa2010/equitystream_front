@@ -121,7 +121,7 @@ export default function ClientDashboard() {
       // Filter deals where this client has investments
       const clientDeals = allDeals
         .map((deal: any) => {
-          const inv = deal.investments?.find((i: any) => i.clientId === client?.id);
+          const inv = deal.investments?.find((i: any) => i.userId === client?.id);
           return inv ? { deal, investment: inv } : null;
         })
         .filter(Boolean);

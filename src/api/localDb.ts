@@ -167,9 +167,9 @@ export function createDealLocal(data: CreateDealRequest): DealResponse {
       return {
         id: `i_${Date.now()}_${idx}`,
         dealId: `d_${Date.now()}`,
-        clientId: c.clientId,
-        clientName: client?.name || 'Unknown',
-        clientAvatar: null,
+        userId: c.clientId,
+        userName: client?.name || 'Unknown',
+        userAvatar: null,
         amount: c.amount,
         entryPrice,
         shareCount: c.amount / entryPrice,

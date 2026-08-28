@@ -63,7 +63,7 @@ export default function DealTrading() {
           setMyOrders(clientOrders.filter(o => o.dealId === id));
           // Find my position in this deal — try multiple sources
           const meAny = me as any;
-          let inv = dealData?.investments?.find((i: any) => i.clientId === me.id);
+          let inv = dealData?.investments?.find((i: any) => i.userId === me.id);
           if (!inv && meAny.investments) {
             inv = meAny.investments.find((i: any) => i.dealId === id);
           }

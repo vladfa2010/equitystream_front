@@ -238,7 +238,7 @@ export default function DealDetail() {
   const isProfit = priceChange >= 0;
 
   /* clients not yet in deal */
-  const existingClientIds = new Set((deal.investments || []).map((i: any) => i.clientId));
+  const existingClientIds = new Set((deal.investments || []).map((i: any) => i.userId));
   const availableClients = allClients.filter(c => !existingClientIds.has(c.id) && c.status === 'active');
 
   return (
@@ -348,7 +348,7 @@ export default function DealDetail() {
                 </thead>
                 <tbody>
                   {(deal.investments || []).map((inv: any, idx: number) => {
-                    const client = allClients.find((c: any) => c.id === inv.clientId);
+                    const client = allClients.find((c: any) => c.id === inv.userId);
                     const shares = inv.amount / inv.entryPrice;
                     const pnl = (shares * deal.currentPrice) - inv.amount;
                     const pnlPercent = inv.amount > 0 ? (pnl / inv.amount) * 100 : 0;
@@ -357,10 +357,10 @@ export default function DealDetail() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}>
-                              {getClientName(client || { name: inv.clientName }).split(' ').map((n: string) => n[0]).join('')}
+                              {getClientName(client || { name: inv.userName }).split(' ').map((n: string) => n[0]).join('')}
                             </div>
                             <div>
-                              <p className="text-sm font-medium" style={{ color: '#F5F5F0' }}>{getClientName(client || { name: inv.clientName })}</p>
+                              <p className="text-sm font-medium" style={{ color: '#F5F5F0' }}>{getClientName(client || { name: inv.userName })}</p>
                               {inv.isLead && <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 inline-flex" style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E' }}><Crown size={10} /> Lead</span>}
                             </div>
                           </div>

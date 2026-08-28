@@ -186,7 +186,7 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
   };
 
   const cardClients = dealInvestments.slice(0, 5).map(ci =>
-    allClients.find(c => c.id === ci.clientId)
+    allClients.find(c => c.id === ci.userId)
   ).filter(Boolean) as ClientResponse[];
 
   return (

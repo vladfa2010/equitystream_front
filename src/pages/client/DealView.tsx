@@ -51,7 +51,7 @@ export default function ClientDealView() {
           clientsApi.getAll().then(envelope => {
             const allClients = envelope.data || [];
             const matched = allClients.find(
-              (c: ClientResponse) => c.email === user?.email || dealData.investments?.some((i: any) => i.clientId === c.id)
+              (c: ClientResponse) => c.email === user?.email || dealData.investments?.some((i: any) => i.userId === c.id)
             );
             setClient(matched || allClients[0] || null);
           });
@@ -64,7 +64,7 @@ export default function ClientDealView() {
   // Find client's investment in this deal
   const myInvestment = useMemo(() => {
     if (!deal || !client) return null;
-    return deal.investments?.find((i: any) => i.clientId === client.id);
+    return deal.investments?.find((i: any) => i.userId === client.id);
   }, [deal, client]);
 
   // Chart data from price history (sorted oldest first for chart)

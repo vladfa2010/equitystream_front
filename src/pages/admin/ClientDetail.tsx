@@ -154,7 +154,7 @@ export default function ClientDetail() {
       setClient(clientData);
       // Filter deals where this client has investments
       const dealsWithClient = (allDeals || []).filter((d: any) =>
-        d.investments?.some((i: any) => i.clientId === id)
+        d.investments?.some((i: any) => i.userId === id)
       );
       setClientDeals(dealsWithClient);
       setLoading(false);
@@ -166,7 +166,7 @@ export default function ClientDetail() {
     if (!client || !clientDeals.length) return [];
     const result: ClientPosition[] = [];
     for (const deal of clientDeals) {
-      const investment = deal.investments?.find((ci: any) => ci.clientId === client.id);
+      const investment = deal.investments?.find((ci: any) => ci.userId === client.id);
       if (investment) {
         const shares = investment.amount / investment.entryPrice;
         const currentValue = shares * deal.currentPrice;
@@ -327,7 +327,7 @@ export default function ClientDetail() {
         // Remove client's investments from all deals first
         const allDeals = await dealsApi.getAll();
         for (const deal of (allDeals || [])) {
-          const clientInvs = (deal.investments || []).filter((i: any) => i.clientId === clientId);
+          const clientInvs = (deal.investments || []).filter((i: any) => i.userId === clientId);
           for (const inv of clientInvs) {
             await dealsApi.removeInvestment(deal.id, inv.id);
           }
