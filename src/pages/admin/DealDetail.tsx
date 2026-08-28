@@ -139,12 +139,18 @@ export default function DealDetail() {
     setSaving(true);
     await new Promise(r => setTimeout(r, 400));
     const payload: any = { ...editForm };
-    if (payload.totalPackageAmount && payload.entryPrice) {
-      payload.shareQuantity = payload.totalPackageAmount / payload.entryPrice;
+    // NOTE: shareQuantity is computed on the backend; do not send it.
+    delete payload.shareQuantity;
+    try {
+      /* API update */
+      await dealsApi.update(id, payload);
+      setShowEdit(false);
+      load();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to save deal. Please check the form and try again.');
+    } finally {
+      setSaving(false);
     }
-    /* API update */
-    await dealsApi.update(id, payload);
-    setSaving(false); setShowEdit(false); load();
   };
 
   /* ────────── delete deal ────────── */
