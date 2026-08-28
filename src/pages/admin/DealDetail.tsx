@@ -291,9 +291,10 @@ export default function DealDetail() {
         </div>
 
         {/* ═══════ METRICS ═══════ */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {[
             { label: 'Total Package', value: formatCurrency(deal.totalPackageAmount) },
+            { label: 'Raw Amount', value: deal.rawAmount ? formatCurrency(deal.rawAmount) : '—', color: '#B8A14E' },
             { label: 'Allocated', value: `${formatCurrency(totalAllocated)} (${allocationPercent.toFixed(0)}%)` },
             { label: 'Clients', value: String(deal.investments?.length || 0), icon: <Users size={16} /> },
             { label: 'Total Return', value: `${isProfit ? '+' : ''}${formatPercent(priceChange)}`, color: isProfit ? '#10B981' : '#EF4444', icon: isProfit ? <TrendingUp size={16} /> : <TrendingDown size={16} /> },
@@ -307,7 +308,7 @@ export default function DealDetail() {
 
         {/* ═══════ PRICE + DETAILS ═══════ */}
         <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 text-center">
             <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Entry Price</p><p className="text-xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>${deal.entryPrice.toFixed(2)}</p></div>
             <div>
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Current Price</p>
@@ -327,6 +328,7 @@ export default function DealDetail() {
             <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Shares</p><p className="text-xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{deal.shareQuantity.toFixed(2)}</p></div>
             <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Fee</p><p className="text-xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{deal.managementFeePercent}%</p></div>
             <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Target</p><p className="text-xl font-bold" style={{ color: deal.targetPrice ? '#B8A14E' : '#55555E', fontFamily: 'JetBrains Mono' }}>{deal.targetPrice ? `$${deal.targetPrice.toFixed(2)}` : '—'}</p></div>
+            <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Deal Date</p><p className="text-xl font-bold" style={{ color: deal.dealDate ? '#F5F5F0' : '#55555E', fontFamily: 'JetBrains Mono' }}>{deal.dealDate ? new Date(deal.dealDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</p></div>
           </div>
           {deal.website && <p className="text-center text-xs mt-4" style={{ color: '#8A8A93' }}><a href={deal.website} target="_blank" rel="noopener noreferrer" style={{ color: '#B8A14E' }}>{deal.website}</a></p>}
           {deal.founder && <p className="text-center text-xs mt-1" style={{ color: '#8A8A93' }}>Founder: {deal.founder}</p>}
