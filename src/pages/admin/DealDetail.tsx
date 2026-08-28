@@ -119,6 +119,7 @@ export default function DealDetail() {
       sector: deal.sector,
       description: deal.description,
       totalPackageAmount: deal.totalPackageAmount,
+      rawAmount: deal.rawAmount,
       entryPrice: deal.entryPrice,
       marketCap: deal.marketCap,
       website: deal.website,
@@ -126,6 +127,7 @@ export default function DealDetail() {
       managementFeePercent: deal.managementFeePercent,
       targetPrice: deal.targetPrice,
       timeHorizon: deal.timeHorizon,
+      dealDate: deal.dealDate,
       pipelineStatus: deal.pipelineStatus,
     });
     setShowEdit(true);
@@ -526,11 +528,13 @@ export default function DealDetail() {
                   <h3 className="text-xs uppercase tracking-wider mb-3 font-semibold" style={{ color: '#B8A14E' }}>Financial Details</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Total Volume ($)</label><input type="number" value={editForm.totalPackageAmount || ''} onChange={e => setEditForm({ ...editForm, totalPackageAmount: parseFloat(e.target.value) })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Raw Amount ($)</label><input type="number" value={editForm.rawAmount || ''} onChange={e => setEditForm({ ...editForm, rawAmount: parseFloat(e.target.value) || null })} style={inpBase} {...inpFocus} /></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Share Price ($)</label><input type="number" value={editForm.entryPrice || ''} onChange={e => setEditForm({ ...editForm, entryPrice: parseFloat(e.target.value) })} style={inpBase} {...inpFocus} /></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Market Cap</label><input type="number" value={editForm.marketCap || ''} onChange={e => setEditForm({ ...editForm, marketCap: parseFloat(e.target.value) || null })} style={inpBase} {...inpFocus} /></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Management Fee (%)</label><input type="number" step="0.01" value={editForm.managementFeePercent || ''} onChange={e => setEditForm({ ...editForm, managementFeePercent: parseFloat(e.target.value) })} style={inpBase} {...inpFocus} /></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Target Price ($)</label><input type="number" value={editForm.targetPrice || ''} onChange={e => setEditForm({ ...editForm, targetPrice: parseFloat(e.target.value) || null })} style={inpBase} {...inpFocus} /></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Time Horizon</label><input type="date" value={editForm.timeHorizon ? editForm.timeHorizon.split('T')[0] : ''} onChange={e => setEditForm({ ...editForm, timeHorizon: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
+                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Deal Date</label><input type="date" value={editForm.dealDate ? editForm.dealDate.split('T')[0] : ''} onChange={e => setEditForm({ ...editForm, dealDate: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
                   </div>
                 </div>
 

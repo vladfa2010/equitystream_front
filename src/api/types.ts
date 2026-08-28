@@ -33,6 +33,7 @@ export interface CreateDealRequest {
   sector?: string;
   description?: string;
   totalVolume: number;
+  rawAmount?: number;
   sharePrice: number;
   marketCap?: number;
   website?: string;
@@ -41,6 +42,7 @@ export interface CreateDealRequest {
   managementFeePercent?: number;
   targetPrice?: number;
   timeHorizon?: string; // ISO date
+  dealDate?: string; // ISO date
   status?: 'draft' | 'Pipeline' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   clients: ClientAllocationRequest[];
   sendNotifications?: boolean;
@@ -53,6 +55,7 @@ export interface CreateDealPayload {
   exchange: string;
   sector: string;
   totalPackageAmount: number;
+  rawAmount?: number;
   entryPrice: number;
   currentPrice: number;
   status?: 'active' | 'pending' | 'closed';
@@ -65,6 +68,7 @@ export interface CreateDealPayload {
   managementFeePercent?: number;
   targetPrice?: number;
   timeHorizon?: string;
+  dealDate?: string;
 }
 
 export interface DealResponse {
@@ -75,6 +79,7 @@ export interface DealResponse {
   sector: string;
   description: string | null;
   totalPackageAmount: number;
+  rawAmount: number | null;
   entryPrice: number;
   currentPrice: number;
   shareQuantity: number;
@@ -85,6 +90,7 @@ export interface DealResponse {
   managementFeePercent: number | null;
   targetPrice: number | null;
   timeHorizon: string | null;
+  dealDate: string | null;
   status: 'active' | 'pending' | 'closed';
   pipelineStatus: 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   createdBy: string;

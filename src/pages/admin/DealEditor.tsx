@@ -26,6 +26,7 @@ interface CompanyForm {
   description: string;
   status: string;
   totalVolume: string;
+  rawAmount: string;
   sharePrice: string;
   marketCap: string;
   website: string;
@@ -34,6 +35,7 @@ interface CompanyForm {
   managementFee: string;
   targetPrice: string;
   timeHorizon: string;
+  dealDate: string;
 }
 
 interface ClientAllocation {
@@ -353,14 +355,22 @@ function Step1CompanyInfo({ form, setForm, errors, setErrors }: Step1Props) {
           />
         </FormField>
 
-        {/* Row: Total Volume + Share Price + Share Quantity */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Row: Total Volume + Raw Amount + Share Price + Share Quantity */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <FormField label="Total Deal Volume" required error={errors.totalVolume}>
             <CurrencyInput
               value={form.totalVolume}
               onChange={v => updateField('totalVolume', v)}
               placeholder="0.00"
               error={errors.totalVolume}
+            />
+          </FormField>
+
+          <FormField label="Raw Amount" hint="Collected before fees/transfers">
+            <CurrencyInput
+              value={form.rawAmount}
+              onChange={v => updateField('rawAmount', v)}
+              placeholder="0.00"
             />
           </FormField>
 
@@ -390,8 +400,8 @@ function Step1CompanyInfo({ form, setForm, errors, setErrors }: Step1Props) {
           </FormField>
         </div>
 
-        {/* Row: Market Cap + Target Price + Time Horizon */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Row: Market Cap + Target Price + Time Horizon + Deal Date */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <FormField label="Market Cap">
             <CurrencyInput
               value={form.marketCap}
@@ -415,6 +425,21 @@ function Step1CompanyInfo({ form, setForm, errors, setErrors }: Step1Props) {
                 type="date"
                 value={form.timeHorizon}
                 onChange={e => updateField('timeHorizon', e.target.value)}
+                className="w-full text-[14px] pl-9 pr-4 py-3 outline-none transition-all duration-200"
+                style={{ ...INPUT_STYLE, colorScheme: 'dark' }}
+                onFocus={e => { e.target.style.borderColor = '#B8A14E'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+              />
+            </div>
+          </FormField>
+
+          <FormField label="Deal Date">
+            <div className="relative">
+              <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#8A8A93' }} />
+              <input
+                type="date"
+                value={form.dealDate}
+                onChange={e => updateField('dealDate', e.target.value)}
                 className="w-full text-[14px] pl-9 pr-4 py-3 outline-none transition-all duration-200"
                 style={{ ...INPUT_STYLE, colorScheme: 'dark' }}
                 onFocus={e => { e.target.style.borderColor = '#B8A14E'; }}
@@ -1583,6 +1608,7 @@ export default function DealEditor() {
     description: '',
     status: 'Pipeline',
     totalVolume: '',
+    rawAmount: '',
     sharePrice: '',
     marketCap: '',
     website: '',
@@ -1591,6 +1617,7 @@ export default function DealEditor() {
     managementFee: '',
     targetPrice: '',
     timeHorizon: '',
+    dealDate: '',
   });
 
   const [allocations, setAllocations] = useState<ClientAllocation[]>([]);
@@ -1667,6 +1694,7 @@ export default function DealEditor() {
         exchange: form.exchange,
         sector: form.sector || 'Other',
         totalPackageAmount,
+        rawAmount: form.rawAmount ? parseNum(form.rawAmount) : undefined,
         entryPrice,
         currentPrice: entryPrice,
         pipelineStatus: form.status as CreateDealPayload['pipelineStatus'],
@@ -1678,6 +1706,7 @@ export default function DealEditor() {
         managementFeePercent: form.managementFee ? parseNum(form.managementFee) : undefined,
         targetPrice: form.targetPrice ? parseNum(form.targetPrice) : undefined,
         timeHorizon: form.timeHorizon || undefined,
+        dealDate: form.dealDate || undefined,
       };
 
       const response = await dealsApi.create(payload);
