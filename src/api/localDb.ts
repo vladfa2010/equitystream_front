@@ -187,6 +187,7 @@ export function createDealLocal(data: CreateDealRequest): DealResponse {
       changedBy: 'admin',
       changedByAdmin: 'System',
       sourceUrl: null,
+      note: null,
       createdAt: new Date().toISOString(),
     }],
     materials: [],
@@ -342,6 +343,7 @@ export function addPriceHistoryLocal(dealId: string, price: number, changedByAdm
     changedBy: 'admin',
     changedByAdmin,
     sourceUrl,
+    note: null,
     createdAt: new Date().toISOString(),
   };
   _set(DB_KEYS.priceHistory, [...all, newItem]);
