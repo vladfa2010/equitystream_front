@@ -382,7 +382,7 @@ export default function DealDetail() {
             { label: 'Raw Amount', value: deal.rawAmount ? formatCurrency(deal.rawAmount) : '—', color: '#B8A14E' },
             { label: 'Allocated', value: `${formatCurrency(totalAllocated)} (${allocationPercent.toFixed(0)}%)` },
             { label: 'Clients', value: String(deal.investments?.length || 0), icon: <Users size={16} /> },
-            { label: 'Total Return', value: `${isProfit ? '+' : ''}${formatPercent(priceChange)}`, color: isProfit ? '#10B981' : '#EF4444', icon: isProfit ? <TrendingUp size={16} /> : <TrendingDown size={16} /> },
+            { label: 'Total Return', value: formatPercent(priceChange), color: isProfit ? '#10B981' : '#EF4444', icon: isProfit ? <TrendingUp size={16} /> : <TrendingDown size={16} /> },
           ].map((m, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="p-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
               <p className="text-xs uppercase tracking-wider mb-2" style={{ color: '#8A8A93' }}>{m.label}</p>
@@ -463,7 +463,7 @@ export default function DealDetail() {
                         <td className="py-3 px-4 text-right text-sm" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{formatCurrency(inv.amount)}</td>
                         <td className="py-3 px-4 text-right text-sm" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{shares.toFixed(2)}</td>
                         <td className="py-3 px-4 text-right text-sm" style={{ color: '#8A8A93', fontFamily: 'JetBrains Mono' }}>${inv.entryPrice.toFixed(2)}</td>
-                        <td className="py-3 px-4 text-right"><span className="text-sm font-medium" style={{ color: pnl >= 0 ? '#10B981' : '#EF4444', fontFamily: 'JetBrains Mono' }}>{pnl >= 0 ? '+' : ''}{formatPercent(pnlPercent)}</span></td>
+                        <td className="py-3 px-4 text-right"><span className="text-sm font-medium" style={{ color: pnl >= 0 ? '#10B981' : '#EF4444', fontFamily: 'JetBrains Mono' }}>{formatPercent(pnlPercent)}</span></td>
                         <td className="py-3 px-4 text-right">
                           {invToDelete === inv.id ? (
                             <div className="flex items-center gap-1">

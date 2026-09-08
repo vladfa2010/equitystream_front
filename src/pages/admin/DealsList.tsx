@@ -304,7 +304,7 @@ export default function DealsList() {
                   {/* Return */}
                   <div className="text-right">
                     <span className="text-sm font-medium" style={{ color: isProfit ? '#10B981' : '#EF4444', fontFamily: 'JetBrains Mono' }}>
-                      {isProfit ? '+' : ''}{formatPercent(priceChange)}
+                      {formatPercent(priceChange)}
                     </span>
                   </div>
 
