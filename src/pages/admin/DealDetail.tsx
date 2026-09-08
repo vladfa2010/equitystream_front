@@ -85,6 +85,11 @@ export default function DealDetail() {
   const [editHistoryValue, setEditHistoryValue] = useState('');
   const [savingHistoryId, setSavingHistoryId] = useState<string | null>(null);
 
+  /* edit price history note */
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteValue, setEditNoteValue] = useState('');
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+
   /* participants editing inside the edit modal */
   const [editParticipants, setEditParticipants] = useState<Array<{
     investmentId: string;
@@ -127,13 +132,28 @@ export default function DealDetail() {
     if (!price || price <= 0) { alert('Enter a valid price.'); return; }
     setSavingHistoryId(editingHistoryId);
     try {
-      await dealsApi.updatePriceHistory(editingHistoryId, price);
+      await dealsApi.updatePriceHistory(editingHistoryId, { price });
       setEditingHistoryId(null);
       load();
     } catch (err: any) {
       alert(err?.message || 'Failed to update price record.');
     } finally {
       setSavingHistoryId(null);
+    }
+  };
+
+  /* ────────── edit a price history note ────────── */
+  const handleSaveNoteEdit = async () => {
+    if (!editingNoteId) return;
+    setSavingNoteId(editingNoteId);
+    try {
+      await dealsApi.updatePriceHistory(editingNoteId, { note: editNoteValue.trim() });
+      setEditingNoteId(null);
+      load();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update note.');
+    } finally {
+      setSavingNoteId(null);
     }
   };
 
@@ -508,7 +528,38 @@ export default function DealDetail() {
                           {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="py-3 px-3 text-xs" style={{ color: item.note ? '#B8A14E' : '#55555E' }}>
-                          {item.note || '—'}
+                          {editingNoteId === item.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                maxLength={255}
+                                autoFocus
+                                value={editNoteValue}
+                                onChange={e => setEditNoteValue(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSaveNoteEdit(); if (e.key === 'Escape') setEditingNoteId(null); }}
+                                className="w-40 px-2 py-1 rounded-lg text-xs"
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#F5F5F0' }}
+                              />
+                              <button onClick={handleSaveNoteEdit} disabled={savingNoteId === item.id} style={{ color: '#10B981' }} title="Save">
+                                {savingNoteId === item.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                              </button>
+                              <button onClick={() => setEditingNoteId(null)} style={{ color: '#8A8A93' }} title="Cancel">
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 group">
+                              <span>{item.note || '—'}</span>
+                              <button
+                                onClick={() => { setEditingNoteId(item.id); setEditNoteValue(item.note || ''); }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                style={{ color: '#8A8A93' }}
+                                title="Edit note"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-3 text-right" style={{ fontFamily: 'JetBrains Mono' }}>
                           {editingHistoryId === item.id ? (

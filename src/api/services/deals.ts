@@ -121,10 +121,14 @@ export const dealsApi = {
     return unwrap(res);
   },
 
-  // Edits an existing price history record. If the record is the latest
-  // for the deal, the backend also updates the deal's current price and
-  // recalculates client P&Ls.
-  updatePriceHistory: async (priceHistoryId: string, price: number): Promise<{
+  // Edits an existing price history record. `price` may be omitted when
+  // editing only the note; `note` may be omitted when editing only the price.
+  // If the record is the latest for the deal and its price changed, the
+  // backend also updates the deal's current price and recalculates P&Ls.
+  updatePriceHistory: async (
+    priceHistoryId: string,
+    data: { price?: number; note?: string },
+  ): Promise<{
     id: string;
     dealId: string;
     price: number;
@@ -132,7 +136,7 @@ export const dealsApi = {
   }> => {
     const res = await fetchWithAuth(`/deals/price-history/${priceHistoryId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ price }),
+      body: JSON.stringify(data),
     });
     return unwrap(res);
   },
