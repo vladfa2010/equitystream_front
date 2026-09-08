@@ -91,6 +91,18 @@ export const dealsApi = {
     return unwrap<DealResponse>(res);
   },
 
+  updateInvestment: async (
+    dealId: string,
+    investmentId: string,
+    data: { amount?: number; isLead?: boolean; customEntryPrice?: number },
+  ): Promise<DealResponse> => {
+    const res = await fetchWithAuth(`/deals/${dealId}/investments/${investmentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return unwrap<DealResponse>(res);
+  },
+
   // ─── Price update ───
   // Updates the deal's current price. The backend records a price history
   // entry, recalculates client P&L, and broadcasts the change via WebSocket.

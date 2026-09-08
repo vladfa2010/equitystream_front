@@ -84,6 +84,25 @@ export default function DealDetail() {
   const [editHistoryValue, setEditHistoryValue] = useState('');
   const [savingHistoryId, setSavingHistoryId] = useState<string | null>(null);
 
+  /* participants editing inside the edit modal */
+  const [editParticipants, setEditParticipants] = useState<Array<{
+    investmentId: string;
+    userId: string;
+    name: string;
+    amount: string;
+    customEntryPrice: string;
+    isLead: boolean;
+    removed: boolean;
+  }>>([]);
+  const [newParticipants, setNewParticipants] = useState<Array<{
+    clientId: string;
+    amount: string;
+    isLead: boolean;
+  }>>([]);
+  const [npClientId, setNpClientId] = useState('');
+  const [npAmount, setNpAmount] = useState('');
+  const [npIsLead, setNpIsLead] = useState(false);
+
   const load = useCallback(() => {
     if (!id) { setLoading(false); return; }
     setLoading(true);
@@ -150,6 +169,17 @@ export default function DealDetail() {
       dealDate: deal.dealDate,
       pipelineStatus: deal.pipelineStatus,
     });
+    setEditParticipants((deal.investments || []).map((inv: any) => ({
+      investmentId: inv.id,
+      userId: inv.userId,
+      name: inv.userName || 'Unknown',
+      amount: String(inv.amount),
+      customEntryPrice: inv.customEntryPrice ? String(inv.customEntryPrice) : '',
+      isLead: !!inv.isLead,
+      removed: false,
+    })));
+    setNewParticipants([]);
+    setNpClientId(''); setNpAmount(''); setNpIsLead(false);
     setShowEdit(true);
   };
 
@@ -164,6 +194,36 @@ export default function DealDetail() {
     try {
       /* API update */
       await dealsApi.update(id, payload);
+
+      /* apply participant changes: edits, removals, additions */
+      for (const p of editParticipants) {
+        if (p.removed) {
+          await dealsApi.removeInvestment(id, p.investmentId);
+        } else {
+          const amount = parseFloat(p.amount);
+          if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error(`Invalid amount for ${p.name}.`);
+          }
+          const cep = p.customEntryPrice ? parseFloat(p.customEntryPrice) : undefined;
+          const orig = (deal.investments || []).find((i: any) => i.id === p.investmentId);
+          const origCep = orig?.customEntryPrice != null ? Number(orig.customEntryPrice) : undefined;
+          if (orig && (amount !== Number(orig.amount) || p.isLead !== !!orig.isLead || cep !== origCep)) {
+            await dealsApi.updateInvestment(id, p.investmentId, {
+              amount,
+              isLead: p.isLead,
+              customEntryPrice: cep,
+            });
+          }
+        }
+      }
+      for (const np of newParticipants) {
+        const amount = parseFloat(np.amount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          throw new Error('Invalid amount for a new participant.');
+        }
+        await dealsApi.addInvestment(id, { clientId: np.clientId, amount, isLead: np.isLead });
+      }
+
       setShowEdit(false);
       load();
     } catch (err: any) {
@@ -548,6 +608,109 @@ export default function DealDetail() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Website</label><input type="url" value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
                     <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Founder(s)</label><input type="text" value={editForm.founder || ''} onChange={e => setEditForm({ ...editForm, founder: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
+                  </div>
+                </div>
+
+                {/* Participants */}
+                <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h3 className="text-xs uppercase tracking-wider mb-3 font-semibold" style={{ color: '#B8A14E' }}>Client Positions</h3>
+                  {editParticipants.filter(p => !p.removed).length === 0 && newParticipants.length === 0 && (
+                    <p className="text-xs mb-3" style={{ color: '#8A8A93' }}>No participants yet. Add clients below.</p>
+                  )}
+
+                  {editParticipants.filter(p => !p.removed).map((p) => (
+                    <div key={p.investmentId} className="grid grid-cols-12 gap-2 items-end mb-2">
+                      <div className="col-span-4">
+                        <label className="text-xs mb-1 block truncate" style={{ color: '#8A8A93' }}>Client</label>
+                        <div className="flex items-center gap-2 h-9 px-3 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0' }}>
+                          <button type="button" onClick={() => setEditParticipants(editParticipants.map(x => x.investmentId === p.investmentId ? { ...x, isLead: !x.isLead } : x))} title="Toggle lead investor">
+                            <Crown size={14} style={{ color: p.isLead ? '#B8A14E' : '#55555E' }} />
+                          </button>
+                          <span className="truncate">{p.name}</span>
+                        </div>
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Amount ($)</label>
+                        <input type="number" step="0.01" min="0" value={p.amount} onChange={e => setEditParticipants(editParticipants.map(x => x.investmentId === p.investmentId ? { ...x, amount: e.target.value } : x))} style={inpBase} {...inpFocus} />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Entry Price ($)</label>
+                        <input type="number" step="0.01" min="0" placeholder={String(deal.entryPrice)} value={p.customEntryPrice} onChange={e => setEditParticipants(editParticipants.map(x => x.investmentId === p.investmentId ? { ...x, customEntryPrice: e.target.value } : x))} style={inpBase} {...inpFocus} />
+                      </div>
+                      <div className="col-span-2 flex justify-end pb-1">
+                        <button type="button" onClick={() => setEditParticipants(editParticipants.map(x => x.investmentId === p.investmentId ? { ...x, removed: true } : x))} style={{ color: '#EF4444' }} title="Remove participant">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {newParticipants.map((np, idx) => (
+                    <div key={`np-${idx}`} className="grid grid-cols-12 gap-2 items-end mb-2">
+                      <div className="col-span-4">
+                        <label className="text-xs mb-1 block truncate" style={{ color: '#10B981' }}>New client</label>
+                        <div className="flex items-center gap-2 h-9 px-3 rounded-lg text-sm" style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', color: '#F5F5F0' }}>
+                          <button type="button" onClick={() => setNewParticipants(newParticipants.map((x, i) => i === idx ? { ...x, isLead: !x.isLead } : x))} title="Toggle lead investor">
+                            <Crown size={14} style={{ color: np.isLead ? '#B8A14E' : '#55555E' }} />
+                          </button>
+                          <span className="truncate">{getClientName(allClients.find(c => c.id === np.clientId) || ({ name: '—' } as any))}</span>
+                        </div>
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Amount ($)</label>
+                        <input type="number" step="0.01" min="0" value={np.amount} onChange={e => setNewParticipants(newParticipants.map((x, i) => i === idx ? { ...x, amount: e.target.value } : x))} style={inpBase} {...inpFocus} />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Entry Price ($)</label>
+                        <input type="number" step="0.01" min="0" placeholder={String(deal.entryPrice)} disabled style={{ ...inpBase, opacity: 0.5 }} />
+                      </div>
+                      <div className="col-span-2 flex justify-end pb-1">
+                        <button type="button" onClick={() => setNewParticipants(newParticipants.filter((_, i) => i !== idx))} style={{ color: '#EF4444' }} title="Discard">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="grid grid-cols-12 gap-2 items-end mt-3">
+                    <div className="col-span-5">
+                      <select value={npClientId} onChange={e => setNpClientId(e.target.value)} style={inpBase} {...inpFocus}>
+                        <option value="">Select client...</option>
+                        {(() => {
+                          const taken = new Set([
+                            ...editParticipants.filter(x => !x.removed).map(x => x.userId),
+                            ...newParticipants.map(x => x.clientId),
+                          ]);
+                          return allClients
+                            .filter(c => !taken.has(c.id) && c.status === 'active')
+                            .map(c => <option key={c.id} value={c.id}>{getClientName(c)} ({c.email})</option>);
+                        })()}
+                      </select>
+                    </div>
+                    <div className="col-span-3">
+                      <input type="number" step="0.01" min="0" placeholder="Amount ($)" value={npAmount} onChange={e => setNpAmount(e.target.value)} style={inpBase} {...inpFocus} />
+                    </div>
+                    <div className="col-span-2 flex items-center gap-2 h-9">
+                      <button type="button" onClick={() => setNpIsLead(!npIsLead)} title="Toggle lead investor">
+                        <Crown size={14} style={{ color: npIsLead ? '#B8A14E' : '#55555E' }} />
+                      </button>
+                      <span className="text-xs" style={{ color: '#8A8A93' }}>Lead</span>
+                    </div>
+                    <div className="col-span-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!npClientId || !npAmount) return;
+                          setNewParticipants([...newParticipants, { clientId: npClientId, amount: npAmount, isLead: npIsLead }]);
+                          setNpClientId(''); setNpAmount(''); setNpIsLead(false);
+                        }}
+                        disabled={!npClientId || !npAmount}
+                        className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold"
+                        style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F', opacity: npClientId && npAmount ? 1 : 0.5 }}
+                      >
+                        <Plus size={14} /> Add
+                      </button>
+                    </div>
                   </div>
                 </div>
 
