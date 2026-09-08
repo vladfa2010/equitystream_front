@@ -79,6 +79,11 @@ export default function DealDetail() {
   const [addPriceValue, setAddPriceValue] = useState('');
   const [addingPrice, setAddingPrice] = useState(false);
 
+  /* edit price history record */
+  const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
+  const [editHistoryValue, setEditHistoryValue] = useState('');
+  const [savingHistoryId, setSavingHistoryId] = useState<string | null>(null);
+
   const load = useCallback(() => {
     if (!id) { setLoading(false); return; }
     setLoading(true);
@@ -94,6 +99,23 @@ export default function DealDetail() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  /* ────────── edit a price history record ────────── */
+  const handleSaveHistoryEdit = async () => {
+    if (!editingHistoryId) return;
+    const price = parseFloat(editHistoryValue);
+    if (!price || price <= 0) { alert('Enter a valid price.'); return; }
+    setSavingHistoryId(editingHistoryId);
+    try {
+      await dealsApi.updatePriceHistory(editingHistoryId, price);
+      setEditingHistoryId(null);
+      load();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update price record.');
+    } finally {
+      setSavingHistoryId(null);
+    }
+  };
 
   /* ────────── open edit modal ────────── */
   const openEdit = () => {
@@ -408,7 +430,39 @@ export default function DealDetail() {
                           {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="py-3 px-3 text-right" style={{ fontFamily: 'JetBrains Mono' }}>
-                          <span className="text-sm font-medium" style={{ color: '#F5F5F0' }}>${item.price.toFixed(2)}</span>
+                          {editingHistoryId === item.id ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                autoFocus
+                                value={editHistoryValue}
+                                onChange={e => setEditHistoryValue(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSaveHistoryEdit(); if (e.key === 'Escape') setEditingHistoryId(null); }}
+                                className="w-24 px-2 py-1 rounded-lg text-right text-sm"
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#F5F5F0' }}
+                              />
+                              <button onClick={handleSaveHistoryEdit} disabled={savingHistoryId === item.id} style={{ color: '#10B981' }} title="Save">
+                                {savingHistoryId === item.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                              </button>
+                              <button onClick={() => setEditingHistoryId(null)} style={{ color: '#8A8A93' }} title="Cancel">
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2 group">
+                              <span className="text-sm font-medium" style={{ color: '#F5F5F0' }}>${item.price.toFixed(2)}</span>
+                              <button
+                                onClick={() => { setEditingHistoryId(item.id); setEditHistoryValue(String(item.price)); }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                style={{ color: '#8A8A93' }}
+                                title="Edit record"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-3 text-right">
                           <span className="text-xs font-medium" style={{ color: isPositive ? '#10B981' : '#EF4444' }}>

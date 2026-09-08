@@ -109,6 +109,22 @@ export const dealsApi = {
     return unwrap(res);
   },
 
+  // Edits an existing price history record. If the record is the latest
+  // for the deal, the backend also updates the deal's current price and
+  // recalculates client P&Ls.
+  updatePriceHistory: async (priceHistoryId: string, price: number): Promise<{
+    id: string;
+    dealId: string;
+    price: number;
+    isLatest: boolean;
+  }> => {
+    const res = await fetchWithAuth(`/deals/price-history/${priceHistoryId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ price }),
+    });
+    return unwrap(res);
+  },
+
   // ─── Reservations ───
   getClientReservations: async (_clientId: string): Promise<Reservation[]> => {
     // TODO: implement reservations endpoint
