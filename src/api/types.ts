@@ -99,6 +99,7 @@ export interface DealResponse {
   investments: ClientInvestmentResponse[];
   priceHistory: PriceHistoryItem[];
   materials: MaterialResponse[];
+  adminNotes?: string | null; // admin-only, stripped by API for non-admins
 }
 
 export interface ClientInvestmentResponse {

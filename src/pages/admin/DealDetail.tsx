@@ -189,6 +189,7 @@ export default function DealDetail() {
       timeHorizon: deal.timeHorizon,
       dealDate: deal.dealDate,
       pipelineStatus: deal.pipelineStatus,
+      adminNotes: deal.adminNotes,
     });
     setEditParticipants((deal.investments || []).map((inv: any) => ({
       investmentId: inv.id,
@@ -482,6 +483,18 @@ export default function DealDetail() {
           )}
         </div>
 
+        {/* ═══════ ADMIN NOTES ═══════ */}
+        {deal.adminNotes && (
+          <div className="rounded-2xl p-6 mb-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(184,161,78,0.25)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Pencil size={14} style={{ color: '#B8A14E' }} />
+              <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#B8A14E' }}>Admin Notes</h2>
+              <span className="text-xs" style={{ color: '#55555E' }}>— visible to admins only</span>
+            </div>
+            <p className="text-sm whitespace-pre-wrap" style={{ color: '#F5F5F0' }}>{deal.adminNotes}</p>
+          </div>
+        )}
+
         {/* ═══════ PRICE HISTORY CHART ═══════ */}
         {priceHistory.length > 0 && (
           <div className="p-6 rounded-2xl mt-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
@@ -665,6 +678,7 @@ export default function DealDetail() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Website</label><input type="url" value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
                     <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Founder(s)</label><input type="text" value={editForm.founder || ''} onChange={e => setEditForm({ ...editForm, founder: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
+                    <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Admin Notes <span style={{ color: '#55555E' }}>(visible to admins only)</span></label><textarea value={editForm.adminNotes || ''} onChange={e => setEditForm({ ...editForm, adminNotes: e.target.value || null })} rows={4} placeholder="Important notes about this deal..." style={inpBase} {...inpFocus} /></div>
                   </div>
                 </div>
 
