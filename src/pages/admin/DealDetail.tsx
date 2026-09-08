@@ -433,7 +433,10 @@ export default function DealDetail() {
                 <tbody>
                   {priceHistory.map((item, idx) => {
                     const prevPrice = idx < priceHistory.length - 1 ? priceHistory[idx + 1].price : deal?.entryPrice || item.price;
-                    const change = ((item.price - prevPrice) / prevPrice) * 100;
+                    // Sub-percent rounding: avoid -0.00% red artifacts from
+                    // decimal(18,4) precision differences (e.g. 78.2113 vs 78.21).
+                    const rawChange = ((item.price - prevPrice) / prevPrice) * 100;
+                    const change = Math.abs(rawChange) < 0.01 ? 0 : rawChange;
                     const isPositive = change >= 0;
 
                     return (
@@ -665,7 +668,11 @@ function PriceHistoryChart({ priceHistory, entryPrice }: { priceHistory: PriceHi
     const sorted = [...priceHistory].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     return sorted.map((p, i, arr) => {
       const prevPrice = i > 0 ? arr[i - 1].price : entryPrice;
-      const change = p.price - prevPrice;
+      // Treat sub-cent differences as no change: decimal(18,4) values like
+      // 78.2113 vs 78.21 must not flip the candle color when both render
+      // as $78.21.
+      const rawChange = p.price - prevPrice;
+      const change = Math.abs(rawChange) < 0.005 ? 0 : rawChange;
       return {
         date: p.createdAt ? p.createdAt.split('T')[0] : '',
         price: p.price,
