@@ -77,6 +77,7 @@ export default function DealDetail() {
   const [priceHistory, setPriceHistory] = useState<PriceHistoryItem[]>([]);
   const [showAddPrice, setShowAddPrice] = useState(false);
   const [addPriceValue, setAddPriceValue] = useState('');
+  const [addPriceNote, setAddPriceNote] = useState('');
   const [addingPrice, setAddingPrice] = useState(false);
 
   /* edit price history record */
@@ -288,9 +289,10 @@ export default function DealDetail() {
     }
     setAddingPrice(true);
     try {
-      await dealsApi.updatePrice(id, price);
+      await dealsApi.updatePrice(id, price, addPriceNote.trim() || undefined);
       setShowAddPrice(false);
       setAddPriceValue('');
+      setAddPriceNote('');
       load();
     } catch (err: any) {
       alert(err?.message || 'Failed to update price.');
@@ -486,6 +488,7 @@ export default function DealDetail() {
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <th className="text-left py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Date</th>
+                    <th className="text-left py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Note</th>
                     <th className="text-right py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Price</th>
                     <th className="text-right py-3 px-3 text-xs uppercase tracking-wider" style={{ color: '#8A8A93' }}>Change</th>
                   </tr>
@@ -503,6 +506,9 @@ export default function DealDetail() {
                       <motion.tr key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.03 }} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                         <td className="py-3 px-3 text-sm" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono', fontSize: 12 }}>
                           {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="py-3 px-3 text-xs" style={{ color: item.note ? '#B8A14E' : '#55555E' }}>
+                          {item.note || '—'}
                         </td>
                         <td className="py-3 px-3 text-right" style={{ fontFamily: 'JetBrains Mono' }}>
                           {editingHistoryId === item.id ? (
@@ -766,6 +772,10 @@ export default function DealDetail() {
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Current Price ($) *</label>
                   <input type="number" step="0.01" value={addPriceValue} onChange={e => setAddPriceValue(e.target.value)} placeholder="e.g. 198.45" style={inpBase} {...inpFocus} autoFocus />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Label / Source (optional)</label>
+                  <input type="text" value={addPriceNote} onChange={e => setAddPriceNote(e.target.value)} placeholder="e.g. Цена от БКС" maxLength={255} style={inpBase} {...inpFocus} />
                 </div>
                 <p className="text-xs" style={{ color: '#8A8A93' }}>The price is recorded in the history together with your admin account. Client P&amp;L is recalculated automatically.</p>
                 <div className="flex gap-3 pt-2">

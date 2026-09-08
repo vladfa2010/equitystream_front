@@ -106,7 +106,7 @@ export const dealsApi = {
   // ─── Price update ───
   // Updates the deal's current price. The backend records a price history
   // entry, recalculates client P&L, and broadcasts the change via WebSocket.
-  updatePrice: async (id: string, newPrice: number): Promise<{
+  updatePrice: async (id: string, newPrice: number, note?: string): Promise<{
     dealId: string;
     newPrice: number;
     previousPrice: number;
@@ -116,7 +116,7 @@ export const dealsApi = {
   }> => {
     const res = await fetchWithAuth(`/deals/${id}/price`, {
       method: 'PATCH',
-      body: JSON.stringify({ newPrice }),
+      body: JSON.stringify({ newPrice, note }),
     });
     return unwrap(res);
   },

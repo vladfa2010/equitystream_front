@@ -122,6 +122,7 @@ export interface PriceHistoryItem {
   changedBy: string;        // admin user ID
   changedByAdmin: string;   // admin user display name
   sourceUrl: string | null; // link to price source
+  note: string | null;      // free-text label, e.g. "Цена от БКС"
   createdAt: string;
   updatedAt?: string;       // set when edited
 }
