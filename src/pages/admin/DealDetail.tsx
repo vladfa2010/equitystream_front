@@ -117,6 +117,18 @@ export default function DealDetail() {
     }
   };
 
+  /* ────────── delete a price history record ────────── */
+  const handleDeleteHistory = async (item: PriceHistoryItem) => {
+    const dateStr = new Date(item.createdAt).toLocaleDateString();
+    if (!window.confirm(`Delete price record $${item.price} from ${dateStr}?`)) return;
+    try {
+      await dealsApi.deletePriceHistory(item.id);
+      load();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete price record.');
+    }
+  };
+
   /* ────────── open edit modal ────────── */
   const openEdit = () => {
     if (!deal) return;
@@ -460,6 +472,13 @@ export default function DealDetail() {
                                 title="Edit record"
                               >
                                 <Pencil size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteHistory(item)}
+                                style={{ color: '#EF4444' }}
+                                title="Delete record"
+                              >
+                                <Trash2 size={14} />
                               </button>
                             </div>
                           )}

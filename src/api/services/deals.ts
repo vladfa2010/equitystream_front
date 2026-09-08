@@ -125,6 +125,21 @@ export const dealsApi = {
     return unwrap(res);
   },
 
+  // Deletes a price history record. If the record is the latest for the
+  // deal, the backend rolls the deal's current price back to the previous
+  // record (or entry price) and recalculates client P&Ls.
+  deletePriceHistory: async (priceHistoryId: string): Promise<{
+    id: string;
+    dealId: string;
+    isLatest: boolean;
+    newCurrentPrice: number;
+  }> => {
+    const res = await fetchWithAuth(`/deals/price-history/${priceHistoryId}`, {
+      method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+
   // ─── Reservations ───
   getClientReservations: async (_clientId: string): Promise<Reservation[]> => {
     // TODO: implement reservations endpoint
