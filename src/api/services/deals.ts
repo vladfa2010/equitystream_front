@@ -2,13 +2,10 @@ import type {
   DealResponse,
   CreateDealPayload,
   ClientAllocationRequest,
-  PriceHistoryItem,
   Reservation,
   Order,
   CreateReservationRequest,
   CreateOrderRequest,
-  AddPriceHistoryRequest,
-  UpdatePriceHistoryRequest,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -94,33 +91,22 @@ export const dealsApi = {
     return unwrap<DealResponse>(res);
   },
 
-  // ─── Price history ───
-  getPriceHistory: async (dealId: string): Promise<PriceHistoryItem[]> => {
-    const res = await fetchWithAuth(`/deals/${dealId}/price-history`);
-    return unwrap<PriceHistoryItem[]>(res);
-  },
-
-  addPriceHistory: async (dealId: string, data: AddPriceHistoryRequest): Promise<PriceHistoryItem> => {
-    const res = await fetchWithAuth(`/deals/${dealId}/price-history`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return unwrap<PriceHistoryItem>(res);
-  },
-
-  updatePriceHistory: async (priceHistoryId: string, data: UpdatePriceHistoryRequest): Promise<PriceHistoryItem> => {
-    const res = await fetchWithAuth(`/deals/price-history/${priceHistoryId}`, {
+  // ─── Price update ───
+  // Updates the deal's current price. The backend records a price history
+  // entry, recalculates client P&L, and broadcasts the change via WebSocket.
+  updatePrice: async (id: string, newPrice: number): Promise<{
+    dealId: string;
+    newPrice: number;
+    previousPrice: number;
+    changePercent: number;
+    affectedClients: number;
+    timestamp: string;
+  }> => {
+    const res = await fetchWithAuth(`/deals/${id}/price`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ newPrice }),
     });
-    return unwrap<PriceHistoryItem>(res);
-  },
-
-  deletePriceHistory: async (priceHistoryId: string): Promise<{ success: boolean }> => {
-    const res = await fetchWithAuth(`/deals/price-history/${priceHistoryId}`, {
-      method: 'DELETE',
-    });
-    return unwrap<{ success: boolean }>(res);
+    return unwrap(res);
   },
 
   // ─── Reservations ───
