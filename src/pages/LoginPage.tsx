@@ -374,6 +374,8 @@ export default function LoginPage() {
                     <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type="email"
+                      name="email"
+                      autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
@@ -399,6 +401,8 @@ export default function LoginPage() {
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter password"
@@ -471,6 +475,8 @@ export default function LoginPage() {
                     <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type="email"
+                      name="email"
+                      autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
@@ -496,6 +502,8 @@ export default function LoginPage() {
                     <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type="text"
+                      name="username"
+                      autoComplete="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Choose a username"
@@ -522,6 +530,8 @@ export default function LoginPage() {
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      autoComplete="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Min 8 characters"
@@ -556,6 +566,8 @@ export default function LoginPage() {
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Repeat password"
@@ -613,6 +625,8 @@ export default function LoginPage() {
                     <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type="email"
+                      name="email"
+                      autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
@@ -678,6 +692,8 @@ export default function LoginPage() {
                     <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type="text"
+                      name="code"
+                      autoComplete="one-time-code"
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       placeholder="000000"
@@ -744,6 +760,8 @@ export default function LoginPage() {
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      name="newPassword"
+                      autoComplete="new-password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Min 8 characters"
