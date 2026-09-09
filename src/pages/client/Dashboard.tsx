@@ -10,6 +10,9 @@ import Layout from '@/components/Layout';
 import PortfolioMetricCard from '@/components/client/PortfolioMetricCard';
 import PositionCard from '@/components/client/PositionCard';
 import MaterialMiniCard from '@/components/client/MaterialMiniCard';
+import StaggeredText from '@/components/react-bits/staggered-text';
+import BlurHighlight from '@/components/react-bits/blur-highlight';
+import AnimatedList from '@/components/react-bits/animated-list';
 import {
   formatCurrency, formatPercent, getPortfolioHistory, timeAgo,
 } from '@/data/mockData';
@@ -267,13 +270,9 @@ export default function ClientDashboard() {
   }, [clientDeals, clientMaterials]);
 
 // ===== ACTIVITY ITEM =====
-function ActivityRow({ activity, index }: { activity: ActivityItem; index: number }) {
+function ActivityRowContent({ activity }: { activity: ActivityItem }) {
   return (
-    <motion.div
-      variants={itemVariants}
-      transition={{ delay: index * 0.05 }}
-      className="flex gap-4 py-3"
-    >
+    <div className="flex gap-4 py-3">
       <div className="flex flex-col items-center pt-1">
         <div className="w-2 h-2 rounded-full bg-[#B8A14E]" />
         <div className="w-px flex-1 mt-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
@@ -285,7 +284,7 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
       <span className="text-caption whitespace-nowrap mt-0.5" style={{ color: '#55555E' }}>
         {timeAgo(activity.timestamp)}
       </span>
-    </motion.div>
+    </div>
   );
 }
 
@@ -300,24 +299,26 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
       >
         {/* Hero: Animated greeting */}
         <motion.section variants={itemVariants} className="mb-10">
-          <motion.h2
-            className="text-h2"
-            style={{ color: '#F5F5F0', marginBottom: 8 }}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-          >
-            {getGreeting()}, {(user?.name || activeClient?.name || 'User').split(' ')[0]}
-          </motion.h2>
-          <motion.p
-            className="text-body-l"
-            style={{ color: '#8A8A93' }}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-          >
-            Here&apos;s how your investments are performing &mdash; {formatDate()}
-          </motion.p>
+          <StaggeredText
+            as="h2"
+            text={`${getGreeting()}, ${(user?.name || activeClient?.name || 'User').split(' ')[0]}`}
+            segmentBy="words"
+            direction="top"
+            delay={90}
+            duration={0.5}
+            blur
+            className="text-h2 text-[#F5F5F0]"
+            respectReducedMotion
+          />
+          <div className="text-body-l mt-2" style={{ color: '#8A8A93' }}>
+            <BlurHighlight
+              highlightedBits={['performing']}
+              highlightColor="#B8A14E"
+              blurDuration={0.8}
+            >
+              {`Here's how your investments are performing — ${formatDate()}`}
+            </BlurHighlight>
+          </div>
         </motion.section>
 
         {/* Key Metrics Row — 3 cols on all screens */}
@@ -607,9 +608,19 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
               <p className="text-body" style={{ color: '#8A8A93' }}>Latest updates from your investments</p>
             </div>
             <div className="glass-panel" style={{ padding: '20px 24px' }}>
-              {clientActivities.map((activity, i) => (
-                <ActivityRow key={activity.id} activity={activity} index={i} />
-              ))}
+              <AnimatedList
+                items={clientActivities.map(a => ({ id: a.id, content: a }))}
+                renderItem={(item) => <ActivityRowContent activity={item.content as ActivityItem} />}
+                autoAddDelay={0}
+                animationType="fade"
+                enterFrom="bottom"
+                fadeEdges={false}
+                startFrom="top"
+                itemGap={0}
+                height="auto"
+                duration={0.35}
+                easing={[0.16, 1, 0.3, 1]}
+              />
             </div>
           </motion.section>
         )}
