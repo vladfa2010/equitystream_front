@@ -3,6 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, File, Check, AlertCircle } from 'lucide-react';
 import type { MaterialItem } from '@/hooks/useMaterials';
 import type { Deal } from '@/data/mockData';
+import { materialsApi } from '@/api';
+import type { MaterialResponse } from '@/api';
+import {
+  MAX_FILE_SIZE,
+  isAcceptedFile,
+} from './fileAccess';
 
 interface UploadFile {
   id: string;
@@ -12,7 +18,7 @@ interface UploadFile {
   type: string;
   progress: number;
   completed: boolean;
-  fileData?: string;
+  error?: string;
 }
 
 interface UploadModalProps {
@@ -26,6 +32,7 @@ export default function UploadModal({ isOpen, onClose, onUpload, deals }: Upload
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const [selectedDeal, setSelectedDeal] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatSize = (bytes: number): string => {
@@ -41,6 +48,12 @@ export default function UploadModal({ isOpen, onClose, onUpload, deals }: Upload
     return 'file';
   };
 
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) return 'File exceeds the 50 MB limit';
+    if (!isAcceptedFile(file.name)) return 'Unsupported file type';
+    return null;
+  };
+
   const processFiles = useCallback((files: FileList | null) => {
     if (!files) return;
     const newFiles: UploadFile[] = Array.from(files).map((file) => ({
@@ -51,35 +64,10 @@ export default function UploadModal({ isOpen, onClose, onUpload, deals }: Upload
       type: getMaterialType(file),
       progress: 0,
       completed: false,
+      error: validateFile(file) ?? undefined,
     }));
 
     setUploadFiles((prev) => [...prev, ...newFiles]);
-
-    // Simulate upload progress for each file
-    newFiles.forEach((uf) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const fileData = e.target?.result as string;
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += Math.random() * 25 + 10;
-          if (progress >= 100) {
-            progress = 100;
-            clearInterval(interval);
-            setUploadFiles((prev) =>
-              prev.map((f) =>
-                f.id === uf.id ? { ...f, progress: 100, completed: true, fileData } : f
-              )
-            );
-          } else {
-            setUploadFiles((prev) =>
-              prev.map((f) => (f.id === uf.id ? { ...f, progress } : f))
-            );
-          }
-        }, 200);
-      };
-      reader.readAsDataURL(uf.file);
-    });
   }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -107,26 +95,71 @@ export default function UploadModal({ isOpen, onClose, onUpload, deals }: Upload
     setUploadFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handleUpload = () => {
-    const completed = uploadFiles.filter((f) => f.completed);
-    const materials: MaterialItem[] = completed.map((f) => ({
-      id: f.id,
-      dealId: selectedDeal || 'unassigned',
-      type: f.type as 'file' | 'image' | 'video' | 'document' | 'link',
-      title: f.name,
-      url: f.fileData || '#',
-      size: f.size,
-      uploadedAt: new Date().toISOString(),
-      fileData: f.fileData,
-    }));
-    onUpload(materials);
-    setUploadFiles([]);
-    setSelectedDeal('');
-    onClose();
+  const mapResponseToItem = (res: MaterialResponse, fallbackName: string): MaterialItem => ({
+    id: res.id,
+    dealId: res.dealId || selectedDeal || 'unassigned',
+    type: res.type,
+    title: res.title || fallbackName,
+    url: res.url,
+    size: res.fileSize != null ? formatSize(res.fileSize) : '',
+    uploadedAt: res.createdAt,
+    description: res.description ?? undefined,
+  });
+
+  const handleUpload = async () => {
+    if (isUploading) return;
+
+    const pending = uploadFiles.filter((f) => !f.completed && !f.error);
+    if (pending.length === 0) {
+      // Nothing left to upload — close if everything succeeded
+      if (uploadFiles.length > 0 && uploadFiles.every((f) => f.completed)) {
+        setUploadFiles([]);
+        setSelectedDeal('');
+        onClose();
+      }
+      return;
+    }
+
+    setIsUploading(true);
+    const uploaded: MaterialItem[] = [];
+    let failures = uploadFiles.some((f) => f.error) ? 1 : 0;
+
+    for (const uf of pending) {
+      try {
+        const res = await materialsApi.upload(
+          uf.file,
+          { dealId: selectedDeal || undefined, title: uf.name },
+          (pct) =>
+            setUploadFiles((prev) =>
+              prev.map((f) => (f.id === uf.id ? { ...f, progress: pct } : f))
+            )
+        );
+        uploaded.push(mapResponseToItem(res, uf.name));
+        setUploadFiles((prev) =>
+          prev.map((f) => (f.id === uf.id ? { ...f, progress: 100, completed: true } : f))
+        );
+      } catch (err) {
+        failures++;
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        setUploadFiles((prev) =>
+          prev.map((f) => (f.id === uf.id ? { ...f, error: message } : f))
+        );
+      }
+    }
+
+    setIsUploading(false);
+
+    if (failures === 0 && uploaded.length > 0) {
+      onUpload(uploaded);
+      setUploadFiles([]);
+      setSelectedDeal('');
+      onClose();
+    }
+    // On failure: keep the modal open, errored files stay in the list
   };
 
-  const allCompleted = uploadFiles.length > 0 && uploadFiles.every((f) => f.completed);
   const hasFiles = uploadFiles.length > 0;
+  const canUpload = !isUploading && uploadFiles.some((f) => !f.completed && !f.error);
 
   return (
     <AnimatePresence>
@@ -252,7 +285,9 @@ export default function UploadModal({ isOpen, onClose, onUpload, deals }: Upload
                         className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ background: 'rgba(255, 255, 255, 0.04)' }}
                       >
-                        {uf.completed ? (
+                        {uf.error ? (
+                          <AlertCircle size={16} style={{ color: '#EF4444' }} />
+                        ) : uf.completed ? (
                           <Check size={16} style={{ color: '#10B981' }} />
                         ) : (
                           <File size={16} style={{ color: '#8A8A93' }} />
@@ -268,19 +303,25 @@ export default function UploadModal({ isOpen, onClose, onUpload, deals }: Upload
                         <p className="text-caption" style={{ color: '#55555E' }}>
                           {uf.size}
                         </p>
-                        {!uf.completed && (
-                          <div
-                            className="w-full h-1.5 rounded-full mt-2 overflow-hidden"
-                            style={{ background: 'rgba(255, 255, 255, 0.06)' }}
-                          >
-                            <motion.div
-                              className="h-full rounded-full"
-                              style={{ background: '#B8A14E' }}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${uf.progress}%` }}
-                              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-                            />
-                          </div>
+                        {uf.error ? (
+                          <p className="text-caption mt-1" style={{ color: '#EF4444' }}>
+                            {uf.error}
+                          </p>
+                        ) : (
+                          !uf.completed && (
+                            <div
+                              className="w-full h-1.5 rounded-full mt-2 overflow-hidden"
+                              style={{ background: 'rgba(255, 255, 255, 0.06)' }}
+                            >
+                              <motion.div
+                                className="h-full rounded-full"
+                                style={{ background: '#B8A14E' }}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${uf.progress}%` }}
+                                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+                              />
+                            </div>
+                          )
                         )}
                       </div>
                       <button
@@ -344,14 +385,16 @@ export default function UploadModal({ isOpen, onClose, onUpload, deals }: Upload
                 </button>
                 <button
                   onClick={handleUpload}
-                  disabled={!allCompleted}
+                  disabled={!canUpload}
                   className="px-5 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
                     background: 'linear-gradient(135deg, #B8A14E 0%, #C9B25F 50%, #D4C070 100%)',
                     color: '#0A0A0F',
                   }}
                 >
-                  Upload {uploadFiles.length > 1 ? `& Attach ${uploadFiles.length} Files` : '& Attach'}
+                  {isUploading
+                    ? 'Uploading…'
+                    : `Upload ${uploadFiles.length > 1 ? `& Attach ${uploadFiles.length} Files` : '& Attach'}`}
                 </button>
               </div>
             )}

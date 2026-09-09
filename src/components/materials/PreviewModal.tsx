@@ -20,6 +20,7 @@ import {
   Maximize,
 } from 'lucide-react';
 import type { MaterialItem } from '@/hooks/useMaterials';
+import { useMaterialObjectUrl, downloadMaterial, reportFileError } from './fileAccess';
 
 interface PreviewModalProps {
   material: MaterialItem | null;
@@ -38,6 +39,7 @@ const typeConfig: Record<string, { icon: typeof FileText; color: string; label: 
 function ImagePreview({ material }: { material: MaterialItem }) {
   const [zoomed, setZoomed] = useState(false);
   const [scale, setScale] = useState(1);
+  const src = useMaterialObjectUrl(material);
 
   const toggleZoom = () => {
     setZoomed(!zoomed);
@@ -52,7 +54,7 @@ function ImagePreview({ material }: { material: MaterialItem }) {
         onClick={toggleZoom}
       >
         <motion.img
-          src={material.fileData || material.url}
+          src={src || undefined}
           alt={material.title}
           className="max-w-full object-contain"
           style={{
@@ -73,14 +75,13 @@ function ImagePreview({ material }: { material: MaterialItem }) {
           {zoomed ? <ZoomOut size={14} /> : <ZoomIn size={14} />}
           {zoomed ? 'Zoom Out' : 'Zoom In'}
         </button>
-        <a
-          href={material.fileData || material.url}
-          download={material.title}
+        <button
+          onClick={() => downloadMaterial(material).catch(reportFileError)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors hover:bg-white/5"
           style={{ color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.15)' }}
         >
           <Download size={14} /> Download
-        </a>
+        </button>
       </div>
     </div>
   );
@@ -89,6 +90,7 @@ function ImagePreview({ material }: { material: MaterialItem }) {
 function PDFPreview({ material }: { material: MaterialItem }) {
   const [pageNum, setPageNum] = useState(1);
   const totalPages = 5; // Mock total pages
+  const src = useMaterialObjectUrl(material);
 
   return (
     <div className="flex flex-col items-center">
@@ -101,7 +103,7 @@ function PDFPreview({ material }: { material: MaterialItem }) {
         }}
       >
         <iframe
-          src={material.fileData || material.url}
+          src={src || undefined}
           title={material.title}
           className="w-full"
           style={{ minHeight: 500, border: 'none' }}
@@ -128,14 +130,13 @@ function PDFPreview({ material }: { material: MaterialItem }) {
           <ChevronRight size={16} />
         </button>
         <div className="w-px h-4 mx-2" style={{ background: 'rgba(255,255,255,0.08)' }} />
-        <a
-          href={material.fileData || material.url}
-          download={material.title}
+        <button
+          onClick={() => downloadMaterial(material).catch(reportFileError)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors hover:bg-white/5"
           style={{ color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.15)' }}
         >
           <Download size={14} /> Download
-        </a>
+        </button>
       </div>
     </div>
   );
@@ -148,6 +149,7 @@ function VideoPreview({ material }: { material: MaterialItem }) {
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const src = useMaterialObjectUrl(material);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -206,7 +208,7 @@ function VideoPreview({ material }: { material: MaterialItem }) {
     >
       <video
         ref={videoRef}
-        src={material.fileData || material.url}
+        src={src || undefined}
         className="w-full"
         style={{ maxHeight: '60vh' }}
         onTimeUpdate={handleTimeUpdate}
@@ -364,9 +366,8 @@ function DownloadPrompt({ material }: { material: MaterialItem }) {
       <p className="text-caption mb-6" style={{ color: '#55555E' }}>
         This file type cannot be previewed. Download to view.
       </p>
-      <a
-        href={material.fileData || material.url}
-        download={material.title}
+      <button
+        onClick={() => downloadMaterial(material).catch(reportFileError)}
         className="flex items-center gap-2 px-6 py-3 rounded-xl text-[14px] font-semibold transition-all duration-200 hover:brightness-110"
         style={{
           background: 'linear-gradient(135deg, #B8A14E 0%, #C9B25F 50%, #D4C070 100%)',
@@ -374,7 +375,7 @@ function DownloadPrompt({ material }: { material: MaterialItem }) {
         }}
       >
         <Download size={16} /> Download File
-      </a>
+      </button>
     </div>
   );
 }
@@ -458,15 +459,16 @@ export default function PreviewModal({ material, isOpen, onClose }: PreviewModal
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {material.type !== 'link' && (
-                    <a
-                      href={material.fileData || material.url}
-                      download={material.title}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadMaterial(material).catch(reportFileError);
+                      }}
                       className="p-2 rounded-lg transition-colors hover:bg-white/5"
                       title="Download"
-                      onClick={(e) => e.stopPropagation()}
                     >
                       <Download size={16} style={{ color: '#8A8A93' }} />
-                    </a>
+                    </button>
                   )}
                   <button
                     onClick={onClose}

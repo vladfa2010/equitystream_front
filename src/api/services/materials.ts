@@ -1,38 +1,119 @@
-import {
-  getAllMaterials,
-  createMaterialLocal,
-  deleteMaterialLocal,
-} from '../localDb';
 import type { MaterialResponse, CreateMaterialRequest } from '../types';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+  const token = localStorage.getItem('es_auth_token');
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || err.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+function unwrap<T>(res: any): T {
+  if (res && res.data !== undefined) return res.data as T;
+  return res as T;
+}
+
+export interface UploadMaterialMeta {
+  dealId?: string;
+  title?: string;
+  description?: string;
+}
+
 export const materialsApi = {
-  getAll: async (params?: { type?: string; dealId?: string; search?: string }) => {
-    let materials = getAllMaterials();
-    if (params?.type) materials = materials.filter(m => m.type === params.type);
-    if (params?.dealId) materials = materials.filter(m => m.dealId === params.dealId);
-    if (params?.search) {
-      const q = params.search.toLowerCase();
-      materials = materials.filter(m => m.title.toLowerCase().includes(q));
-    }
-    return materials;
+  getAll: async (params?: { type?: string; dealId?: string; search?: string }): Promise<MaterialResponse[]> => {
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.dealId) query.set('dealId', params.dealId);
+    if (params?.search) query.set('search', params.search);
+    const qs = query.toString();
+    const res = await fetchWithAuth(`/materials${qs ? `?${qs}` : ''}`);
+    const unwrapped = unwrap<any>(res);
+    return Array.isArray(unwrapped) ? unwrapped : unwrapped?.data || [];
   },
 
   create: async (data: CreateMaterialRequest): Promise<MaterialResponse> => {
-    await new Promise(r => setTimeout(r, 500));
-    return createMaterialLocal(data);
+    const res = await fetchWithAuth('/materials', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap<MaterialResponse>(res);
   },
 
   delete: async (id: string) => {
-    await new Promise(r => setTimeout(r, 200));
-    deleteMaterialLocal(id);
+    await fetchWithAuth(`/materials/${id}`, {
+      method: 'DELETE',
+    });
     return { success: true };
   },
 
-  attachToDeal: async (materialId: string, dealId: string) => {
-    const materials = getAllMaterials();
-    const idx = materials.findIndex(m => m.id === materialId);
-    if (idx === -1) throw new Error('Material not found');
-    materials[idx].dealId = dealId;
-    return materials[idx];
+  attachToDeal: async (materialId: string, dealId: string): Promise<MaterialResponse> => {
+    const res = await fetchWithAuth(`/materials/${materialId}/attach`, {
+      method: 'POST',
+      body: JSON.stringify({ dealId }),
+    });
+    return unwrap<MaterialResponse>(res);
+  },
+
+  // Uploads a file via multipart/form-data with real progress reporting.
+  // Content-Type is intentionally NOT set manually — the browser adds the
+  // multipart boundary itself.
+  upload: (
+    file: File,
+    meta: UploadMaterialMeta = {},
+    onProgress?: (pct: number) => void,
+  ): Promise<MaterialResponse> => {
+    return new Promise((resolve, reject) => {
+      const token = localStorage.getItem('es_auth_token');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (meta.dealId) formData.append('dealId', meta.dealId);
+      if (meta.title) formData.append('title', meta.title);
+      if (meta.description) formData.append('description', meta.description);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_URL}/materials/upload`);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+
+      xhr.onload = () => {
+        let body: any = null;
+        try {
+          body = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+        } catch {
+          // non-JSON error body
+        }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(unwrap<MaterialResponse>(body));
+          return;
+        }
+        if (xhr.status === 413) {
+          reject(new Error('File exceeds the 50 MB limit'));
+          return;
+        }
+        reject(new Error(body?.message || body?.error || `Upload failed (HTTP ${xhr.status})`));
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.onabort = () => reject(new Error('Upload cancelled'));
+
+      xhr.send(formData);
+    });
   },
 };

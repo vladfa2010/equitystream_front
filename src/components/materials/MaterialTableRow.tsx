@@ -12,6 +12,11 @@ import {
 } from 'lucide-react';
 import type { MaterialItem } from '@/hooks/useMaterials';
 import { deals, timeAgo } from '@/data/mockData';
+import {
+  downloadMaterial,
+  openExternal,
+  reportFileError,
+} from './fileAccess';
 
 interface MaterialTableRowProps {
   material: MaterialItem;
@@ -158,7 +163,7 @@ export default function MaterialTableRow({
           </button>
           {isLink ? (
             <button
-              onClick={() => window.open(material.url, '_blank')}
+              onClick={() => openExternal(material.url)}
               className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
               title="Open Link"
             >
@@ -166,12 +171,7 @@ export default function MaterialTableRow({
             </button>
           ) : (
             <button
-              onClick={() => {
-                const a = document.createElement('a');
-                a.href = material.fileData || material.url;
-                a.download = material.title;
-                a.click();
-              }}
+              onClick={() => downloadMaterial(material).catch(reportFileError)}
               className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
               title="Download"
             >

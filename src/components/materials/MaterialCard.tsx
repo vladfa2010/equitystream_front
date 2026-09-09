@@ -15,6 +15,12 @@ import { useState, useRef } from 'react';
 import type { MaterialItem } from '@/hooks/useMaterials';
 import { deals } from '@/data/mockData';
 import { timeAgo } from '@/data/mockData';
+import {
+  downloadMaterial,
+  isExternalUrl,
+  openExternal,
+  reportFileError,
+} from './fileAccess';
 
 interface MaterialCardProps {
   material: MaterialItem;
@@ -54,13 +60,15 @@ export default function MaterialCard({
     setShowActions(false);
     if (action === 'preview') onPreview(material);
     if (action === 'delete') onDelete(material.id);
-    if (action === 'open' && material.url) window.open(material.url, '_blank');
+    if (action === 'open' && material.url) {
+      if (isExternalUrl(material.url)) {
+        openExternal(material.url);
+      } else {
+        downloadMaterial(material).catch(reportFileError);
+      }
+    }
     if (action === 'download') {
-      // Create temporary download
-      const a = document.createElement('a');
-      a.href = material.fileData || material.url;
-      a.download = material.title;
-      a.click();
+      downloadMaterial(material).catch(reportFileError);
     }
   };
 

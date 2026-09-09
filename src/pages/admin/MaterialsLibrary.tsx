@@ -16,6 +16,7 @@ import AddLinkModal from '@/components/materials/AddLinkModal';
 import PreviewModal from '@/components/materials/PreviewModal';
 import AssociateDealModal from '@/components/materials/AssociateDealModal';
 import EmptyState from '@/components/materials/EmptyState';
+import { Toaster } from '@/components/ui/sonner';
 
 export default function MaterialsLibrary() {
   const {
@@ -327,6 +328,8 @@ export default function MaterialsLibrary() {
       </div>
 
       {/* Modals */}
+      <Toaster position="bottom-center" richColors />
+
       <UploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
