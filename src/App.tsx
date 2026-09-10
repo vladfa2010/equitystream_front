@@ -56,6 +56,7 @@ function AppRoutes() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<LoginPage />} />
+      <Route path="/reset-password" element={<LoginPage />} />
 
       {/* Pending approval (authenticated but not verified) */}
       <Route path="/pending" element={<ProtectedRoute requireVerified={false}><PendingApprovalPage /></ProtectedRoute>} />

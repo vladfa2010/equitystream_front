@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { authApi } from '@/api/services/authApi';
@@ -8,26 +8,40 @@ import ShinyText from '@/components/react-bits/ShinyText';
 import GlassSurface from '@/components/react-bits/GlassSurface';
 import {
   LogIn, Eye, EyeOff, UserPlus, ArrowLeft, KeyRound,
-  Mail, User, Lock, CheckCircle, ArrowRight
+  Mail, User, Lock, CheckCircle
 } from 'lucide-react';
 
-type Mode = 'login' | 'register' | 'forgot' | 'code' | 'reset';
+type Mode = 'login' | 'register' | 'forgot' | 'reset';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated, login, register } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [code, setCode] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // ТЗ-3: reset link from the email points to /#/reset-password?token=...
+  useEffect(() => {
+    if (location.pathname === '/reset-password') {
+      const token = searchParams.get('token');
+      if (token) {
+        setResetToken(token);
+        setMode('reset');
+      } else {
+        setMode('forgot');
+      }
+    }
+  }, [location.pathname, searchParams]);
 
   // Redirect if already authenticated and verified
   useEffect(() => {
@@ -84,26 +98,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await authApi.forgotPassword(email);
-      setSuccess('Check your email for a 6-digit code.');
-      setMode('code');
+      setSuccess('If this email exists, a password reset link has been sent. The link is valid for 1 hour.');
     } catch (err: any) {
-      setError(err.message || 'Failed to send code');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearMessages();
-    setLoading(true);
-    try {
-      const data = await authApi.verifyCode(email, code);
-      setResetToken(data.resetToken);
-      setSuccess('Code verified. Set a new password.');
-      setMode('reset');
-    } catch (err: any) {
-      setError(err.message || 'Invalid code');
+      setError(err.message || 'Failed to send reset link');
     } finally {
       setLoading(false);
     }
@@ -134,15 +131,13 @@ export default function LoginPage() {
     clearMessages();
     setPassword('');
     setConfirmPassword('');
-    setCode('');
     setNewPassword('');
   };
 
   const titles: Record<Mode, { title: string; subtitle: string }> = {
     login: { title: 'Welcome Back', subtitle: 'Sign in to your account' },
     register: { title: 'Create Account', subtitle: 'Register for access' },
-    forgot: { title: 'Reset Password', subtitle: 'Enter your email to receive a code' },
-    code: { title: 'Verify Code', subtitle: 'Enter the 6-digit code from your email' },
+    forgot: { title: 'Reset Password', subtitle: 'Enter your email to receive a reset link' },
     reset: { title: 'New Password', subtitle: 'Set a new secure password' },
   };
 
@@ -655,75 +650,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       <KeyRound size={18} />
-                      Send Code
-                    </>
-                  )}
-                </motion.button>
-
-                <button
-                  type="button"
-                  onClick={() => switchMode('login')}
-                  className="flex items-center justify-center gap-1.5 transition-all duration-200 hover:underline"
-                  style={linkStyle}
-                  onMouseEnter={(e) => { (e.target as HTMLElement).style.color = '#B8A14E'; }}
-                  onMouseLeave={(e) => { (e.target as HTMLElement).style.color = '#C9B25F'; }}
-                >
-                  <ArrowLeft size={14} />
-                  Back to sign in
-                </button>
-              </motion.form>
-            )}
-
-            {mode === 'code' && (
-              <motion.form
-                key="code"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                onSubmit={handleVerifyCode}
-                className="flex flex-col gap-4"
-              >
-                <div>
-                  <label className="text-[12px] font-medium mb-1.5 block" style={{ color: '#8A8A93' }}>
-                    6-Digit Code
-                  </label>
-                  <div className="relative">
-                    <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
-                    <input
-                      type="text"
-                      name="code"
-                      autoComplete="one-time-code"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="000000"
-                      maxLength={6}
-                      className="w-full pl-10 pr-4 py-3 text-[14px] placeholder:text-[#55555E] tracking-[0.3em] font-mono text-center"
-                      style={inputStyle}
-                      onFocus={(e) => {
-                        Object.assign(e.target.style, inputFocusStyle);
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.06)';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <motion.button
-                  type="submit"
-                  disabled={loading || code.length !== 6}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 disabled:opacity-60 h-12 btn-primary"
-                >
-                  {loading ? (
-                    <span className="w-5 h-5 border-2 border-[#0A0A0F]/30 border-t-[#0A0A0F] rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <ArrowRight size={18} />
-                      Verify
+                      Send Reset Link
                     </>
                   )}
                 </motion.button>

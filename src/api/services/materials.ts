@@ -104,7 +104,23 @@ export const materialsApi = {
           return;
         }
         if (xhr.status === 413) {
-          reject(new Error('File exceeds the 50 MB limit'));
+          const msg = body?.message || '';
+          // ТЗ-3: distinguish "one file too big" from quota / per-deal limit
+          if (/quota|maximum of \d+ files/i.test(msg)) {
+            reject(new Error(msg));
+          } else {
+            reject(new Error('File exceeds the 50 MB limit'));
+          }
+          return;
+        }
+        // ТЗ-3: upload rate limit (20/hour per user)
+        if (xhr.status === 429) {
+          reject(new Error(body?.message || 'Too many uploads. Please try again later.'));
+          return;
+        }
+        // ТЗ-3: storage partition nearly full
+        if (xhr.status === 507) {
+          reject(new Error(body?.message || 'Storage is full. Please contact the administrator.'));
           return;
         }
         reject(new Error(body?.message || body?.error || `Upload failed (HTTP ${xhr.status})`));

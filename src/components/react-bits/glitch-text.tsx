@@ -57,7 +57,7 @@ const GlitchText: React.FC<GlitchTextProps> = ({
   const pointerRef = useRef<Pointer>({ x: 0, y: 0, r: radius });
   const textLengthRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
-  const resizeTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const animateRef = useRef<(() => void) | null>(null);
   const frameCountRef = useRef<number>(0);
   const dprRef = useRef<number>(1);

@@ -66,16 +66,25 @@ export const authApi = {
     return user ? normalizeUser(user) : null;
   },
 
-  async forgotPassword(_email: string): Promise<void> {
-    throw new Error('Password reset is not available. Please contact support.');
+  /**
+   * ТЗ-3: request a reset link. The backend answers identically for
+   * existing and non-existing emails (anti-enumeration).
+   */
+  async forgotPassword(email: string): Promise<void> {
+    await api('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   },
 
-  async verifyCode(_email: string, _code: string): Promise<{ resetToken: string }> {
-    throw new Error('Password reset is not available. Please contact support.');
-  },
-
-  async resetPassword(_resetToken: string, _newPassword: string): Promise<void> {
-    throw new Error('Password reset is not available. Please contact support.');
+  /**
+   * ТЗ-3: reset password with the one-time token from the email link.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await api('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    });
   },
 
   logout() {
