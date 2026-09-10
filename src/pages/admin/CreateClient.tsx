@@ -8,7 +8,7 @@ import {
   UserPlus, CalendarDays, Lock, AtSign, StickyNote, ArrowLeft,
 } from 'lucide-react';
 import StepIndicator from '../../components/deals/StepIndicator';
-import { clientsApi } from '../../api';
+import { clientsApi, materialsApi } from '../../api';
 import type { CreateClientRequest } from '../../api';
 
 // =============================================================================
@@ -1016,10 +1016,34 @@ export default function CreateClient() {
         status: 'active',
       };
 
-      await clientsApi.create(payload);
+      const created = await clientsApi.create(payload);
 
-      setToast({ message: 'Client created successfully', type: 'success' });
-      setTimeout(() => navigate('/admin/clients'), 1200);
+      // Upload the documents selected in step 3 and attach them to the new client.
+      // Upload failures must not roll back the client creation — report as a warning.
+      const documents: Array<{ file: File | null; title: string }> = [
+        { file: form.contractFile, title: 'Contract' },
+        { file: form.idDocumentFile, title: 'ID Document' },
+        { file: form.avatarFile, title: 'Avatar Photo' },
+      ];
+      const failedDocs: string[] = [];
+      for (const doc of documents) {
+        if (!doc.file) continue;
+        try {
+          await materialsApi.upload(doc.file, { clientId: created.id, title: doc.title });
+        } catch (uploadErr) {
+          const msg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+          console.error(`Failed to upload ${doc.title}:`, msg);
+          failedDocs.push(`${doc.title} (${msg})`);
+        }
+      }
+
+      setToast({
+        message: failedDocs.length
+          ? `Client created, but some documents failed to upload: ${failedDocs.join(', ')}`
+          : 'Client created successfully',
+        type: failedDocs.length ? 'error' : 'success',
+      });
+      setTimeout(() => navigate('/admin/clients'), 1600);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setToast({ message: `Failed to create client: ${msg}`, type: 'error' });

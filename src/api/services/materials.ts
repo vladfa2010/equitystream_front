@@ -17,15 +17,17 @@ function unwrap<T>(res: any): T {
 
 export interface UploadMaterialMeta {
   dealId?: string;
+  clientId?: string;
   title?: string;
   description?: string;
 }
 
 export const materialsApi = {
-  getAll: async (params?: { type?: string; dealId?: string; search?: string }): Promise<MaterialResponse[]> => {
+  getAll: async (params?: { type?: string; dealId?: string; clientId?: string; search?: string }): Promise<MaterialResponse[]> => {
     const query = new URLSearchParams();
     if (params?.type) query.set('type', params.type);
     if (params?.dealId) query.set('dealId', params.dealId);
+    if (params?.clientId) query.set('clientId', params.clientId);
     if (params?.search) query.set('search', params.search);
     const qs = query.toString();
     const res = await fetchWithAuth(`/materials${qs ? `?${qs}` : ''}`);
@@ -68,6 +70,7 @@ export const materialsApi = {
       const formData = new FormData();
       formData.append('file', file);
       if (meta.dealId) formData.append('dealId', meta.dealId);
+      if (meta.clientId) formData.append('clientId', meta.clientId);
       if (meta.title) formData.append('title', meta.title);
       if (meta.description) formData.append('description', meta.description);
 

@@ -172,6 +172,7 @@ export interface CreateClientRequest {
 export interface MaterialResponse {
   id: string;
   dealId: string | null;
+  clientId?: string | null;
   dealName?: string | null;
   title: string;
   type: 'file' | 'link' | 'image' | 'video' | 'document';

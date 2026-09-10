@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -22,6 +22,11 @@ import {
   Lock,
   Copy,
   CheckCircle,
+  FileText,
+  Download,
+  Trash2,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -35,8 +40,8 @@ import {
 import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import type { PricePoint } from '@/data/mockData';
-import { clientsApi, dealsApi } from '@/api';
-import type { ClientResponse } from '@/api';
+import { clientsApi, dealsApi, materialsApi } from '@/api';
+import type { ClientResponse, MaterialResponse } from '@/api';
 import EditClientModal from '@/components/clients/EditClientModal';
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -142,21 +147,27 @@ export default function ClientDetail() {
   const [setPasswordMessage, setSetPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [documents, setDocuments] = useState<MaterialResponse[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load client from localStorage API
+  // Load client + their documents
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     Promise.all([
       clientsApi.getById(id),
       dealsApi.getAll(),
-    ]).then(([clientData, allDeals]) => {
+      materialsApi.getAll({ clientId: id }).catch(() => [] as MaterialResponse[]),
+    ]).then(([clientData, allDeals, docs]) => {
       setClient(clientData);
       // Filter deals where this client has investments
       const dealsWithClient = (allDeals || []).filter((d: any) =>
         d.investments?.some((i: any) => i.userId === id)
       );
       setClientDeals(dealsWithClient);
+      setDocuments(docs || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [id]);
@@ -277,6 +288,49 @@ export default function ClientDetail() {
       timestamp: pos.investment?.createdAt || new Date().toISOString(),
     })).slice(0, 8);
   }, [client, positions]);
+
+  // ---- Client documents ----
+  const refreshDocuments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const docs = await materialsApi.getAll({ clientId: id });
+      setDocuments(docs || []);
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+    }
+  }, [id]);
+
+  const handleUploadDocument = useCallback(async (file: File) => {
+    if (!id || !file) return;
+    setUploadingDoc(true);
+    setDocError(null);
+    try {
+      await materialsApi.upload(file, { clientId: id, title: file.name.replace(/\.[^.]+$/, '') });
+      await refreshDocuments();
+    } catch (err: any) {
+      setDocError(err?.message || 'Failed to upload document.');
+    } finally {
+      setUploadingDoc(false);
+      if (docFileInputRef.current) docFileInputRef.current.value = '';
+    }
+  }, [id, refreshDocuments]);
+
+  const handleDeleteDocument = useCallback(async (docId: string, title: string) => {
+    if (!window.confirm(`Delete document "${title}"? It can be restored within 30 days.`)) return;
+    try {
+      await materialsApi.delete(docId);
+      setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    } catch (err: any) {
+      setDocError(err?.message || 'Failed to delete document.');
+    }
+  }, []);
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return '—';
+    if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${bytes} B`;
+  };
 
   const handleToggleStatus = useCallback(async () => {
     if (!client) return;
@@ -877,6 +931,119 @@ export default function ClientDetail() {
               />
             </div>
           </motion.div>
+        </motion.div>
+
+        {/* Client Documents */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.34, ease: easeExpo }}
+          className="glass-panel p-5 sm:p-6 mb-8"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <FileText size={16} style={{ color: '#B8A14E' }} />
+              <h3 className="text-h3" style={{ color: '#F5F5F0' }}>Documents</h3>
+              <span
+                className="text-[12px] font-semibold px-2.5 py-1 rounded-md"
+                style={{ background: 'rgba(184,161,78,0.12)', color: '#B8A14E' }}
+              >
+                {documents.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                ref={docFileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleUploadDocument(f);
+                }}
+              />
+              <button
+                onClick={() => docFileInputRef.current?.click()}
+                disabled={uploadingDoc}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold disabled:opacity-50"
+                style={{
+                  background: 'rgba(184,161,78,0.12)',
+                  border: '1px solid rgba(184,161,78,0.25)',
+                  color: '#B8A14E',
+                  cursor: 'pointer',
+                }}
+              >
+                {uploadingDoc ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {uploadingDoc ? 'Uploading…' : 'Upload Document'}
+              </button>
+            </div>
+          </div>
+
+          {docError && (
+            <div
+              className="mb-4 p-3 rounded-lg text-[13px]"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444' }}
+            >
+              {docError}
+            </div>
+          )}
+
+          {documents.length === 0 ? (
+            <p className="text-body py-6 text-center" style={{ color: '#55555E' }}>
+              No documents uploaded yet
+            </p>
+          ) : (
+            <div className="flex flex-col divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center gap-3 py-3">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    {doc.mimeType?.startsWith('image/') ? (
+                      <Image size={15} style={{ color: '#8A8A93' }} />
+                    ) : (
+                      <FileText size={15} style={{ color: '#8A8A93' }} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium truncate" style={{ color: '#F5F5F0' }}>
+                      {doc.title}
+                    </p>
+                    <p className="text-[11px]" style={{ color: '#55555E' }}>
+                      {formatFileSize(doc.fileSize)} · {formatDate(doc.createdAt.split('T')[0])}
+                    </p>
+                  </div>
+                  <a
+                    href={`/api/v1/materials/${doc.id}/download`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold"
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: '#8A8A93',
+                    }}
+                    title="Download"
+                  >
+                    <Download size={12} />
+                    Download
+                  </a>
+                  <button
+                    onClick={() => handleDeleteDocument(doc.id, doc.title)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold"
+                    style={{
+                      background: 'rgba(239,68,68,0.08)',
+                      border: '1px solid rgba(239,68,68,0.2)',
+                      color: '#EF4444',
+                      cursor: 'pointer',
+                    }}
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Portfolio Performance Chart + Summary */}

@@ -4,7 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, FileText, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/Layout';
 import PortfolioMetricCard from '@/components/client/PortfolioMetricCard';
@@ -15,6 +15,7 @@ import {
 } from '@/data/mockData';
 import type { PricePoint } from '@/data/mockData';
 import type { ActivityItem, Reservation } from '@/api';
+import type { MaterialResponse } from '@/api';
 
 const TIME_RANGES = [
   { label: '1M', days: 30 },
@@ -106,13 +107,17 @@ export default function ClientDashboard() {
   const [apiDeals, setApiDeals] = useState<any[]>([]);
   const [apiClient, setApiClient] = useState<any>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [myDocuments, setMyDocuments] = useState<MaterialResponse[]>([]);
 
   // Load real data from API on mount
   useEffect(() => {
     Promise.all([
       import('@/api').then(m => m.dealsApi.getAll()),
       import('@/api').then(m => m.clientsApi.getAll()),
-    ]).then(([allDeals, clientsEnvelope]) => {
+      // Backend scopes the list: client sees only their own documents
+      import('@/api').then(m => m.materialsApi.getAll()).catch(() => [] as MaterialResponse[]),
+    ]).then(([allDeals, clientsEnvelope, docs]) => {
+      setMyDocuments(docs || []);
       const allClients = clientsEnvelope.data || [];
       // Find the logged-in client by user.id or user.email
       const client = allClients.find((c: any) => c.id === user?.id)
@@ -595,6 +600,58 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
                 className="hidden md:block absolute right-0 top-0 bottom-4 w-12 pointer-events-none"
                 style={{ background: 'linear-gradient(to left, var(--bg-base), transparent)' }}
               />
+            </div>
+          </motion.section>
+        )}
+
+        {/* My Documents — files attached to me by the admin */}
+        {myDocuments.length > 0 && (
+          <motion.section variants={itemVariants} className="mb-10">
+            <div className="mb-6">
+              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>My Documents</h3>
+              <p className="text-body" style={{ color: '#8A8A93' }}>Documents provided by your manager</p>
+            </div>
+            <div className="glass-panel" style={{ padding: '8px 24px' }}>
+              {myDocuments.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center gap-3 py-3.5"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <FileText size={15} style={{ color: '#B8A14E' }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium truncate" style={{ color: '#F5F5F0' }}>
+                      {doc.title}
+                    </p>
+                    <p className="text-caption" style={{ color: '#55555E' }}>
+                      {doc.fileSize
+                        ? doc.fileSize >= 1024 * 1024
+                          ? `${(doc.fileSize / 1024 / 1024).toFixed(1)} MB`
+                          : `${Math.max(1, Math.round(doc.fileSize / 1024))} KB`
+                        : '—'}
+                      {' · '}
+                      {new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <a
+                    href={`/api/v1/materials/${doc.id}/download`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold shrink-0"
+                    style={{
+                      background: 'rgba(184,161,78,0.1)',
+                      border: '1px solid rgba(184,161,78,0.25)',
+                      color: '#B8A14E',
+                    }}
+                  >
+                    <Download size={12} />
+                    Download
+                  </a>
+                </div>
+              ))}
             </div>
           </motion.section>
         )}
