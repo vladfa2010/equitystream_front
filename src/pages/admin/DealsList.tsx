@@ -163,7 +163,7 @@ export default function DealsList() {
             { label: 'Total Deals', value: stats.total, icon: <Briefcase size={16} /> },
             { label: 'Active', value: stats.active, icon: <Briefcase size={16} style={{ color: '#10B981' }} /> },
             { label: 'Total AUM', value: formatCurrency(stats.totalAum), icon: <TrendingUp size={16} /> },
-            { label: 'Avg Return', value: `${stats.avgReturn >= 0 ? '+' : ''}${formatPercent(stats.avgReturn)}`, color: stats.avgReturn >= 0 ? '#10B981' : '#EF4444', icon: stats.avgReturn >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} /> },
+            { label: 'Avg Return', value: formatPercent(stats.avgReturn), color: stats.avgReturn >= 0 ? '#10B981' : '#EF4444', icon: stats.avgReturn >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} /> },
           ].map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
               className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
