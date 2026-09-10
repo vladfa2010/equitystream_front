@@ -1,17 +1,8 @@
 import type { MaterialResponse, CreateMaterialRequest } from '../types';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { apiFetch, API_URL } from '../http';
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('es_auth_token');
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  const res = await apiFetch(endpoint, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(err.error || err.message || `HTTP ${res.status}`);
@@ -74,8 +65,6 @@ export const materialsApi = {
     onProgress?: (pct: number) => void,
   ): Promise<MaterialResponse> => {
     return new Promise((resolve, reject) => {
-      const token = localStorage.getItem('es_auth_token');
-
       const formData = new FormData();
       formData.append('file', file);
       if (meta.dealId) formData.append('dealId', meta.dealId);
@@ -84,7 +73,8 @@ export const materialsApi = {
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_URL}/materials/upload`);
-      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      // ТЗ-4: the session cookie authenticates the upload
+      xhr.withCredentials = true;
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable && onProgress) {

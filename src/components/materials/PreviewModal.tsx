@@ -20,7 +20,7 @@ import {
   Maximize,
 } from 'lucide-react';
 import type { MaterialItem } from '@/hooks/useMaterials';
-import { useMaterialObjectUrl, downloadMaterial, reportFileError } from './fileAccess';
+import { useMaterialObjectUrl, downloadMaterial } from './fileAccess';
 
 interface PreviewModalProps {
   material: MaterialItem | null;
@@ -76,7 +76,7 @@ function ImagePreview({ material }: { material: MaterialItem }) {
           {zoomed ? 'Zoom Out' : 'Zoom In'}
         </button>
         <button
-          onClick={() => downloadMaterial(material).catch(reportFileError)}
+          onClick={() => downloadMaterial(material)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors hover:bg-white/5"
           style={{ color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.15)' }}
         >
@@ -131,7 +131,7 @@ function PDFPreview({ material }: { material: MaterialItem }) {
         </button>
         <div className="w-px h-4 mx-2" style={{ background: 'rgba(255,255,255,0.08)' }} />
         <button
-          onClick={() => downloadMaterial(material).catch(reportFileError)}
+          onClick={() => downloadMaterial(material)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors hover:bg-white/5"
           style={{ color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.15)' }}
         >
@@ -367,7 +367,7 @@ function DownloadPrompt({ material }: { material: MaterialItem }) {
         This file type cannot be previewed. Download to view.
       </p>
       <button
-        onClick={() => downloadMaterial(material).catch(reportFileError)}
+        onClick={() => downloadMaterial(material)}
         className="flex items-center gap-2 px-6 py-3 rounded-xl text-[14px] font-semibold transition-all duration-200 hover:brightness-110"
         style={{
           background: 'linear-gradient(135deg, #B8A14E 0%, #C9B25F 50%, #D4C070 100%)',
@@ -462,7 +462,7 @@ export default function PreviewModal({ material, isOpen, onClose }: PreviewModal
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        downloadMaterial(material).catch(reportFileError);
+                        downloadMaterial(material);
                       }}
                       className="p-2 rounded-lg transition-colors hover:bg-white/5"
                       title="Download"

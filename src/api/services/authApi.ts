@@ -1,6 +1,5 @@
 import type { LoginRequest, LoginResponse, UserDto } from '../types';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { apiFetch } from '../http';
 
 function unwrap<T>(res: any): T {
   if (res && res.data !== undefined) return res.data as T;
@@ -8,15 +7,7 @@ function unwrap<T>(res: any): T {
 }
 
 async function api(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('es_auth_token');
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  const res = await apiFetch(endpoint, options);
 
   const data = await res.json().catch(() => ({ error: 'Network error' }));
 
@@ -41,10 +32,10 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-    const { accessToken, user } = unwrap<LoginResponse>(res);
-    if (accessToken) {
-      localStorage.setItem('es_auth_token', accessToken);
-    }
+    // ТЗ-4: the session is set as an httpOnly cookie by the backend;
+    // the token in the body belongs to the Bearer transition period
+    // and is intentionally NOT stored in JS-accessible storage.
+    const { user } = unwrap<LoginResponse>(res);
     return normalizeUser(user);
   },
 
@@ -53,10 +44,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    const { accessToken, user } = unwrap<LoginResponse>(res);
-    if (accessToken) {
-      localStorage.setItem('es_auth_token', accessToken);
-    }
+    const { user } = unwrap<LoginResponse>(res);
     return normalizeUser(user);
   },
 
@@ -87,8 +75,16 @@ export const authApi = {
     });
   },
 
-  logout() {
-    localStorage.removeItem('es_auth_token');
+  /**
+   * ТЗ-4 Задача 1.4: tell the backend to invalidate the session cookie,
+   * then drop the local UI state.
+   */
+  async logout() {
+    try {
+      await api('/auth/logout', { method: 'POST' });
+    } catch {
+      // Best-effort: the local state is cleared even if the call fails.
+    }
     localStorage.removeItem('es_user');
     localStorage.removeItem('es_view_mode');
   },

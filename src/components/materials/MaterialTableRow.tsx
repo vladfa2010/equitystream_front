@@ -15,7 +15,6 @@ import { deals, timeAgo } from '@/data/mockData';
 import {
   downloadMaterial,
   openExternal,
-  reportFileError,
 } from './fileAccess';
 
 interface MaterialTableRowProps {
@@ -171,7 +170,7 @@ export default function MaterialTableRow({
             </button>
           ) : (
             <button
-              onClick={() => downloadMaterial(material).catch(reportFileError)}
+              onClick={() => downloadMaterial(material)}
               className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
               title="Download"
             >

@@ -1,17 +1,8 @@
 import type { AdminDashboardResponse, ActivityItem, DealSummary } from '../types';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { apiFetch } from '../http';
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('es_auth_token');
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  const res = await apiFetch(endpoint, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(err.error || err.message || `HTTP ${res.status}`);

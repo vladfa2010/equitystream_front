@@ -27,24 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { return (localStorage.getItem('es_view_mode') as 'admin' | 'user') || 'user'; } catch { return 'user'; }
   });
 
-  // Check session on mount
+  // Check session on mount (ТЗ-4: the session cookie decides —
+  // no token check in JS anymore)
   useEffect(() => {
-    const token = localStorage.getItem('es_auth_token');
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
     authApi.me()
       .then((u) => {
         if (u) {
           setUser(u);
-        } else {
-          localStorage.removeItem('es_auth_token');
         }
       })
       .catch(() => {
-        localStorage.removeItem('es_auth_token');
+        // 401 — unauthenticated; apiFetch already redirects to login
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -66,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setUser(null);
     setViewModeState('user');
-    authApi.logout();
+    void authApi.logout();
   }, []);
 
   const setViewMode = useCallback((mode: 'admin' | 'user') => {

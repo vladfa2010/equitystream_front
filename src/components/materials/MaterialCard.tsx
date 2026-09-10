@@ -19,7 +19,6 @@ import {
   downloadMaterial,
   isExternalUrl,
   openExternal,
-  reportFileError,
 } from './fileAccess';
 
 interface MaterialCardProps {
@@ -64,11 +63,11 @@ export default function MaterialCard({
       if (isExternalUrl(material.url)) {
         openExternal(material.url);
       } else {
-        downloadMaterial(material).catch(reportFileError);
+        downloadMaterial(material);
       }
     }
     if (action === 'download') {
-      downloadMaterial(material).catch(reportFileError);
+      downloadMaterial(material);
     }
   };
 
