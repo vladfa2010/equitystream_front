@@ -295,8 +295,12 @@ export default function ClientDealView() {
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#B8A14E' }}>Latest Update</span>
             </div>
             {(() => {
-              const latest = [...priceHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-              const prev = priceHistory.length > 1 ? [...priceHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[1] : null;
+              // ТЗ-11: заголовок — последняя ПОДТВЕРЖДЁННАЯ цена (= deal.currentPrice);
+              // если свежее есть слух — показываем его отдельной приглушённой пометкой.
+              const sorted = [...priceHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              const latest = sorted.find(p => p.confirmed !== false) || sorted[0];
+              const newestRumor = sorted[0]?.confirmed === false ? sorted[0] : null;
+              const prev = sorted.filter(p => p.confirmed !== false && p.id !== latest.id)[0] || null;
               const change = prev ? latest.price - prev.price : latest.price - (deal?.entryPrice || 0);
               const isUp = change >= 0;
               return (
@@ -317,6 +321,15 @@ export default function ClientDealView() {
                     <a href={latest.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline" style={{ color: '#4F6EF7' }}>
                       <ExternalLink size={10} /> Source
                     </a>
+                  )}
+                  {newestRumor && newestRumor.id !== latest.id && (
+                    <span
+                      className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                      style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}
+                      title="Цена-слух, не подтверждена и не влияет на доходность"
+                    >
+                      слух ${newestRumor.price.toFixed(2)} — не подтверждено
+                    </span>
                   )}
                 </div>
               );
@@ -425,8 +438,19 @@ export default function ClientDealView() {
                       <td className="py-3 px-3 text-[12px]" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
                         {formatDate(item.createdAt)}
                       </td>
-                      <td className="py-3 px-3 text-right text-[12px] font-medium" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
-                        ${item.price.toFixed(2)}
+                      <td className="py-3 px-3 text-right text-[12px] font-medium" style={{ color: item.confirmed === false ? '#8A8A93' : '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                        <span className="inline-flex items-center gap-1.5 justify-end">
+                          {item.confirmed === false && (
+                            <span
+                              className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                              style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}
+                              title="Не подтверждено: цена-слух, не влияет на вашу доходность"
+                            >
+                              не подтверждено
+                            </span>
+                          )}
+                          ${item.price.toFixed(2)}
+                        </span>
                       </td>
                       <td className="py-3 px-3">
                         <span className="text-[11px] px-2 py-0.5 rounded" style={{ background: 'rgba(184,161,78,0.1)', color: '#B8A14E' }}>

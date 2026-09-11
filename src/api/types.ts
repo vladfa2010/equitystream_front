@@ -127,6 +127,8 @@ export interface PriceHistoryItem {
   changedByAdmin: string;   // admin user display name
   sourceUrl: string | null; // link to price source
   note: string | null;      // free-text label, e.g. "Цена от БКС"
+  // ТЗ-11: false — слух (не подтверждён): виден в истории, но не влияет на цену/P&L
+  confirmed?: boolean;
   createdAt: string;
   updatedAt?: string;       // set when edited
 }

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, TrendingUp, TrendingDown, Users, Loader2,
-  Pencil, Trash2, X, Plus, CheckCircle2, Crown,
+  Pencil, Trash2, X, Plus, CheckCircle2, Crown, ShieldCheck, ShieldOff,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
@@ -78,7 +78,9 @@ export default function DealDetail() {
   const [showAddPrice, setShowAddPrice] = useState(false);
   const [addPriceValue, setAddPriceValue] = useState('');
   const [addPriceNote, setAddPriceNote] = useState('');
+  const [addPriceConfirmed, setAddPriceConfirmed] = useState(true);
   const [addingPrice, setAddingPrice] = useState(false);
+  const [togglingConfirmId, setTogglingConfirmId] = useState<string | null>(null);
 
   /* edit price history record */
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
@@ -166,6 +168,34 @@ export default function DealDetail() {
       load();
     } catch (err: any) {
       alert(err?.message || 'Failed to delete price record.');
+    }
+  };
+
+  /* ────────── ТЗ-11: confirm / unconfirm a price history record ────────── */
+  const handleConfirmHistory = async (item: PriceHistoryItem) => {
+    setTogglingConfirmId(item.id);
+    try {
+      await dealsApi.updatePriceHistory(item.id, { confirmed: true });
+      load();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to confirm price.');
+    } finally {
+      setTogglingConfirmId(null);
+    }
+  };
+
+  const handleUnconfirmHistory = async (item: PriceHistoryItem) => {
+    if (!window.confirm(
+      `Remove confirmation from $${item.price}?\n\nThe deal price and client P&L will roll back to the latest confirmed price (or entry price).`,
+    )) return;
+    setTogglingConfirmId(item.id);
+    try {
+      await dealsApi.updatePriceHistory(item.id, { confirmed: false });
+      load();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to unconfirm price.');
+    } finally {
+      setTogglingConfirmId(null);
     }
   };
 
@@ -301,6 +331,8 @@ export default function DealDetail() {
   };
 
   /* ────────── add last price ────────── */
+  // ТЗ-11: addPriceConfirmed === false → слух: записывается в историю с пометкой,
+  // но не меняет current price, P&L и не уходит в WS. У слуха обязателен note-источник.
   const handleAddPrice = async () => {
     if (!deal || !id || !addPriceValue) return;
     const price = parseFloat(addPriceValue);
@@ -308,12 +340,17 @@ export default function DealDetail() {
       alert('Please enter a valid price greater than 0.');
       return;
     }
+    if (!addPriceConfirmed && !addPriceNote.trim()) {
+      alert('A rumor price requires a source note (e.g. "broker X, channel Y").');
+      return;
+    }
     setAddingPrice(true);
     try {
-      await dealsApi.updatePrice(id, price, addPriceNote.trim() || undefined);
+      await dealsApi.updatePrice(id, price, addPriceNote.trim() || undefined, addPriceConfirmed);
       setShowAddPrice(false);
       setAddPriceValue('');
       setAddPriceNote('');
+      setAddPriceConfirmed(true);
       load();
     } catch (err: any) {
       alert(err?.message || 'Failed to update price.');
@@ -510,7 +547,7 @@ export default function DealDetail() {
               <h2 className="text-lg font-semibold" style={{ color: '#F5F5F0' }}>Price History</h2>
               <p className="text-xs mt-0.5" style={{ color: '#8A8A93' }}>{priceHistory.length} record{priceHistory.length !== 1 ? 's' : ''}</p>
             </div>
-            <button onClick={() => { setShowAddPrice(true); setAddPriceValue(''); }} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}><Plus size={14} /> Add Last Price</button>
+            <button onClick={() => { setShowAddPrice(true); setAddPriceValue(''); setAddPriceNote(''); setAddPriceConfirmed(true); }} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}><Plus size={14} /> Add Last Price</button>
           </div>
 
           {priceHistory.length === 0 ? (
@@ -597,7 +634,16 @@ export default function DealDetail() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-end gap-2 group">
-                              <span className="text-sm font-medium" style={{ color: '#F5F5F0' }}>${item.price.toFixed(2)}</span>
+                              {item.confirmed === false && (
+                                <span
+                                  className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                  style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)' }}
+                                  title="Rumor: not applied to the deal price or P&L"
+                                >
+                                  Слух
+                                </span>
+                              )}
+                              <span className="text-sm font-medium" style={{ color: item.confirmed === false ? '#8A8A93' : '#F5F5F0' }}>${item.price.toFixed(2)}</span>
                               <button
                                 onClick={() => { setEditingHistoryId(item.id); setEditHistoryValue(String(item.price)); }}
                                 className="opacity-0 group-hover:opacity-100 transition-opacity"
@@ -606,6 +652,25 @@ export default function DealDetail() {
                               >
                                 <Pencil size={14} />
                               </button>
+                              {item.confirmed === false ? (
+                                <button
+                                  onClick={() => handleConfirmHistory(item)}
+                                  disabled={togglingConfirmId === item.id}
+                                  style={{ color: '#10B981' }}
+                                  title="Confirm: apply this price to the deal and P&L"
+                                >
+                                  {togglingConfirmId === item.id ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleUnconfirmHistory(item)}
+                                  disabled={togglingConfirmId === item.id}
+                                  style={{ color: '#F59E0B' }}
+                                  title="Unconfirm: roll price and P&L back to the latest confirmed price"
+                                >
+                                  {togglingConfirmId === item.id ? <Loader2 size={14} className="animate-spin" /> : <ShieldOff size={14} />}
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleDeleteHistory(item)}
                                 style={{ color: '#EF4444' }}
@@ -839,10 +904,27 @@ export default function DealDetail() {
                   <input type="number" step="0.01" value={addPriceValue} onChange={e => setAddPriceValue(e.target.value)} placeholder="e.g. 198.45" style={inpBase} {...inpFocus} autoFocus />
                 </div>
                 <div>
-                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Label / Source (optional)</label>
+                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>
+                    Label / Source {addPriceConfirmed ? '(optional)' : '*'}
+                  </label>
                   <input type="text" value={addPriceNote} onChange={e => setAddPriceNote(e.target.value)} placeholder="e.g. Цена от БКС" maxLength={255} style={inpBase} {...inpFocus} />
                 </div>
-                <p className="text-xs" style={{ color: '#8A8A93' }}>The price is recorded in the history together with your admin account. Client P&amp;L is recalculated automatically.</p>
+                {/* ТЗ-11: переключатель «подтверждённая / слух» */}
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={addPriceConfirmed}
+                    onChange={e => setAddPriceConfirmed(e.target.checked)}
+                    className="w-4 h-4 rounded"
+                    style={{ accentColor: '#B8A14E' }}
+                  />
+                  <span className="text-sm" style={{ color: '#F5F5F0' }}>Confirmed price</span>
+                </label>
+                {addPriceConfirmed ? (
+                  <p className="text-xs" style={{ color: '#8A8A93' }}>The price is recorded in the history and applied to the deal: current price and client P&amp;L are recalculated automatically.</p>
+                ) : (
+                  <p className="text-xs" style={{ color: '#F59E0B' }}>Will be saved as a rumor: it appears in the history with a «Слух» badge, but does NOT change the deal price, client P&amp;L and is not broadcast. A source note is required.</p>
+                )}
                 <div className="flex gap-3 pt-2">
                   <button onClick={() => setShowAddPrice(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
                   <button onClick={handleAddPrice} disabled={!addPriceValue || addingPrice} className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F', opacity: addPriceValue && !addingPrice ? 1 : 0.5 }}>{addingPrice && <Loader2 size={14} className="animate-spin" />}{addingPrice ? 'Adding...' : 'Add Price'}</button>

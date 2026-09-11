@@ -97,33 +97,38 @@ export const dealsApi = {
   // ─── Price update ───
   // Updates the deal's current price. The backend records a price history
   // entry, recalculates client P&L, and broadcasts the change via WebSocket.
-  updatePrice: async (id: string, newPrice: number, note?: string): Promise<{
+  // ТЗ-11: confirmed === false записывает слух — только история, без current_price/P&L/WS.
+  updatePrice: async (id: string, newPrice: number, note?: string, confirmed?: boolean): Promise<{
     dealId: string;
     newPrice: number;
     previousPrice: number;
     changePercent: number;
     affectedClients: number;
+    confirmed: boolean;
+    appliedToCurrentPrice: boolean;
     timestamp: string;
   }> => {
     const res = await fetchWithAuth(`/deals/${id}/price`, {
       method: 'PATCH',
-      body: JSON.stringify({ newPrice, note }),
+      body: JSON.stringify({ newPrice, note, confirmed }),
     });
     return unwrap(res);
   },
 
   // Edits an existing price history record. `price` may be omitted when
   // editing only the note; `note` may be omitted when editing only the price.
-  // If the record is the latest for the deal and its price changed, the
-  // backend also updates the deal's current price and recalculates P&Ls.
+  // `confirmed` toggles rumor/confirmed status (ТЗ-11): any change goes through
+  // the backend recompute, current price always = latest confirmed record.
   updatePriceHistory: async (
     priceHistoryId: string,
-    data: { price?: number; note?: string },
+    data: { price?: number; note?: string; confirmed?: boolean },
   ): Promise<{
     id: string;
     dealId: string;
     price: number;
     isLatest: boolean;
+    confirmed: boolean;
+    appliedToCurrentPrice: boolean;
   }> => {
     const res = await fetchWithAuth(`/deals/price-history/${priceHistoryId}`, {
       method: 'PATCH',
@@ -132,14 +137,15 @@ export const dealsApi = {
     return unwrap(res);
   },
 
-  // Deletes a price history record. If the record is the latest for the
-  // deal, the backend rolls the deal's current price back to the previous
-  // record (or entry price) and recalculates client P&Ls.
+  // Deletes a price history record. The backend recomputes the current price
+  // (latest confirmed record, or entry price) and recalculates client P&Ls.
+  // ТЗ-11: deleting a rumor never changes the current price.
   deletePriceHistory: async (priceHistoryId: string): Promise<{
     id: string;
     dealId: string;
     isLatest: boolean;
     newCurrentPrice: number;
+    appliedToCurrentPrice: boolean;
   }> => {
     const res = await fetchWithAuth(`/deals/price-history/${priceHistoryId}`, {
       method: 'DELETE',
