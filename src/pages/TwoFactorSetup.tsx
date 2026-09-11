@@ -27,15 +27,30 @@ export default function TwoFactorSetup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const alreadyEnabled = !!user?.totpEnabled;
+
   useEffect(() => {
+    // 2FA уже включена — не дёргаем setup (бэкенд ответил бы 400), сразу «done»
+    if (alreadyEnabled) {
+      setStep('done');
+      return;
+    }
     authApi.twoFactorSetup()
       .then((data) => {
         setSecret(data.secret);
         setQrCode(data.qrCodeDataUrl);
         setStep('setup');
       })
-      .catch((err) => setError(err.message || 'Failed to start 2FA setup'));
-  }, []);
+      .catch((err) => {
+        // Гонка: включили в другой вкладке — показываем «уже включено»
+        if (String(err?.message || '').toLowerCase().includes('already enabled')) {
+          markTotpEnabled();
+          setStep('done');
+          return;
+        }
+        setError(err.message || 'Failed to start 2FA setup');
+      });
+  }, [alreadyEnabled, markTotpEnabled]);
 
   const handleEnable = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,13 +115,19 @@ export default function TwoFactorSetup() {
             className="text-[24px] font-bold"
             style={{ color: '#F5F5F0', fontFamily: "'Clash Display', system-ui, sans-serif" }}
           >
-            {isAdmin ? 'Two-Factor Authentication Required' : 'Enable Two-Factor Authentication'}
+            {alreadyEnabled
+              ? 'Two-Factor Authentication'
+              : isAdmin
+                ? 'Two-Factor Authentication Required'
+                : 'Enable Two-Factor Authentication'}
           </h1>
         </div>
         <p className="text-[14px] mb-8 text-center" style={{ color: '#8A8A93' }}>
-          {isAdmin
-            ? 'Admin access requires 2FA. Scan the QR code with Google Authenticator, Authy or a similar app.'
-            : 'Add an extra layer of security to your account.'}
+          {alreadyEnabled
+            ? 'Two-factor authentication is enabled for your account.'
+            : isAdmin
+              ? 'Admin access requires 2FA. Scan the QR code with Google Authenticator, Authy or a similar app.'
+              : 'Add an extra layer of security to your account.'}
         </p>
 
         <div style={cardStyle}>
@@ -254,11 +275,20 @@ export default function TwoFactorSetup() {
           )}
 
           {step === 'done' && (
-            <div className="flex flex-col items-center gap-4 py-8">
+            <div className="flex flex-col items-center gap-5 py-8">
               <Check size={40} style={{ color: '#10B981' }} />
               <p className="text-[15px]" style={{ color: '#F5F5F0' }}>
                 Two-factor authentication is enabled
               </p>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate(isAdmin ? '/admin' : '/dashboard', { replace: true })}
+                className="px-6 h-11 btn-primary flex items-center gap-2"
+              >
+                <ShieldCheck size={16} />
+                Back to app
+              </motion.button>
             </div>
           )}
         </div>
