@@ -27,7 +27,11 @@ function normalizeUser(user: UserDto): AuthUser {
 }
 
 export const authApi = {
-  async login(credentials: LoginRequest): Promise<AuthUser> {
+  /**
+   * ТЗ-6: результат логина — либо сессия (user), либо промежуточный
+   * токен ожидания (twoFactorToken) при включённой 2FA.
+   */
+  async login(credentials: LoginRequest): Promise<{ user?: AuthUser; twoFactorToken?: string }> {
     const res = await api('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -35,8 +39,39 @@ export const authApi = {
     // ТЗ-4: the session is set as an httpOnly cookie by the backend;
     // the token in the body belongs to the Bearer transition period
     // and is intentionally NOT stored in JS-accessible storage.
+    const data = unwrap<LoginResponse>(res);
+    if (data.twoFactorToken) {
+      return { twoFactorToken: data.twoFactorToken };
+    }
+    return { user: normalizeUser(data.user) };
+  },
+
+  /**
+   * ТЗ-6 Задача 1.4: второй шаг логина — код из authenticator-приложения
+   * или одноразовый backup-код. При успехе бэкенд ставит session-cookie.
+   */
+  async verifyTwoFactor(token: string, code: string): Promise<AuthUser> {
+    const res = await api('/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token, code }),
+    });
     const { user } = unwrap<LoginResponse>(res);
     return normalizeUser(user);
+  },
+
+  /** ТЗ-6 Задача 1.3: секрет + QR-код (data URL) для привязки. */
+  async twoFactorSetup(): Promise<{ secret: string; qrCodeDataUrl: string }> {
+    const res = await api('/auth/2fa/setup', { method: 'POST' });
+    return unwrap<{ secret: string; qrCodeDataUrl: string }>(res);
+  },
+
+  /** ТЗ-6 Задача 1.5: подтверждение кодом → включение 2FA + backup-коды. */
+  async twoFactorEnable(code: string): Promise<{ backupCodes: string[] }> {
+    const res = await api('/auth/2fa/enable', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+    return unwrap<{ backupCodes: string[] }>(res);
   },
 
   async register(data: { email: string; name: string; password: string; role?: 'admin' | 'client' }): Promise<AuthUser> {

@@ -8,16 +8,16 @@ import ShinyText from '@/components/react-bits/ShinyText';
 import GlassSurface from '@/components/react-bits/GlassSurface';
 import {
   LogIn, Eye, EyeOff, UserPlus, ArrowLeft, KeyRound,
-  Mail, User, Lock, CheckCircle
+  Mail, User, Lock, CheckCircle, ShieldCheck
 } from 'lucide-react';
 
-type Mode = 'login' | 'register' | 'forgot' | 'reset';
+type Mode = 'login' | 'register' | 'forgot' | 'reset' | '2fa';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user, isAuthenticated, login, register } = useAuth();
+  const { user, isAuthenticated, login, register, completeTwoFactor, cancelTwoFactor } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -60,10 +61,31 @@ export default function LoginPage() {
     clearMessages();
     setLoading(true);
     try {
-      await login(email, password);
-      // AuthContext will update user state; useEffect above handles redirect
+      // ТЗ-6: true — пароль верен, но требуется 2FA-код (второй шаг)
+      const needsTwoFactor = await login(email, password);
+      if (needsTwoFactor) {
+        setTwoFactorCode('');
+        setMode('2fa');
+      }
+      // Иначе AuthContext обновит user; useEffect выше сделает редирект
     } catch (err: any) {
       setError(err.message || 'Invalid credentials');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** ТЗ-6 Задача 3.1: второй шаг — TOTP- или backup-код. */
+  const handleTwoFactor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearMessages();
+    setLoading(true);
+    try {
+      await completeTwoFactor(twoFactorCode.trim());
+      // AuthContext обновит user; useEffect выше сделает редирект
+    } catch (err: any) {
+      setError(err.message || 'Invalid code');
+      setTwoFactorCode('');
     } finally {
       setLoading(false);
     }
@@ -139,6 +161,7 @@ export default function LoginPage() {
     register: { title: 'Create Account', subtitle: 'Register for access' },
     forgot: { title: 'Reset Password', subtitle: 'Enter your email to receive a reset link' },
     reset: { title: 'New Password', subtitle: 'Set a new secure password' },
+    '2fa': { title: 'Two-Factor Authentication', subtitle: 'Enter the 6-digit code from your authenticator app' },
   };
 
   const cardStyle: React.CSSProperties = {
@@ -734,6 +757,79 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
+                  className="flex items-center justify-center gap-1.5 transition-all duration-200 hover:underline"
+                  style={linkStyle}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.color = '#B8A14E'; }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.color = '#C9B25F'; }}
+                >
+                  <ArrowLeft size={14} />
+                  Back to sign in
+                </button>
+              </motion.form>
+            )}
+            {mode === '2fa' && (
+              <motion.form
+                key="2fa"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={handleTwoFactor}
+                className="flex flex-col gap-4"
+              >
+                <div>
+                  <label className="text-[12px] font-medium mb-1.5 block" style={{ color: '#8A8A93' }}>
+                    Authenticator Code
+                  </label>
+                  <div className="relative">
+                    <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#55555E' }} />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9A-Za-z-]/g, ''))}
+                      placeholder="123456 or backup code"
+                      className="w-full pl-10 pr-4 py-3 text-[14px] placeholder:text-[#55555E] tracking-[0.2em]"
+                      style={inputStyle}
+                      onFocus={(e) => {
+                        Object.assign(e.target.style, inputFocusStyle);
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <p className="text-[12px] mt-1.5" style={{ color: '#55555E' }}>
+                    Lost your device? Use one of your backup codes.
+                  </p>
+                </div>
+
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full flex items-center justify-center gap-2 disabled:opacity-60 h-12 btn-primary"
+                >
+                  {loading ? (
+                    <span className="w-5 h-5 border-2 border-[#0A0A0F]/30 border-t-[#0A0A0F] rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <ShieldCheck size={18} />
+                      Verify & Sign In
+                    </>
+                  )}
+                </motion.button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    cancelTwoFactor();
+                    switchMode('login');
+                  }}
                   className="flex items-center justify-center gap-1.5 transition-all duration-200 hover:underline"
                   style={linkStyle}
                   onMouseEnter={(e) => { (e.target as HTMLElement).style.color = '#B8A14E'; }}

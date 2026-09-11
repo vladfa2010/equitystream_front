@@ -12,7 +12,13 @@ interface AuthContextType {
   isVerified: boolean;
   viewMode: 'admin' | 'user';
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** ТЗ-6: промежуточный токен ожидания — не null, когда пароль верен и ждём 2FA-код */
+  twoFactorToken: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  completeTwoFactor: (code: string) => Promise<void>;
+  cancelTwoFactor: () => void;
+  /** ТЗ-6: отметить 2FA включённой после успешного enable (без повторного логина) */
+  markTotpEnabled: () => void;
   register: (email: string, name: string, password: string, role?: 'admin' | 'client') => Promise<void>;
   logout: () => void;
   setViewMode: (mode: 'admin' | 'user') => void;
@@ -22,6 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewModeState] = useState<'admin' | 'user'>(() => {
     try { return (localStorage.getItem('es_view_mode') as 'admin' | 'user') || 'user'; } catch { return 'user'; }
@@ -46,9 +53,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('es_view_mode', viewMode);
   }, [viewMode]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const u = await authApi.login({ email, password });
+  /** ТЗ-6: вернёт true, если пароль верен, но нужен второй шаг с 2FA-кодом. */
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const result = await authApi.login({ email, password });
+    // ТЗ-6: включённая 2FA — сессии нет, ждём код на втором шаге
+    if (result.twoFactorToken) {
+      setTwoFactorToken(result.twoFactorToken);
+      return true;
+    }
+    setTwoFactorToken(null);
+    setUser(result.user ?? null);
+    return false;
+  }, []);
+
+  const completeTwoFactor = useCallback(async (code: string) => {
+    const u = await authApi.verifyTwoFactor(twoFactorToken as string, code);
+    setTwoFactorToken(null);
     setUser(u);
+  }, [twoFactorToken]);
+
+  const cancelTwoFactor = useCallback(() => {
+    setTwoFactorToken(null);
+  }, []);
+
+  const markTotpEnabled = useCallback(() => {
+    setUser((u) => (u ? { ...u, totpEnabled: true } : u));
   }, []);
 
   const register = useCallback(async (email: string, name: string, password: string, role?: 'admin' | 'client') => {
@@ -80,7 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isVerified,
         viewMode,
         isLoading,
+        twoFactorToken,
         login,
+        completeTwoFactor,
+        cancelTwoFactor,
+        markTotpEnabled,
         register,
         logout,
         setViewMode,

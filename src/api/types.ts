@@ -6,6 +6,8 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken?: string;
+  pendingTwoFactor?: boolean;
+  twoFactorToken?: string;
   user: UserDto;
 }
 
@@ -16,6 +18,7 @@ export interface UserDto {
   role: 'admin' | 'client';
   status: 'active' | 'inactive' | 'pending';
   avatarUrl: string | null;
+  totpEnabled?: boolean;
 }
 
 // ===== DEALS =====

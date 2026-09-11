@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import LoginPage from '@/pages/LoginPage';
 import PendingApprovalPage from '@/pages/PendingApprovalPage';
@@ -15,9 +15,25 @@ import ClientDealView from '@/pages/client/DealView';
 import AvailableDeals from '@/pages/client/AvailableDeals';
 import Market from '@/pages/client/Market';
 import DealTrading from '@/pages/client/DealTrading';
+import TwoFactorSetup from '@/pages/TwoFactorSetup';
+
+/**
+ * ТЗ-6 Задача 2.1: admin без включённой 2FA не попадает в приложение —
+ * только на экран привязки. Enforcement на уровне роутов фронта.
+ * Сам роут /2fa-setup исключён (иначе редирект-луп).
+ */
+function useTwoFactorRedirect(): string | null {
+  const { isAuthenticated, isAdmin, isVerified, user } = useAuth();
+  const location = useLocation();
+  if (isAuthenticated && isVerified && isAdmin && user && !user.totpEnabled && location.pathname !== '/2fa-setup') {
+    return '/2fa-setup';
+  }
+  return null;
+}
 
 function ProtectedRoute({ children, requireAdmin = false, requireVerified = true }: { children: React.ReactNode; requireAdmin?: boolean; requireVerified?: boolean }) {
   const { isAuthenticated, isAdmin, isVerified, isLoading } = useAuth();
+  const twoFactorRedirect = useTwoFactorRedirect();
 
   if (isLoading) {
     return (
@@ -30,12 +46,15 @@ function ProtectedRoute({ children, requireAdmin = false, requireVerified = true
   if (!isAuthenticated) return <Navigate to="/" replace />;
   if (requireVerified && !isVerified) return <Navigate to="/pending" replace />;
   if (requireAdmin && !isAdmin) return <Navigate to="/dashboard" replace />;
+  // ТЗ-6: любой защищённый роут для admin без 2FA ведёт на привязку
+  if (twoFactorRedirect) return <Navigate to={twoFactorRedirect} replace />;
 
   return <>{children}</>;
 }
 
 function VerifiedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isVerified, isLoading } = useAuth();
+  const twoFactorRedirect = useTwoFactorRedirect();
 
   if (isLoading) {
     return (
@@ -47,6 +66,7 @@ function VerifiedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
   if (!isVerified) return <Navigate to="/pending" replace />;
+  if (twoFactorRedirect) return <Navigate to={twoFactorRedirect} replace />;
 
   return <>{children}</>;
 }
@@ -60,6 +80,9 @@ function AppRoutes() {
 
       {/* Pending approval (authenticated but not verified) */}
       <Route path="/pending" element={<ProtectedRoute requireVerified={false}><PendingApprovalPage /></ProtectedRoute>} />
+
+      {/* ТЗ-6 Задача 3.2: экран привязки 2FA (принудительно для admin, опционально для клиентов) */}
+      <Route path="/2fa-setup" element={<VerifiedRoute><TwoFactorSetup /></VerifiedRoute>} />
 
       {/* Client routes — verified users only */}
       <Route path="/dashboard" element={<VerifiedRoute><ClientDashboard /></VerifiedRoute>} />

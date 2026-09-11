@@ -166,6 +166,14 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
           </div>
 
           <button
+            onClick={() => navigate('/2fa-setup')}
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+            title={user?.totpEnabled ? 'Two-factor authentication (enabled)' : 'Set up two-factor authentication'}
+          >
+            <Shield size={18} style={{ color: user?.totpEnabled ? '#B8A14E' : '#8A8A93' }} />
+          </button>
+
+          <button
             onClick={logout}
             className="p-2 rounded-lg hover:bg-white/5 transition-colors"
             title="Sign out"
@@ -258,6 +266,20 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
                     </span>
                   </button>
                 )}
+
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    navigate('/2fa-setup');
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors"
+                  style={{ color: user?.totpEnabled ? '#B8A14E' : '#8A8A93' }}
+                >
+                  <Shield size={18} />
+                  <span className="text-[14px] font-medium">
+                    Two-Factor Auth{user?.totpEnabled ? ' (on)' : ''}
+                  </span>
+                </button>
 
                 <button
                   onClick={() => {
