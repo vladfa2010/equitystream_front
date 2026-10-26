@@ -24,6 +24,7 @@ import {
   CheckCircle,
   FileText,
   Download,
+  DollarSign,
   Trash2,
   Upload,
   Loader2,
@@ -41,7 +42,7 @@ import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import type { PricePoint } from '@/data/mockData';
 import { clientsApi, dealsApi, materialsApi } from '@/api';
-import type { ClientResponse, MaterialResponse } from '@/api';
+import type { ClientResponse, MaterialResponse, BalanceOperationItem } from '@/api';
 import EditClientModal from '@/components/clients/EditClientModal';
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -148,6 +149,15 @@ export default function ClientDetail() {
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [documents, setDocuments] = useState<MaterialResponse[]>([]);
+  // ТЗ-17: свободные средства клиента (ledger)
+  const [balanceOps, setBalanceOps] = useState<BalanceOperationItem[]>([]);
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [balanceOpType, setBalanceOpType] = useState<'deposit' | 'withdrawal'>('deposit');
+  const [balanceAmount, setBalanceAmount] = useState('');
+  const [balanceNote, setBalanceNote] = useState('');
+  const [balanceRequestId, setBalanceRequestId] = useState('');
+  const [balanceSaving, setBalanceSaving] = useState(false);
+  const [balanceMsg, setBalanceMsg] = useState<string | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
   const docFileInputRef = useRef<HTMLInputElement>(null);
@@ -160,7 +170,8 @@ export default function ClientDetail() {
       clientsApi.getById(id),
       dealsApi.getAll(),
       materialsApi.getAll({ clientId: id }).catch(() => [] as MaterialResponse[]),
-    ]).then(([clientData, allDeals, docs]) => {
+      clientsApi.getBalanceOperations(id, { limit: 50 }).catch(() => null),
+    ]).then(([clientData, allDeals, docs, ops]) => {
       setClient(clientData);
       // Filter deals where this client has investments
       const dealsWithClient = (allDeals || []).filter((d: any) =>
@@ -168,9 +179,44 @@ export default function ClientDetail() {
       );
       setClientDeals(dealsWithClient);
       setDocuments(docs || []);
+      setBalanceOps(ops?.data || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [id]);
+
+  // ТЗ-17: ручные операции со свободными средствами
+  const openBalanceModal = (type: 'deposit' | 'withdrawal') => {
+    setBalanceOpType(type);
+    setBalanceAmount('');
+    setBalanceNote('');
+    setBalanceMsg(null);
+    setBalanceRequestId(crypto.randomUUID());
+    setShowBalanceModal(true);
+  };
+
+  const handleBalanceOp = async () => {
+    if (!id) return;
+    setBalanceSaving(true);
+    try {
+      await clientsApi.createBalanceOperation(id, {
+        type: balanceOpType,
+        amount: parseFloat(balanceAmount),
+        note: balanceNote.trim(),
+        requestId: balanceRequestId,
+      });
+      setShowBalanceModal(false);
+      const [c, ops] = await Promise.all([
+        clientsApi.getById(id),
+        clientsApi.getBalanceOperations(id, { limit: 50 }),
+      ]);
+      setClient(c);
+      setBalanceOps(ops.data || []);
+    } catch (err: any) {
+      setBalanceMsg(err?.message || 'Операция не выполнена.');
+    } finally {
+      setBalanceSaving(false);
+    }
+  };
 
   // Compute client's positions across all deals
   const positions: ClientPosition[] = useMemo(() => {
@@ -613,6 +659,41 @@ export default function ClientDetail() {
               <KeyRound size={14} />
               Reset Password
             </button>
+            {/* ТЗ-17: ручные операции со свободными средствами */}
+            <button
+              onClick={() => openBalanceModal('deposit')}
+              className="flex items-center gap-2"
+              style={{
+                background: 'rgba(16,185,129,0.12)',
+                border: '1px solid rgba(16,185,129,0.25)',
+                color: '#10B981',
+                borderRadius: 10,
+                padding: '10px 20px',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              <DollarSign size={14} />
+              Добавить деньги
+            </button>
+            <button
+              onClick={() => openBalanceModal('withdrawal')}
+              className="flex items-center gap-2"
+              style={{
+                background: 'rgba(234,179,8,0.1)',
+                border: '1px solid rgba(234,179,8,0.25)',
+                color: '#EAB308',
+                borderRadius: 10,
+                padding: '10px 20px',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              <DollarSign size={14} />
+              Вывести деньги
+            </button>
             <button
               onClick={() => setIsSetPasswordModalOpen(true)}
               className="flex items-center gap-2"
@@ -691,6 +772,83 @@ export default function ClientDetail() {
           >
             {resetMessage.text}
           </motion.div>
+        )}
+
+        {/* ТЗ-17: свободные средства + история операций */}
+        <section style={{ marginTop: 24 }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#B8A14E' }}>
+              Свободные средства
+            </h3>
+            <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: '#10B981' }}>
+              ${((client as any)?.availableBalance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+          {balanceOps.length === 0 ? (
+            <p style={{ fontSize: 12, color: '#8A8A93' }}>Операций пока не было.</p>
+          ) : (
+            <div style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+              {balanceOps.map((op) => {
+                const positive = op.type === 'deposit' || op.type === 'investment_refund' || op.type === 'exit_credit';
+                const labels: Record<string, string> = {
+                  deposit: 'Пополнение', withdrawal: 'Вывод', investment: 'Вход в сделку',
+                  investment_refund: 'Возврат из сделки', exit_credit: 'Частичный выход',
+                };
+                return (
+                  <div key={op.id} className="flex items-center justify-between" style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 13 }}>
+                    <span style={{ color: '#8A8A93' }}>
+                      {labels[op.type] || op.type} · {new Date(op.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <span style={{ color: '#55555E' }}> · {op.note}</span>
+                    </span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: positive ? '#10B981' : '#EF4444' }}>
+                      {positive ? '+' : '−'}${op.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <span style={{ color: '#55555E', fontWeight: 400, fontSize: 11 }}> → ${op.balanceAfter.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ТЗ-17: модалка операции со свободными средствами */}
+        {showBalanceModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={() => setShowBalanceModal(false)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: 420, background: '#14141C', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#F5F5F0', marginBottom: 4 }}>
+                {balanceOpType === 'deposit' ? 'Добавить деньги' : 'Вывести деньги'}
+              </h3>
+              <p style={{ fontSize: 12, color: '#8A8A93', marginBottom: 16 }}>
+                Клиент: {client?.name}
+                {balanceOpType === 'withdrawal' && (
+                  <> · доступно: <span style={{ color: '#EAB308' }}>${((client as any)?.availableBalance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></>
+                )}
+              </p>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                {(['deposit', 'withdrawal'] as const).map((t) => (
+                  <button key={t} onClick={() => setBalanceOpType(t)} style={{
+                    flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    background: balanceOpType === t ? 'rgba(184,161,78,0.15)' : 'rgba(255,255,255,0.04)',
+                    color: balanceOpType === t ? '#B8A14E' : '#8A8A93',
+                    border: `1px solid ${balanceOpType === t ? 'rgba(184,161,78,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                  }}>
+                    {t === 'deposit' ? 'Пополнение' : 'Вывод'}
+                  </button>
+                ))}
+              </div>
+              <input type="number" min={0.0001} step={0.01} value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)}
+                placeholder="Сумма" style={{ width: '100%', marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0', fontSize: 14 }} />
+              <input type="text" value={balanceNote} onChange={(e) => setBalanceNote(e.target.value)} maxLength={255}
+                placeholder="Причина (обязательно)" style={{ width: '100%', marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0', fontSize: 14 }} />
+              {balanceMsg && <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 8 }}>{balanceMsg}</p>}
+              <button onClick={handleBalanceOp} disabled={balanceSaving || !(parseFloat(balanceAmount) > 0) || !balanceNote.trim()
+                  || (balanceOpType === 'withdrawal' && parseFloat(balanceAmount) > ((client as any)?.availableBalance ?? 0))}
+                style={{ width: '100%', padding: '10px 0', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  background: balanceOpType === 'deposit' ? '#10B981' : '#EAB308', color: '#0A0A0F', opacity: balanceSaving ? 0.5 : 1 }}>
+                {balanceSaving ? 'Проводим…' : 'Подтвердить'}
+              </button>
+            </div>
+          </div>
         )}
 
         {isSetPasswordModalOpen && (

@@ -75,6 +75,8 @@ export interface MyDashboard {
   };
   deals: MyDashboardDeal[];
   documents: MyDashboardDocument[];
+  // ТЗ-17: последние операции со свободными средствами (5)
+  recentBalanceOperations?: BalanceOperationItem[];
 }
 
 export const clientsApi = {
@@ -98,6 +100,29 @@ export const clientsApi = {
   getMyDashboard: async (): Promise<MyDashboard> => {
     const res = await fetchWithAuth('/users/me/dashboard');
     return unwrap<MyDashboard>(res);
+  },
+
+  // ТЗ-17: ручные операции со свободными средствами (только admin)
+  createBalanceOperation: async (
+    clientId: string,
+    payload: CreateBalanceOperationPayload,
+  ): Promise<BalanceOperationItem> => {
+    const res = await fetchWithAuth(`/users/clients/${clientId}/balance-operations`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return unwrap<BalanceOperationItem>(res);
+  },
+
+  getBalanceOperations: async (
+    clientId: string,
+    params?: { page?: number; limit?: number },
+  ): Promise<BalanceOperationList> => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const res = await fetchWithAuth(`/users/clients/${clientId}/balance-operations?${q}`);
+    return unwrap<BalanceOperationList>(res);
   },
 
   create: async (data: CreateClientRequest): Promise<ClientResponse> => {
@@ -149,3 +174,38 @@ export const clientsApi = {
     return unwrap(res);
   },
 };
+
+// ТЗ-17: операции со свободными средствами (ledger)
+export type BalanceOperationType =
+  | 'deposit'
+  | 'withdrawal'
+  | 'investment'
+  | 'investment_refund'
+  | 'exit_credit';
+
+export interface BalanceOperationItem {
+  id: string;
+  type: BalanceOperationType;
+  amount: number;
+  balanceAfter: number;
+  note: string;
+  dealId: string | null;
+  investmentId: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface BalanceOperationList {
+  data: BalanceOperationItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface CreateBalanceOperationPayload {
+  type: 'deposit' | 'withdrawal';
+  amount: number;
+  note: string;
+  requestId: string;
+}

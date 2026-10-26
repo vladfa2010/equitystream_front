@@ -15,7 +15,7 @@ import {
 } from '@/data/mockData';
 import type { PricePoint } from '@/data/mockData';
 import type { ActivityItem, Reservation } from '@/api';
-import type { MaterialResponse } from '@/api';
+import type { MaterialResponse, BalanceOperationItem } from '@/api';
 
 const TIME_RANGES = [
   { label: '1M', days: 30 },
@@ -106,6 +106,7 @@ export default function ClientDashboard() {
   const [timeRange, setTimeRange] = useState('6M');
   const [apiDeals, setApiDeals] = useState<any[]>([]);
   const [loadError, setLoadError] = useState(false);
+  const [recentOps, setRecentOps] = useState<BalanceOperationItem[]>([]);
   const [serverTotals, setServerTotals] = useState<{
     totalInvested: number;
     portfolioValue: number;
@@ -123,6 +124,7 @@ export default function ClientDashboard() {
     import('@/api').then(m => m.clientsApi.getMyDashboard())
       .then((d) => {
         setServerTotals(d.totals);
+        setRecentOps(d.recentBalanceOperations || []);
         setMyDocuments((d.documents || []) as unknown as MaterialResponse[]);
         // Маппим в форму, которую потребляют PositionCard/метрики ниже
         setApiDeals(d.deals.map((x) => ({
@@ -367,6 +369,38 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
             index={3}
           />
         </section>
+
+        {/* ТЗ-17/18: история операций со свободными средствами */}
+        {recentOps.length > 0 && (
+          <section className="mb-10">
+            <div className="mb-3">
+              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Свободные средства — операции</h3>
+              <p className="text-body" style={{ color: '#8A8A93' }}>Пополнения, выводы, входы и выходы из сделок</p>
+            </div>
+            <div className="glass-panel" style={{ padding: '8px 20px' }}>
+              {recentOps.map((op) => {
+                const positive = op.type === 'deposit' || op.type === 'investment_refund' || op.type === 'exit_credit';
+                const labels: Record<string, string> = {
+                  deposit: 'Пополнение', withdrawal: 'Вывод', investment: 'Вход в сделку',
+                  investment_refund: 'Возврат из сделки', exit_credit: 'Частичный выход',
+                };
+                return (
+                  <div key={op.id} className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div>
+                      <p className="text-[14px]" style={{ color: '#F5F5F0' }}>{labels[op.type] || op.type}</p>
+                      <p className="text-caption" style={{ color: '#55555E' }}>
+                        {new Date(op.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })} · {op.note}
+                      </p>
+                    </div>
+                    <span className="text-mono-s" style={{ color: positive ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
+                      {positive ? '+' : '−'}{formatCurrency(op.amount)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Portfolio Performance Chart */}
         <motion.section

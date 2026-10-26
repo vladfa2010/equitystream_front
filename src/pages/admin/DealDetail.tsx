@@ -431,9 +431,15 @@ export default function DealDetail() {
     if (!deal || !id || !selectedClientId || !addAmount) return;
     setAdding(true);
     const amt = parseFloat(addAmount);
-    await dealsApi.addInvestment(id, { clientId: selectedClientId, amount: amt, isLead: addIsLead });
-    /* API — investment already added above */
-    setAdding(false); setShowAddClient(false); setSelectedClientId(''); setAddAmount(''); setAddIsLead(false); load();
+    try {
+      await dealsApi.addInvestment(id, { clientId: selectedClientId, amount: amt, isLead: addIsLead });
+      setShowAddClient(false); setSelectedClientId(''); setAddAmount(''); setAddIsLead(false); load();
+    } catch (err: any) {
+      // ТЗ-18: серверная 409 (недостаток средств) — показываем текст как есть
+      alert(err?.message || 'Failed to add client.');
+    } finally {
+      setAdding(false);
+    }
   };
 
   /* ────────── inline price update (current price) ────────── */
@@ -1306,10 +1312,29 @@ export default function DealDetail() {
                       <option value="">Select client...</option>
                       {availableClients.map(c => <option key={c.id} value={c.id}>{getClientName(c)} ({c.email})</option>)}
                     </select>
+                    {/* ТЗ-18: свободные средства выбранного клиента */}
+                    {selectedClientId && (() => {
+                      const c: any = availableClients.find(x => x.id === selectedClientId);
+                      const bal = Number(c?.availableBalance) || 0;
+                      return (
+                        <p className="text-[11px] mt-1" style={{ color: bal > 0 ? '#8A8A93' : '#EAB308' }}>
+                          Свободные средства: <span style={{ color: '#B8A14E' }}>${bal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                          {bal <= 0 && (
+                            <> — сначала <a href={`/admin/clients/${selectedClientId}`} style={{ color: '#4F6EF7', textDecoration: 'underline' }}>пополните счёт клиента</a></>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Investment Amount ($) *</label>
                     <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} placeholder="e.g. 50000" style={inpBase} {...inpFocus} />
+                    {/* ТЗ-18: клиентская блокировка при превышении баланса */}
+                    {selectedClientId && parseFloat(addAmount) > (Number((availableClients.find(x => x.id === selectedClientId) as any)?.availableBalance) || 0) && (
+                      <p className="text-[11px] mt-1" style={{ color: '#EF4444' }}>
+                        Сумма превышает свободные средства клиента — пополните счёт.
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={() => setAddIsLead(!addIsLead)} className="w-5 h-5 rounded flex items-center justify-center transition-colors" style={{ border: '1px solid rgba(255,255,255,0.2)', background: addIsLead ? '#B8A14E' : 'transparent' }}>{addIsLead && <CheckCircle2 size={14} style={{ color: '#0A0A0F' }} />}</button>
@@ -1317,7 +1342,16 @@ export default function DealDetail() {
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button onClick={() => setShowAddClient(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
-                    <button onClick={handleAddClient} disabled={!selectedClientId || !addAmount || adding} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F', opacity: selectedClientId && addAmount && !adding ? 1 : 0.5 }}>{adding ? 'Adding...' : 'Add Client'}</button>
+                    <button
+                      onClick={handleAddClient}
+                      disabled={!selectedClientId || !addAmount || adding
+                        || parseFloat(addAmount) > (Number((availableClients.find(x => x.id === selectedClientId) as any)?.availableBalance) || 0)}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                      style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F', opacity: selectedClientId && addAmount && !adding
+                        && parseFloat(addAmount) <= (Number((availableClients.find(x => x.id === selectedClientId) as any)?.availableBalance) || 0) ? 1 : 0.5 }}
+                    >
+                      {adding ? 'Adding...' : 'Add Client'}
+                    </button>
                   </div>
                 </div>
               )}
