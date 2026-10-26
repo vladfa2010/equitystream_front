@@ -100,6 +100,9 @@ export interface DealResponse {
   lockupEndDate: string | null;
   lockupDaysRemaining: number | null;
   lockupExpired: boolean;
+  // ТЗ-199: привязка к инструменту Finam
+  finamSymbol: string | null;
+  isin: string | null;
   status: 'active' | 'pending' | 'closed';
   pipelineStatus: 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   createdBy: string;

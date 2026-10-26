@@ -6,6 +6,7 @@ import {
   Pencil, Trash2, X, Plus, CheckCircle2, Crown, ShieldCheck, ShieldOff,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
+import InstrumentSearchInput from '@/components/admin/InstrumentSearchInput';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import { dealsApi, clientsApi, authApi } from '@/api';
 import type { DealResponse, ClientResponse, PriceHistoryItem, DealMarketResponse } from '@/api';
@@ -252,6 +253,9 @@ export default function DealDetail() {
       dealDate: deal.dealDate,
       pipelineStatus: deal.pipelineStatus,
       adminNotes: deal.adminNotes,
+      // ТЗ-199: привязка к инструменту Finam
+      finamSymbol: deal.finamSymbol,
+      isin: deal.isin,
     });
     setEditParticipants((deal.investments || []).map((inv: any) => ({
       investmentId: inv.id,
@@ -836,7 +840,22 @@ export default function DealDetail() {
                   <h3 className="text-xs uppercase tracking-wider mb-3 font-semibold" style={{ color: '#B8A14E' }}>Company Information</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2"><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Company Name *</label><input type="text" value={editForm.companyName || ''} onChange={e => setEditForm({ ...editForm, companyName: e.target.value })} style={inpBase} {...inpFocus} /></div>
-                    <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Ticker *</label><input type="text" value={editForm.ticker || ''} onChange={e => setEditForm({ ...editForm, ticker: e.target.value.toUpperCase() })} style={inpBase} {...inpFocus} /></div>
+                    {/* ТЗ-199: дроплист поиска инструментов Finam (тикер/название/ISIN) */}
+                    <InstrumentSearchInput
+                      value={editForm.ticker || ''}
+                      selection={{ finamSymbol: editForm.finamSymbol, isin: editForm.isin }}
+                      onChange={(sel) =>
+                        setEditForm((f) => ({
+                          ...f,
+                          ticker: sel.ticker,
+                          finamSymbol: sel.finamSymbol,
+                          isin: sel.isin,
+                          ...(sel.exchange ? { exchange: sel.exchange } : {}),
+                        }))
+                      }
+                      inputStyle={inpBase}
+                      inputFocusHandlers={inpFocus}
+                    />
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Exchange</label><select value={editForm.exchange || ''} onChange={e => setEditForm({ ...editForm, exchange: e.target.value })} style={inpBase} {...inpFocus}><option>NASDAQ</option><option>NYSE</option><option>AMEX</option><option>OTC</option><option>OTHER</option></select></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Sector</label><select value={editForm.sector || ''} onChange={e => setEditForm({ ...editForm, sector: e.target.value })} style={inpBase} {...inpFocus}><option>Technology</option><option>Healthcare</option><option>Finance</option><option>Energy</option><option>Consumer</option><option>Industrial</option><option>Materials</option><option>Utilities</option><option>Real Estate</option><option>Telecom</option></select></div>
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Status</label><select value={editForm.pipelineStatus || ''} onChange={e => setEditForm({ ...editForm, pipelineStatus: e.target.value as any })} style={inpBase} {...inpFocus}><option value="draft">Draft</option><option value="Pipeline">Pipeline</option><option value="Skip">Skip</option><option value="Reserve">Reserve</option><option value="Founding">Founding</option><option value="Deal done">Deal done</option><option value="Wait IPO">Wait IPO</option><option value="Lock-up">Lock-up</option><option value="Exit">Exit</option></select></div>

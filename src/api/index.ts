@@ -7,4 +7,5 @@ export * from './services/deals';
 export * from './services/clients';
 export * from './services/materials';
 export * from './services/dashboard';
+export * from './services/marketData';
 export * from './localDb';

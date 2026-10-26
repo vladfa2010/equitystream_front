@@ -164,6 +164,9 @@ export function createDealLocal(data: CreateDealRequest): DealResponse {
     lockupEndDate: null,
     lockupDaysRemaining: null,
     lockupExpired: false,
+    // ТЗ-199: привязка к инструменту Finam (задаётся через редактирование)
+    finamSymbol: null,
+    isin: null,
     status: data.status === 'draft' ? 'pending' : data.status === 'Exit' ? 'closed' : 'active',
     pipelineStatus: data.status || 'Pipeline',
     createdBy: 'admin',
