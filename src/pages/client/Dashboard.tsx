@@ -105,41 +105,46 @@ export default function ClientDashboard() {
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('6M');
   const [apiDeals, setApiDeals] = useState<any[]>([]);
-  const [apiClient, setApiClient] = useState<any>(null);
+  const [loadError, setLoadError] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [myDocuments, setMyDocuments] = useState<MaterialResponse[]>([]);
 
   // Load real data from API on mount
   useEffect(() => {
+    if (!user?.id) return;
+    setLoadError(false);
     Promise.all([
-      import('@/api').then(m => m.dealsApi.getAll()),
-      import('@/api').then(m => m.clientsApi.getAll()),
-      // Backend scopes the list: client sees only their own documents
+      // ТЗ-13 Задача 1: deals грузим с собственным catch — падение этого
+      // запроса показывает error-состояние, а не пустой кабинет.
+      import('@/api').then(m => m.dealsApi.getAll()).catch(() => null),
+      // Backend scopes the list: client sees only their own documents.
+      // Документы вторичны — при ошибке фолбэк на пустой список.
       import('@/api').then(m => m.materialsApi.getAll()).catch(() => [] as MaterialResponse[]),
-    ]).then(([allDeals, clientsEnvelope, docs]) => {
+    ]).then(([allDeals, docs]) => {
+      if (allDeals === null) {
+        setLoadError(true);
+        return;
+      }
       setMyDocuments(docs || []);
-      const allClients = clientsEnvelope.data || [];
-      // Find the logged-in client by user.id or user.email
-      const client = allClients.find((c: any) => c.id === user?.id)
-        || allClients.find((c: any) => c.email === user?.email);
-      setApiClient(client);
-      // Filter deals where this client has investments
+      // ТЗ-13 Задача 1: личность клиента — из useAuth (user.id), без
+      // админского clientsApi.getAll() (для клиента он 403 и ронял весь
+      // Promise.all). Инвестиции уже отфильтрованы бэкендом.
       const clientDeals = allDeals
         .map((deal: any) => {
-          const inv = deal.investments?.find((i: any) => i.userId === client?.id);
+          const inv = deal.investments?.find((i: any) => i.userId === user.id);
           return inv ? { deal, investment: inv } : null;
         })
         .filter(Boolean);
       setApiDeals(clientDeals as any[]);
       // Load all client reservations (pending + approved + rejected)
-      import('@/api').then(m => m.dealsApi.getClientReservations(client?.id || ''))
+      import('@/api').then(m => m.dealsApi.getClientReservations(user.id))
         .then(setReservations)
-        .catch(() => {});
-    }).catch(() => {});
-  }, [user?.id, user?.email]);
+        .catch(() => setReservations([]));
+    }).catch(() => setLoadError(true));
+  }, [user?.id]);
 
   // Use API data only — no mock fallback
-  const activeClient = apiClient;
+  const activeClient = user;
   const clientDeals = apiDeals;
 
   // Calculate metrics from real data
@@ -518,7 +523,17 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
             <p className="text-body" style={{ color: '#8A8A93' }}>Approved positions across all your deals</p>
           </div>
 
-          {clientDeals.length === 0 ? (
+          {loadError ? (
+            <div
+              className="glass-panel text-center py-16"
+              style={{ borderRadius: 16 }}
+            >
+              <h4 className="text-h4" style={{ color: '#F5F5F0', marginBottom: 8 }}>Failed to load data</h4>
+              <p className="text-body" style={{ color: '#8A8A93', maxWidth: 400, margin: '0 auto' }}>
+                Unable to load your investments. Please refresh the page.
+              </p>
+            </div>
+          ) : clientDeals.length === 0 ? (
             <div
               className="glass-panel text-center py-16"
               style={{ borderRadius: 16 }}

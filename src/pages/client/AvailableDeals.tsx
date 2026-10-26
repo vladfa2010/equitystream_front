@@ -6,7 +6,8 @@ import {
   DollarSign, Users, Globe, ChevronRight, X, Loader2, CheckCircle2,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { dealsApi, clientsApi, authApi } from '@/api';
+import { useAuth } from '@/context/AuthContext';
+import { dealsApi } from '@/api';
 import type { DealResponse, ClientResponse } from '@/api';
 import { formatCurrency } from '@/data/mockData';
 
@@ -21,9 +22,11 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 
 export default function AvailableDeals() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [deals, setDeals] = useState<DealResponse[]>([]);
   const [client, setClient] = useState<ClientResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<DealResponse | null>(null);
   const [investAmount, setInvestAmount] = useState('');
   const [isLead, setIsLead] = useState(false);
@@ -32,27 +35,31 @@ export default function AvailableDeals() {
 
   const load = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      const [allDeals, clientsEnvelope, user] = await Promise.all([
-        dealsApi.getAll(),
-        clientsApi.getAll(),
-        authApi.me(),
-      ]);
-      const allClients = clientsEnvelope.data || [];
+      const allDeals = await dealsApi.getAll();
       // Filter open deals
       const openDeals = allDeals.filter(d => OPEN_STATUSES.includes(d.pipelineStatus));
-      // Exclude deals where client already invested
-      const me = allClients.find(c => c.email === user?.email) || allClients.find(c => c.id === user?.id);
-      setClient(me || null);
-      const available = openDeals.filter(d => !d.investments?.some((i: any) => i.userId === me?.id));
+      // ТЗ-13 Задача 1: «уже участвую» определяем по investments[i].userId === user.id
+      // (инвестиции уже скоуплены бэкендом — клиенту отдаются только его собственные).
+      // Админский clientsApi.getAll() для клиента 403 — больше не вызываем.
+      const available = openDeals.filter(d => !d.investments?.some((i: any) => i.userId === user?.id));
       setDeals(available);
+      // Личность клиента — из useAuth
+      setClient(
+        user
+          ? ({ id: user.id, name: user.name, email: user.email } as unknown as ClientResponse)
+          : null,
+      );
     } catch {
+      // ТЗ-13 Задача 1: вместо молчаливого setDeals([]) — error-состояние
+      setLoadError(true);
       setDeals([]);
     }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user?.id]);
 
   // Clear toast after 3s
   useEffect(() => {
@@ -131,6 +138,15 @@ export default function AvailableDeals() {
           <div className="flex items-center justify-center py-20">
             <p style={{ color: '#8A8A93' }}>Loading deals...</p>
           </div>
+        ) : loadError ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-20"
+          >
+            <p className="text-body mb-4" style={{ color: '#8A8A93' }}>Failed to load deals</p>
+            <button onClick={load} className="btn-primary">Retry</button>
+          </motion.div>
         ) : deals.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
