@@ -106,6 +106,11 @@ export default function ClientDashboard() {
   const [timeRange, setTimeRange] = useState('6M');
   const [apiDeals, setApiDeals] = useState<any[]>([]);
   const [loadError, setLoadError] = useState(false);
+  const [serverTotals, setServerTotals] = useState<{
+    totalInvested: number;
+    portfolioValue: number;
+    totalPnl: number;
+  } | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [myDocuments, setMyDocuments] = useState<MaterialResponse[]>([]);
 
@@ -113,59 +118,53 @@ export default function ClientDashboard() {
   useEffect(() => {
     if (!user?.id) return;
     setLoadError(false);
-    Promise.all([
-      // ТЗ-13 Задача 1: deals грузим с собственным catch — падение этого
-      // запроса показывает error-состояние, а не пустой кабинет.
-      import('@/api').then(m => m.dealsApi.getAll()).catch(() => null),
-      // Backend scopes the list: client sees only their own documents.
-      // Документы вторичны — при ошибке фолбэк на пустой список.
-      import('@/api').then(m => m.materialsApi.getAll()).catch(() => [] as MaterialResponse[]),
-    ]).then(([allDeals, docs]) => {
-      if (allDeals === null) {
-        setLoadError(true);
-        return;
-      }
-      setMyDocuments(docs || []);
-      // ТЗ-13 Задача 1: личность клиента — из useAuth (user.id), без
-      // админского clientsApi.getAll() (для клиента он 403 и ронял весь
-      // Promise.all). Инвестиции уже отфильтрованы бэкендом.
-      const clientDeals = allDeals
-        .map((deal: any) => {
-          const inv = deal.investments?.find((i: any) => i.userId === user.id);
-          return inv ? { deal, investment: inv } : null;
-        })
-        .filter(Boolean);
-      setApiDeals(clientDeals as any[]);
-      // Load all client reservations (pending + approved + rejected)
-      import('@/api').then(m => m.dealsApi.getClientReservations(user.id))
-        .then(setReservations)
-        .catch(() => setReservations([]));
-    }).catch(() => setLoadError(true));
+    // ТЗ-13 Задача 4: один round-trip — агрегатный эндпоинт кабинета
+    import('@/api').then(m => m.clientsApi.getMyDashboard())
+      .then((d) => {
+        setServerTotals(d.totals);
+        setMyDocuments((d.documents || []) as unknown as MaterialResponse[]);
+        // Маппим в форму, которую потребляют PositionCard/метрики ниже
+        setApiDeals(d.deals.map((x) => ({
+          deal: {
+            id: x.dealId,
+            companyName: x.companyName,
+            ticker: x.ticker,
+            status: x.status,
+            pipelineStatus: x.pipelineStatus,
+            currentPrice: x.currentPrice,
+            dealDate: x.dealDate,
+            // история цен в агрегат не входит — график портфеля
+            // использует существующий фолбэк (как и раньше со списком сделок)
+            priceHistory: [],
+          },
+          investment: {
+            userId: user.id,
+            ...x.myInvestment,
+          },
+        })));
+        // Load all client reservations (pending + approved + rejected)
+        import('@/api').then(mm => mm.dealsApi.getClientReservations(user.id))
+          .then(setReservations)
+          .catch(() => setReservations([]));
+      })
+      .catch(() => setLoadError(true));
   }, [user?.id]);
 
   // Use API data only — no mock fallback
   const activeClient = user;
   const clientDeals = apiDeals;
 
-  // Calculate metrics from real data
+  // ТЗ-13 Задача 4: метрики берём серверные (getMyDashboard.totals) —
+  // фронт формулы P&L не дублирует.
   const { totalInvested, portfolioValue, totalPnl, isProfit } = useMemo(() => {
-    let invested = 0;
-    let current = 0;
-    for (const { deal, investment } of clientDeals) {
-      const d = deal as any;
-      const shares = investment.amount / investment.entryPrice;
-      const price = d.currentPrice || d.entryPrice || 0;
-      invested += investment.amount;
-      current += shares * price;
-    }
-    const pnl = current - invested;
+    const t = serverTotals;
     return {
-      totalInvested: invested,
-      portfolioValue: current,
-      totalPnl: pnl,
-      isProfit: pnl >= 0,
+      totalInvested: t?.totalInvested ?? 0,
+      portfolioValue: t?.portfolioValue ?? 0,
+      totalPnl: t?.totalPnl ?? 0,
+      isProfit: (t?.totalPnl ?? 0) >= 0,
     };
-  }, [clientDeals]);
+  }, [serverTotals]);
 
   // Portfolio history for chart
   const days = TIME_RANGES.find(t => t.label === timeRange)?.days || 180;
@@ -225,19 +224,14 @@ export default function ClientDashboard() {
     return amounts.map(a => a / max);
   }, [clientDeals]);
 
-  // Materials from all client deals
+  // Materials — приходят агрегатным эндпоинтом (документы сделок-участий)
   const clientMaterials = useMemo(() => {
-    const mats: Array<{ material: typeof clientDeals[0]['deal']['materials'][0]; dealName: string }> = [];
-    for (const { deal } of clientDeals) {
-      for (const material of (deal.materials || [])) {
-        mats.push({ material, dealName: deal.companyName });
-      }
-    }
-    // Sort by uploadedAt/createdAt desc, take latest 8
-    return mats
+    return (myDocuments || [])
+      .map((material: any) => ({ material, dealName: material.companyName || '' }))
+      // Sort by uploadedAt/createdAt desc, take latest 8
       .sort((a, b) => new Date(b.material.uploadedAt || b.material.createdAt).getTime() - new Date(a.material.uploadedAt || a.material.createdAt).getTime())
       .slice(0, 8);
-  }, [clientDeals]);
+  }, [myDocuments]);
 
   const scrollMaterials = (dir: 'left' | 'right') => {
     const el = document.getElementById('materials-scroll');

@@ -24,6 +24,51 @@ export interface ClientListEnvelope {
   totalPages: number;
 }
 
+// ТЗ-13 Задача 3: агрегатный дашборд текущего пользователя
+export interface MyDashboardInvestment {
+  amount: number;
+  entryPrice: number;
+  shareCount: number;
+  currentValue: number;
+  pnl: number;
+  pnlPercent: number;
+  isLead: boolean;
+}
+
+export interface MyDashboardDeal {
+  dealId: string;
+  companyName: string;
+  ticker: string;
+  status: string;
+  pipelineStatus: string;
+  currentPrice: number;
+  dealDate: string | null;
+  myInvestment: MyDashboardInvestment;
+}
+
+export interface MyDashboardDocument {
+  id: string;
+  dealId: string;
+  companyName: string;
+  title: string;
+  type: string;
+  url: string;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface MyDashboard {
+  profile: { id: string; name: string; email: string; status: string };
+  totals: {
+    totalInvested: number;
+    portfolioValue: number;
+    totalPnl: number;
+    totalPnlPercent: number;
+  };
+  deals: MyDashboardDeal[];
+  documents: MyDashboardDocument[];
+}
+
 export const clientsApi = {
   getAll: async (params?: { status?: string; search?: string; page?: number; limit?: number }): Promise<ClientListEnvelope> => {
     const query = new URLSearchParams();
@@ -38,6 +83,13 @@ export const clientsApi = {
   getById: async (id: string): Promise<ClientResponse> => {
     const res = await fetchWithAuth(`/users/clients/${id}`);
     return unwrap<ClientResponse>(res);
+  },
+
+  // ТЗ-13 Задача 3/4: агрегатный дашборд текущего пользователя
+  // (идентичность — из session-cookie, id не передаётся)
+  getMyDashboard: async (): Promise<MyDashboard> => {
+    const res = await fetchWithAuth('/users/me/dashboard');
+    return unwrap<MyDashboard>(res);
   },
 
   create: async (data: CreateClientRequest): Promise<ClientResponse> => {
