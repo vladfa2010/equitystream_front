@@ -1606,7 +1606,7 @@ export default function DealEditor() {
     exchange: '',
     sector: '',
     description: '',
-    status: 'Pipeline',
+    status: 'draft',
     totalVolume: '',
     rawAmount: '',
     sharePrice: '',
@@ -1669,7 +1669,7 @@ export default function DealEditor() {
   }, []);
 
   // ---- Creation via API ----
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(async (publish: boolean) => {
     if (!validateStep1()) {
       setStep(0);
       return;
@@ -1697,7 +1697,14 @@ export default function DealEditor() {
         rawAmount: form.rawAmount ? parseNum(form.rawAmount) : undefined,
         entryPrice,
         currentPrice: entryPrice,
-        pipelineStatus: form.status as CreateDealPayload['pipelineStatus'],
+        // ТЗ-12 (Задача 2): «Сохранить черновик» — всегда draft;
+        // «Опубликовать» — выбранный статус, а если селект оставлен
+        // на дефолтном 'draft' — публикуем как 'Pipeline'.
+        pipelineStatus: (publish
+          ? form.status === 'draft'
+            ? 'Pipeline'
+            : form.status
+          : 'draft') as CreateDealPayload['pipelineStatus'],
         description: form.description || undefined,
         marketCap: form.marketCap ? parseNum(form.marketCap) : undefined,
         website: form.website || undefined,
@@ -1726,7 +1733,12 @@ export default function DealEditor() {
         );
       }
 
-      setToast({ message: `Deal created with status: ${form.status}`, type: 'success' });
+      setToast({
+        message: publish
+          ? `Deal created with status: ${form.status === 'draft' ? 'Pipeline' : form.status}`
+          : 'Draft saved',
+        type: 'success',
+      });
 
       setTimeout(() => {
         navigate(`/admin/deals/${dealId}`);
@@ -1901,14 +1913,24 @@ export default function DealEditor() {
                     <span className="text-[12px]" style={{ color: '#8A8A93' }}>Send email notifications</span>
                   </label>
 
+                  {/* ТЗ-12 (Задача 2): две кнопки создания — черновик или публикация */}
                   <button
-                    onClick={() => handleCreate()}
+                    onClick={() => handleCreate(false)}
+                    disabled={isCreating}
+                    className="px-6 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ color: '#8A8A93', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    Save Draft
+                  </button>
+
+                  <button
+                    onClick={() => handleCreate(true)}
                     disabled={isCreating}
                     className="px-6 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}
                   >
                     {isCreating ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                    {isCreating ? 'Creating...' : 'Create Deal'}
+                    {isCreating ? 'Creating...' : 'Publish'}
                   </button>
                 </>
               )}
