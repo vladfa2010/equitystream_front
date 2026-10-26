@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft, TrendingUp, TrendingDown,
   ExternalLink,
-  Globe, DollarSign, Calendar, Building2, User,
+  Globe, DollarSign, Calendar, Building2, User, Lock,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import {
@@ -252,6 +252,57 @@ export default function ClientDealView() {
             </div>
           </div>
         </motion.div>
+
+        {/* ТЗ-15: Локап позиции — только при полных данных (оба поля).
+            Дни/истёкшее берём с сервера, локально не вычисляем. */}
+        {deal.ipoDate && deal.lockupMonths != null && deal.lockupEndDate && (() => {
+          const fmtD = (d: string) => new Date(`${d.split('T')[0]}T00:00:00Z`).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+          const start = new Date(`${deal.ipoDate!.split('T')[0]}T00:00:00Z`).getTime();
+          const end = new Date(`${deal.lockupEndDate.split('T')[0]}T00:00:00Z`).getTime();
+          const total = end - start;
+          const passed = total > 0 ? Math.min(1, Math.max(0, (Date.now() - start) / total)) : (deal.lockupExpired ? 1 : 0);
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.18, ease: easeExpo }}
+              className="glass-panel p-5 sm:p-6 mb-8"
+              style={{ borderLeft: `4px solid ${deal.lockupExpired ? '#10B981' : '#EAB308'}` }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Lock size={16} style={{ color: deal.lockupExpired ? '#10B981' : '#EAB308' }} />
+                <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: deal.lockupExpired ? '#10B981' : '#EAB308' }}>
+                  Локап позиции
+                </h2>
+                <span
+                  className="text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1"
+                  style={deal.lockupExpired
+                    ? { background: 'rgba(16,185,129,0.15)', color: '#10B981' }
+                    : { background: 'rgba(234,179,8,0.15)', color: '#EAB308' }}
+                >
+                  Lock-up · {deal.lockupExpired ? 'истёк' : `${deal.lockupDaysRemaining ?? 0} дн.`}
+                </span>
+              </div>
+              {deal.lockupExpired ? (
+                <p className="text-body" style={{ color: '#F5F5F0' }}>
+                  Локап завершён, ожидайте информации от управляющего.
+                </p>
+              ) : (
+                <>
+                  <p className="text-mono-l mb-3" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                    {deal.lockupDaysRemaining ?? 0} дн.
+                  </p>
+                  <div className="h-2 rounded-full overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${(passed * 100).toFixed(1)}%`, background: '#EAB308' }} />
+                  </div>
+                  <p className="text-caption" style={{ color: '#8A8A93' }}>
+                    IPO: {fmtD(deal.ipoDate!)} · Разблокировка: {fmtD(deal.lockupEndDate)} · До этой даты продажа позиции недоступна
+                  </p>
+                </>
+              )}
+            </motion.div>
+          );
+        })()}
 
         {/* Deal Overview Metrics */}
         <motion.div

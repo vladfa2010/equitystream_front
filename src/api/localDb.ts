@@ -158,6 +158,12 @@ export function createDealLocal(data: CreateDealRequest): DealResponse {
     targetPrice: data.targetPrice || null,
     timeHorizon: data.timeHorizon || null,
     dealDate: data.dealDate || null,
+    // ТЗ-15: локап не заполняется при первичном создании (только редактирование)
+    ipoDate: null,
+    lockupMonths: null,
+    lockupEndDate: null,
+    lockupDaysRemaining: null,
+    lockupExpired: false,
     status: data.status === 'draft' ? 'pending' : data.status === 'Exit' ? 'closed' : 'active',
     pipelineStatus: data.status || 'Pipeline',
     createdBy: 'admin',

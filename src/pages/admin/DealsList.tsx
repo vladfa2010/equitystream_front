@@ -284,6 +284,12 @@ export default function DealsList() {
                     })()}>
                       {deal.pipelineStatus}
                     </span>
+                    {/* ТЗ-15: мини-бейдж локапа — дни до конца / истёк */}
+                    {deal.pipelineStatus === 'Lock-up' && (deal.lockupExpired ? (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: 'rgba(239,68,68,0.15)', color: '#EF4444' }}>истёк</span>
+                    ) : deal.lockupDaysRemaining != null ? (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: 'rgba(234,179,8,0.12)', color: '#EAB308' }}>{deal.lockupDaysRemaining} дн.</span>
+                    ) : null)}
                   </div>
 
                   {/* Volume */}

@@ -133,6 +133,12 @@ export default function ClientDashboard() {
             pipelineStatus: x.pipelineStatus,
             currentPrice: x.currentPrice,
             dealDate: x.dealDate,
+            // ТЗ-15: поля локапа для PositionCard (серверные значения)
+            ipoDate: x.ipoDate,
+            lockupMonths: x.lockupMonths,
+            lockupEndDate: x.lockupEndDate,
+            lockupDaysRemaining: x.lockupDaysRemaining,
+            lockupExpired: x.lockupExpired,
             // история цен в агрегат не входит — график портфеля
             // использует существующий фолбэк (как и раньше со списком сделок)
             priceHistory: [],

@@ -41,6 +41,19 @@ const inpFocus = {
   },
 };
 
+// ТЗ-15: живой расчёт даты раскрытия для админского редактора
+// (подсказка; клиентские компоненты даты локально не считают — берут серверные)
+function computeLockupPreview(ipoDate: string | null | undefined, months: number | null | undefined): string | null {
+  if (!ipoDate || months == null) return null;
+  const d = new Date(`${ipoDate.split('T')[0]}T00:00:00Z`);
+  const day = d.getUTCDate();
+  d.setUTCMonth(d.getUTCMonth() + months);
+  if (d.getUTCDate() < day) d.setUTCDate(0); // кламп: 31 янв + 1 мес = последний день февраля
+  const end = d.toISOString().split('T')[0];
+  const days = Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86400000));
+  return `Позиция раскрывается: ${end} (через ${days} дн.)`;
+}
+
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -243,6 +256,12 @@ export default function DealDetail() {
     const payload: any = { ...editForm };
     // NOTE: shareQuantity is computed on the backend; do not send it.
     delete payload.shareQuantity;
+    // ТЗ-15: парность полей локапа дублирует серверную валидацию
+    if ((payload.ipoDate == null) !== (payload.lockupMonths == null)) {
+      alert('Укажите и дату IPO, и срок локапа — или оставьте оба поля пустыми.');
+      setSaving(false);
+      return;
+    }
     try {
       /* API update */
       await dealsApi.update(id, payload);
@@ -456,6 +475,41 @@ export default function DealDetail() {
           {deal.founder && <p className="text-center text-xs mt-1" style={{ color: '#8A8A93' }}>Founder: {deal.founder}</p>}
           {deal.description && <p className="text-center text-xs mt-1" style={{ color: '#8A8A93' }}>{deal.description}</p>}
         </div>
+
+        {/* ═══════ ТЗ-15: LOCK-UP BLOCK ═══════ */}
+        {deal.ipoDate && deal.lockupMonths != null && deal.lockupEndDate && (
+          <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.15)', backdropFilter: 'blur(24px)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#EAB308' }}>Локап</h3>
+              {deal.lockupExpired && (
+                <span className="px-2 py-1 rounded text-xs font-medium" style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}>
+                  Локап истёк — пора решать об Exit
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-6 text-center mb-4">
+              <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>IPO</p><p className="text-lg font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{new Date(deal.ipoDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p></div>
+              <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Окончание локапа</p><p className="text-lg font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{new Date(deal.lockupEndDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p></div>
+              <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Осталось дней</p><p className="text-lg font-bold" style={{ color: deal.lockupExpired ? '#10B981' : '#EAB308', fontFamily: 'JetBrains Mono' }}>{deal.lockupExpired ? '0' : deal.lockupDaysRemaining}</p></div>
+            </div>
+            {(() => {
+              const start = new Date(`${deal.ipoDate!.split('T')[0]}T00:00:00Z`).getTime();
+              const end = new Date(`${deal.lockupEndDate!.split('T')[0]}T00:00:00Z`).getTime();
+              const total = end - start;
+              const passed = total > 0 ? Math.min(1, Math.max(0, (Date.now() - start) / total)) : (deal.lockupExpired ? 1 : 0);
+              return (
+                <div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${(passed * 100).toFixed(1)}%`, background: deal.lockupExpired ? '#10B981' : '#EAB308' }} />
+                  </div>
+                  <p className="text-xs mt-2 text-center" style={{ color: '#8A8A93' }}>
+                    {deal.lockupMonths} мес. · прошло {(passed * 100).toFixed(0)}%
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+        )}
 
         {/* ═══════ CLIENT POSITIONS ═══════ */}
         <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)' }}>
@@ -736,6 +790,26 @@ export default function DealDetail() {
                     <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Deal Date</label><input type="date" value={editForm.dealDate ? editForm.dealDate.split('T')[0] : ''} onChange={e => setEditForm({ ...editForm, dealDate: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
                   </div>
                 </div>
+
+                {/* ТЗ-15: IPO & Lock-up — только для статусов Wait IPO / Lock-up */}
+                {['Wait IPO', 'Lock-up'].includes(editForm.pipelineStatus || '') && (
+                  <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <h3 className="text-xs uppercase tracking-wider mb-3 font-semibold" style={{ color: '#B8A14E' }}>IPO &amp; Lock-up</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>IPO Date</label><input type="date" value={editForm.ipoDate ? editForm.ipoDate.split('T')[0] : ''} onChange={e => setEditForm({ ...editForm, ipoDate: e.target.value || null })} style={inpBase} {...inpFocus} /></div>
+                      <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Lock-up Period (months)</label><input type="number" min={1} max={120} value={editForm.lockupMonths || ''} onChange={e => setEditForm({ ...editForm, lockupMonths: e.target.value ? parseInt(e.target.value, 10) : null })} style={inpBase} {...inpFocus} /></div>
+                    </div>
+                    {(!!editForm.ipoDate) !== (editForm.lockupMonths != null) && (
+                      <p className="text-xs mt-2" style={{ color: '#EAB308' }}>Укажите оба поля — дату IPO и срок локапа — или оставьте оба пустыми.</p>
+                    )}
+                    {editForm.pipelineStatus === 'Lock-up' && !editForm.ipoDate && editForm.lockupMonths == null && (
+                      <p className="text-xs mt-2" style={{ color: '#8A8A93' }}>Без даты IPO и срока локапа клиенты не увидят отсчёт дней.</p>
+                    )}
+                    {computeLockupPreview(editForm.ipoDate, editForm.lockupMonths) && (
+                      <p className="text-xs mt-2" style={{ color: '#10B981' }}>{computeLockupPreview(editForm.ipoDate, editForm.lockupMonths)}</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Extra */}
                 <div className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>

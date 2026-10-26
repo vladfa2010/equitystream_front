@@ -43,6 +43,12 @@ export interface MyDashboardDeal {
   pipelineStatus: string;
   currentPrice: number;
   dealDate: string | null;
+  // ТЗ-15: поля локапа для карточек кабинета (вычисляемые сервером)
+  ipoDate: string | null;
+  lockupMonths: number | null;
+  lockupEndDate: string | null;
+  lockupDaysRemaining: number | null;
+  lockupExpired: boolean;
   myInvestment: MyDashboardInvestment;
 }
 

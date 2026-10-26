@@ -94,6 +94,12 @@ export interface DealResponse {
   targetPrice: number | null;
   timeHorizon: string | null;
   dealDate: string | null;
+  // ТЗ-15: локап — данные + вычисляемые сервером поля
+  ipoDate: string | null;
+  lockupMonths: number | null;
+  lockupEndDate: string | null;
+  lockupDaysRemaining: number | null;
+  lockupExpired: boolean;
   status: 'active' | 'pending' | 'closed';
   pipelineStatus: 'draft' | 'Pipeline' | 'Skip' | 'Reserve' | 'Founding' | 'Deal done' | 'Wait IPO' | 'Lock-up' | 'Exit';
   createdBy: string;

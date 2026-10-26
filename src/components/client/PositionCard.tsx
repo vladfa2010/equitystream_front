@@ -1,15 +1,30 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, Lock } from 'lucide-react';
 import type { Deal } from '@/data/mockData';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import Sparkline from './Sparkline';
 
+// ТЗ-15: поля локапа приезжают с бэкенда (mapToResponse → computeLockup);
+// локально даты/дни НЕ вычисляем — только серверные значения
+type DealWithLockup = Deal & {
+  ipoDate?: string | null;
+  lockupMonths?: number | null;
+  lockupEndDate?: string | null;
+  lockupDaysRemaining?: number | null;
+  lockupExpired?: boolean;
+};
+
 interface PositionCardProps {
-  deal: Deal;
+  deal: DealWithLockup;
   investment: { userId: string; amount: number; entryPrice: number };
   index?: number;
 }
+
+const fmtDate = (d: string) =>
+  new Date(`${d.split('T')[0]}T00:00:00Z`).toLocaleDateString('en-US', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  });
 
 export default function PositionCard({ deal, investment, index = 0 }: PositionCardProps) {
   const navigate = useNavigate();
@@ -27,6 +42,18 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
   const leftBorderColor = isProfit
     ? 'rgba(16, 185, 129, 0.3)'
     : 'rgba(239, 68, 68, 0.3)';
+
+  // ТЗ-15: деградация пилюли — дни только при полных данных, иначе просто статус
+  const isLockupExpired = deal.pipelineStatus === 'Lock-up' && deal.lockupExpired === true;
+  const lockupHasData = deal.lockupDaysRemaining != null && !!deal.lockupEndDate;
+  let lockupLine: string | null = null;
+  if (deal.pipelineStatus === 'Lock-up' && lockupHasData) {
+    lockupLine = isLockupExpired
+      ? 'Позиция разблокирована'
+      : `Разблокировка: ${fmtDate(deal.lockupEndDate!)}`;
+  } else if (deal.pipelineStatus === 'Wait IPO' && deal.ipoDate) {
+    lockupLine = `Ожидаемое IPO: ${fmtDate(deal.ipoDate)}`;
+  }
 
   return (
     <motion.div
@@ -66,7 +93,7 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
           {deal.ticker}
         </span>
         <span
-          className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase"
+          className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase inline-flex items-center gap-1"
           style={(() => {
             const c: Record<string, React.CSSProperties> = {
               draft:       { background: 'rgba(107,114,128,0.15)', color: '#6B7280' },
@@ -79,17 +106,37 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
               'Lock-up':   { background: 'rgba(234,179,8,0.15)',   color: '#EAB308' },
               Exit:        { background: 'rgba(239,68,68,0.15)',    color: '#EF4444' },
             };
+            // ТЗ-15: истёкший локап зеленеет, как 'Deal done'
+            if (isLockupExpired) return c['Deal done'];
             return c[deal.pipelineStatus] || c['draft'];
           })()}
         >
           {deal.pipelineStatus}
+          {deal.pipelineStatus === 'Lock-up' && lockupHasData && (
+            <>
+              <span style={{ opacity: 0.4 }}>|</span>
+              <Lock size={10} />
+              {isLockupExpired ? 'истёк' : `${deal.lockupDaysRemaining} дн.`}
+            </>
+          )}
+          {deal.pipelineStatus === 'Wait IPO' && deal.ipoDate && (
+            <>
+              <span style={{ opacity: 0.4 }}>|</span>
+              IPO {fmtDate(deal.ipoDate)}
+            </>
+          )}
         </span>
       </div>
 
       {/* Company name */}
-      <h4 className="text-h4" style={{ color: '#F5F5F0', marginBottom: 16 }}>
+      <h4 className="text-h4" style={{ color: '#F5F5F0', marginBottom: lockupLine ? 4 : 16 }}>
         {deal.companyName}
       </h4>
+      {lockupLine && (
+        <p className="text-caption" style={{ color: '#8A8A93', marginBottom: 16 }}>
+          {lockupLine}
+        </p>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 mb-4">
