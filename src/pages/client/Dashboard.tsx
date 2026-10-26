@@ -110,6 +110,7 @@ export default function ClientDashboard() {
     totalInvested: number;
     portfolioValue: number;
     totalPnl: number;
+    availableBalance?: number;
   } | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [myDocuments, setMyDocuments] = useState<MaterialResponse[]>([]);
@@ -330,8 +331,8 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
           </motion.p>
         </motion.section>
 
-        {/* Key Metrics Row — 3 cols on all screens */}
-        <section className="grid grid-cols-3 gap-2 sm:gap-4 mb-10">
+        {/* Key Metrics Row — ТЗ-16: добавлена карточка свободных средств */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-10">
           <PortfolioMetricCard
             label="Portfolio Value"
             value={formatCurrency(portfolioValue)}
@@ -355,6 +356,15 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
             isPositive={isProfit}
             accentColor={isProfit ? 'green' : 'red'}
             index={2}
+          />
+          {/* ТЗ-16: свободные средства (выходы из сделок) */}
+          <PortfolioMetricCard
+            label="Свободные средства"
+            value={formatCurrency(serverTotals?.availableBalance ?? 0)}
+            subValue="доступно к реинвестированию"
+            isPositive={(serverTotals?.availableBalance ?? 0) > 0}
+            accentColor="gold"
+            index={3}
           />
         </section>
 

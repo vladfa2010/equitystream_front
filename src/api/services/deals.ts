@@ -187,6 +187,20 @@ export const dealsApi = {
     return [];
   },
 
+  // ТЗ-16: частичный выход
+  createExit: async (dealId: string, payload: CreateExitPayload): Promise<DealExitCreateResponse> => {
+    const res = await fetchWithAuth(`/deals/${dealId}/exits`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return unwrap<DealExitCreateResponse>(res);
+  },
+
+  getExits: async (dealId: string): Promise<DealExitListResponse> => {
+    const res = await fetchWithAuth(`/deals/${dealId}/exits`);
+    return unwrap<DealExitListResponse>(res);
+  },
+
   getPendingReservations: async (): Promise<Reservation[]> => {
     // TODO: implement reservations endpoint
     return [];
@@ -236,3 +250,44 @@ export const dealsApi = {
     throw new Error('Not implemented');
   },
 };
+
+// ТЗ-16: частичный выход из сделки
+export interface ExitAllocation {
+  userId: string;
+  investmentId: string;
+  sharesSold: number;
+  cashAmount: number;
+  costBasis: number;
+  realizedPnl: number;
+}
+
+export interface DealExitItem {
+  id: string;
+  percent: number;
+  pricePerShare: number;
+  note: string | null;
+  createdAt: string;
+  /** Админу: общие суммы; клиенту: null */
+  totalCash: number | null;
+  totalRealizedPnl: number | null;
+  clientsCount: number | null;
+  /** Клиенту: только его распределение; админу: null */
+  own: ExitAllocation | null;
+}
+
+export interface DealExitCreateResponse {
+  exit: DealExitItem;
+  priceDeviationWarning: boolean;
+}
+
+export interface DealExitListResponse {
+  data: DealExitItem[];
+  totalPercent: number;
+}
+
+export interface CreateExitPayload {
+  percent: number;
+  pricePerShare: number;
+  note?: string;
+  requestId: string;
+}

@@ -70,6 +70,8 @@ export interface MyDashboard {
     portfolioValue: number;
     totalPnl: number;
     totalPnlPercent: number;
+    // ТЗ-16: свободные средства (выходы из сделок)
+    availableBalance: number;
   };
   deals: MyDashboardDeal[];
   documents: MyDashboardDocument[];

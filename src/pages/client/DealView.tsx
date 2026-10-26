@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import Layout from '@/components/Layout';
 import { dealsApi, clientsApi, authApi } from '@/api';
-import type { DealMarketResponse } from '@/api';
+import type { DealMarketResponse, DealExitItem } from '@/api';
 import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import MaterialMiniCard from '@/components/client/MaterialMiniCard';
@@ -40,10 +40,13 @@ export default function ClientDealView() {
   const [market, setMarket] = useState<DealMarketResponse | null>(null);
   const [marketPeriod, setMarketPeriod] = useState<'1M' | '6M' | '1Y'>('6M');
   const [marketCandles, setMarketCandles] = useState<Array<{ t: number; c: number }> | null>(null);
+  // ТЗ-16: события выхода (бэкенд отдаёт только свои суммы)
+  const [exits, setExits] = useState<DealExitItem[]>([]);
 
   useEffect(() => {
     if (!id) return;
     dealsApi.getMarket(id).then(setMarket).catch(() => setMarket(null));
+    dealsApi.getExits(id).then((r) => setExits(r.data || [])).catch(() => setExits([]));
   }, [id]);
 
   useEffect(() => {
@@ -407,6 +410,40 @@ export default function ClientDealView() {
             <p className="text-caption mt-3" style={{ color: '#55555E' }}>
               Рыночная оценка по котировкам с задержкой; официальная доходность позиции — из подтверждённых цен.
             </p>
+          </motion.div>
+        )}
+
+        {/* ТЗ-16: ВЫХОДЫ — только собственные суммы (скоуплены бэкендом) */}
+        {exits.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.17, ease: easeExpo }}
+            className="glass-panel p-5 sm:p-6 mb-8"
+            style={{ borderLeft: '4px solid #10B981' }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={16} style={{ color: '#10B981' }} />
+              <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#10B981' }}>Выходы</h2>
+            </div>
+            <div className="space-y-2">
+              {exits.map((e) => (
+                <div key={e.id} className="flex items-center justify-between text-sm">
+                  <span style={{ color: '#8A8A93' }}>
+                    Exit · {new Date(e.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {' · '}{e.percent}%
+                  </span>
+                  {e.own && (
+                    <span style={{ color: (e.own.realizedPnl ?? 0) >= 0 ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                      {(e.own.realizedPnl ?? 0) >= 0 ? '+' : ''}{formatCurrency(e.own.cashAmount)}
+                      <span className="text-caption ml-2" style={{ color: '#55555E' }}>
+                        (P&L {(e.own.realizedPnl ?? 0) >= 0 ? '+' : ''}{formatCurrency(e.own.realizedPnl)})
+                      </span>
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
 

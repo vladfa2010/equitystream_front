@@ -9,7 +9,7 @@ import Layout from '@/components/Layout';
 import InstrumentSearchInput from '@/components/admin/InstrumentSearchInput';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import { dealsApi, clientsApi, authApi } from '@/api';
-import type { DealResponse, ClientResponse, PriceHistoryItem, DealMarketResponse } from '@/api';
+import type { DealResponse, ClientResponse, PriceHistoryItem, DealMarketResponse, DealExitItem } from '@/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
@@ -65,6 +65,16 @@ export default function DealDetail() {
   const [market, setMarket] = useState<DealMarketResponse | null>(null);
   const [marketPeriod, setMarketPeriod] = useState<'1M' | '6M' | '1Y'>('6M');
   const [marketCandles, setMarketCandles] = useState<Array<{ t: number; c: number }> | null>(null);
+  // ТЗ-16: частичный выход
+  const [exits, setExits] = useState<DealExitItem[]>([]);
+  const [totalExitPercent, setTotalExitPercent] = useState(0);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [exitPercent, setExitPercent] = useState<string>('10');
+  const [exitPrice, setExitPrice] = useState<string>('');
+  const [exitNote, setExitNote] = useState('');
+  const [exitRequestId, setExitRequestId] = useState('');
+  const [exitSaving, setExitSaving] = useState(false);
+  const [exitWarning, setExitWarning] = useState<string | null>(null);
   const [allClients, setAllClients] = useState<ClientResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -145,6 +155,15 @@ export default function DealDetail() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // ТЗ-16: события выхода сделки
+  useEffect(() => {
+    if (!id) return;
+    dealsApi.getExits(id).then((r) => {
+      setExits(r.data || []);
+      setTotalExitPercent(r.totalPercent || 0);
+    }).catch(() => setExits([]));
+  }, [id]);
 
   // ТЗ-14: рыночные данные для админки (цена + график, без персональных полей)
   useEffect(() => {
@@ -327,6 +346,69 @@ export default function DealDetail() {
     }
   };
 
+  /* ────────── ТЗ-16: частичный выход ────────── */
+  const canExit = deal ? ['Deal done', 'Lock-up', 'Exit'].includes(deal.pipelineStatus) : false;
+  const openExitModal = () => {
+    if (!deal) return;
+    // requestId генерируется ОДИН раз на открытие формы — повторная отправка
+    // с тем же ключом идемпотентна (ТЗ-16)
+    setExitRequestId(crypto.randomUUID());
+    setExitPercent('10');
+    setExitPrice(String(Number(deal.currentPrice) || ''));
+    setExitNote('');
+    setExitWarning(null);
+    setShowExitModal(true);
+  };
+
+  const exitPctNum = parseFloat(exitPercent) || 0;
+  const exitPriceNum = parseFloat(exitPrice) || 0;
+  // предпросмотр: суммарно по всем инвестициям по введённой цене
+  const exitPreview = (() => {
+    if (!deal || exitPctNum <= 0 || exitPriceNum <= 0) return null;
+    let cash = 0;
+    let clients = 0;
+    for (const inv of deal.investments || []) {
+      const entry = Number(inv.entryPrice);
+      if (!entry) continue;
+      cash += (Number(inv.amount) / entry) * (exitPctNum / 100) * exitPriceNum;
+      clients += 1;
+    }
+    return { cash, clients };
+  })();
+  const confirmedPrice = deal ? Number(deal.currentPrice) || 0 : 0;
+  const frontDeviationWarning =
+    confirmedPrice > 0 && exitPriceNum > 0
+      ? Math.abs(exitPriceNum - confirmedPrice) / confirmedPrice > 0.2
+      : false;
+
+  const handleCreateExit = async () => {
+    if (!id) return;
+    setExitSaving(true);
+    setExitWarning(null);
+    try {
+      const r = await dealsApi.createExit(id, {
+        percent: exitPctNum,
+        pricePerShare: exitPriceNum,
+        note: exitNote.trim() || undefined,
+        requestId: exitRequestId,
+      });
+      setShowExitModal(false);
+      const r2 = await dealsApi.getExits(id);
+      setExits(r2.data || []);
+      setTotalExitPercent(r2.totalPercent || 0);
+      load(); // инвестиции/метрики изменились
+      if (r.priceDeviationWarning) {
+        setExitWarning(
+          `Выход создан. Внимание: цена ${exitPriceNum} отклоняется от подтверждённой (${confirmedPrice}) более чем на 20%.`,
+        );
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to create exit.');
+    } finally {
+      setExitSaving(false);
+    }
+  };
+
   /* ────────── delete deal ────────── */
   const handleDeleteDeal = async () => {
     if (!deal || confirmDealName !== deal.companyName) return;
@@ -445,6 +527,16 @@ export default function DealDetail() {
             <h1 className="text-3xl font-bold" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>{deal.companyName}</h1>
           </div>
           <div className="flex gap-2">
+            {/* ТЗ-16: частичный выход — только для рыночных статусов */}
+            <button
+              onClick={openExitModal}
+              disabled={!canExit}
+              title={canExit ? 'Частичный выход' : 'Выход доступен со статусов Deal done / Lock-up / Exit'}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+              style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}
+            >
+              <TrendingUp size={14} /> Частичный выход
+            </button>
             <button onClick={openEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>
               <Pencil size={14} /> Edit
             </button>
@@ -580,6 +672,36 @@ export default function DealDetail() {
             <p className="text-xs mt-3" style={{ color: '#55555E' }}>
               Рыночная оценка не влияет на официальный current_price и доходность клиентов.
             </p>
+          </div>
+        )}
+
+        {/* ═══════ ТЗ-16: EXITS (выходы) ═══════ */}
+        {exits.length > 0 && (
+          <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(16,185,129,0.03)', border: '1px solid rgba(16,185,129,0.12)', backdropFilter: 'blur(24px)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#10B981' }}>Выходы</h3>
+              <span className="text-xs" style={{ color: '#8A8A93' }}>суммарно {totalExitPercent}%</span>
+            </div>
+            <div className="space-y-2">
+              {exits.map((e) => (
+                <div key={e.id} className="flex items-center justify-between text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ color: '#F5F5F0' }}>
+                    {new Date(e.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {' · '}{e.percent}% по ${e.pricePerShare.toFixed(2)}
+                    {e.note ? ` · ${e.note}` : ''}
+                  </span>
+                  <span className="font-semibold" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>
+                    {e.totalCash != null ? `+$${e.totalCash.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
+                    {e.clientsCount != null ? ` · ${e.clientsCount} клиент.` : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {exitWarning && (
+          <div className="p-4 rounded-2xl mb-8 text-sm" style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', color: '#EAB308' }}>
+            {exitWarning}
           </div>
         )}
 
@@ -821,6 +943,72 @@ export default function DealDetail() {
           )}
         </div>
       </div>
+
+      {/* ════════════════════════════════════════════════
+          ТЗ-16: PARTIAL EXIT MODAL
+          ════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showExitModal && deal && (
+          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={() => setShowExitModal(false)} />
+            <motion.div className="relative w-full max-w-[480px] rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(24px) saturate(140%)', border: '1px solid rgba(255,255,255,0.08)' }} initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}>
+              <button onClick={() => setShowExitModal(false)} className="absolute top-4 right-4 p-2" style={{ color: '#8A8A93' }}><X size={18} /></button>
+              <h2 className="text-2xl font-bold mb-1" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>Частичный выход</h2>
+              <p className="text-sm mb-5" style={{ color: '#8A8A93' }}>
+                {deal.companyName} · уже выведено {totalExitPercent}%
+              </p>
+
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Процент выхода, %</label>
+                    <input type="number" min={0.01} max={100} step={0.01} value={exitPercent} onChange={(e) => setExitPercent(e.target.value)} style={inpBase} {...inpFocus} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Цена выхода (за акцию)</label>
+                    <input type="number" min={0.0001} step={0.0001} value={exitPrice} onChange={(e) => setExitPrice(e.target.value)} style={inpBase} {...inpFocus} />
+                    {confirmedPrice > 0 && (
+                      <p className="text-[10px] mt-1" style={{ color: '#55555E' }}>подтверждённая: ${confirmedPrice.toFixed(2)}</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Заметка</label>
+                  <input type="text" value={exitNote} onChange={(e) => setExitNote(e.target.value)} maxLength={255} placeholder="Необязательно" style={inpBase} {...inpFocus} />
+                </div>
+
+                {frontDeviationWarning && (
+                  <p className="text-xs rounded-lg px-3 py-2" style={{ background: 'rgba(234,179,8,0.1)', color: '#EAB308', border: '1px solid rgba(234,179,8,0.25)' }}>
+                    Цена отличается от подтверждённой ({confirmedPrice.toFixed(2)}) более чем на 20% — проверьте ввод.
+                  </p>
+                )}
+
+                {exitPreview && (
+                  <div className="rounded-xl px-4 py-3 text-sm" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                    <p style={{ color: '#F5F5F0' }}>
+                      Выйдет: {exitPctNum}% позиции ≈ <span style={{ color: '#10B981', fontWeight: 600 }}>${exitPreview.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> суммарно по {exitPreview.clients} клиентам
+                    </p>
+                    {exitPctNum + totalExitPercent > 100 && (
+                      <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+                        Суммарный выход превысит 100% (уже {totalExitPercent}%)
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleCreateExit}
+                  disabled={exitSaving || exitPctNum <= 0 || exitPctNum > 100 || exitPriceNum <= 0 || exitPctNum + totalExitPercent > 100}
+                  className="py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40"
+                  style={{ background: 'linear-gradient(135deg, #10B981, #34D399)', color: '#0A0A0F' }}
+                >
+                  {exitSaving ? 'Создаём…' : 'Подтвердить выход'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ════════════════════════════════════════════════
           EDIT DEAL MODAL
