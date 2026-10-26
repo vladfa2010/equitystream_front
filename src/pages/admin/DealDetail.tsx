@@ -8,10 +8,11 @@ import {
 import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import { dealsApi, clientsApi, authApi } from '@/api';
-import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
+import type { DealResponse, ClientResponse, PriceHistoryItem, DealMarketResponse } from '@/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
+  LineChart, Line,
 } from 'recharts';
 
 function getClientName(c: ClientResponse | any): string {
@@ -59,6 +60,10 @@ export default function DealDetail() {
   const navigate = useNavigate();
 
   const [deal, setDeal] = useState<DealResponse | null>(null);
+  // ТЗ-14: рыночные данные (404 → блок скрыт); админу — без персональных полей
+  const [market, setMarket] = useState<DealMarketResponse | null>(null);
+  const [marketPeriod, setMarketPeriod] = useState<'1M' | '6M' | '1Y'>('6M');
+  const [marketCandles, setMarketCandles] = useState<Array<{ t: number; c: number }> | null>(null);
   const [allClients, setAllClients] = useState<ClientResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -139,6 +144,20 @@ export default function DealDetail() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // ТЗ-14: рыночные данные для админки (цена + график, без персональных полей)
+  useEffect(() => {
+    if (!id) return;
+    dealsApi.getMarket(id).then(setMarket).catch(() => setMarket(null));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !market) return;
+    setMarketCandles(null);
+    dealsApi.getMarketChart(id, marketPeriod)
+      .then((r) => setMarketCandles(r.candles))
+      .catch(() => setMarketCandles(null));
+  }, [id, market, marketPeriod]);
 
   /* ────────── edit a price history record ────────── */
   const handleSaveHistoryEdit = async () => {
@@ -508,6 +527,55 @@ export default function DealDetail() {
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* ═══════ ТЗ-14: MARKET DATA (админ: цена + график, без персональных полей) ═══════ */}
+        {market && (
+          <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(79,110,247,0.04)', border: '1px solid rgba(79,110,247,0.15)', backdropFilter: 'blur(24px)' }}>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#4F6EF7' }}>Рыночные данные</h3>
+              <span className="text-xs" style={{ color: market.stale ? '#EAB308' : '#8A8A93' }}>
+                ${market.price.toFixed(2)} {market.currency} · {market.stale ? 'данные могут быть неактуальны' : 'данные с задержкой ~15 мин'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              {(['1M', '6M', '1Y'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setMarketPeriod(p)}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
+                  style={marketPeriod === p
+                    ? { background: 'rgba(79,110,247,0.2)', color: '#4F6EF7' }
+                    : { background: 'rgba(255,255,255,0.04)', color: '#8A8A93' }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            {marketCandles && marketCandles.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={marketCandles.map((cd) => ({
+                  date: new Date(cd.t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+                  price: cd.c,
+                }))}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fill: '#8A8A93', fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={40} />
+                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#8A8A93', fontSize: 10 }} axisLine={false} tickLine={false} width={56} />
+                  <Tooltip
+                    contentStyle={{ background: 'rgba(26,26,36,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
+                    labelStyle={{ color: '#8A8A93', fontSize: 11 }}
+                    formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Close']}
+                  />
+                  <Line type="monotone" dataKey="price" stroke="#4F6EF7" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-xs" style={{ color: '#55555E' }}>График недоступен для выбранного периода</p>
+            )}
+            <p className="text-xs mt-3" style={{ color: '#55555E' }}>
+              Рыночная оценка не влияет на официальный current_price и доходность клиентов.
+            </p>
           </div>
         )}
 

@@ -10,9 +10,11 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
+  LineChart, Line,
 } from 'recharts';
 import Layout from '@/components/Layout';
 import { dealsApi, clientsApi, authApi } from '@/api';
+import type { DealMarketResponse } from '@/api';
 import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import MaterialMiniCard from '@/components/client/MaterialMiniCard';
@@ -34,6 +36,23 @@ export default function ClientDealView() {
   const [client, setClient] = useState<ClientResponse | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // ТЗ-14: рыночные данные (404 → блок скрыт)
+  const [market, setMarket] = useState<DealMarketResponse | null>(null);
+  const [marketPeriod, setMarketPeriod] = useState<'1M' | '6M' | '1Y'>('6M');
+  const [marketCandles, setMarketCandles] = useState<Array<{ t: number; c: number }> | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    dealsApi.getMarket(id).then(setMarket).catch(() => setMarket(null));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !market) return;
+    setMarketCandles(null);
+    dealsApi.getMarketChart(id, marketPeriod)
+      .then((r) => setMarketCandles(r.candles))
+      .catch(() => setMarketCandles(null));
+  }, [id, market, marketPeriod]);
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -303,6 +322,93 @@ export default function ClientDealView() {
             </motion.div>
           );
         })()}
+
+        {/* ТЗ-14: РЫНОЧНЫЕ ДАННЫЕ — рыночная оценка, не официальная доходность */}
+        {market && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.19, ease: easeExpo }}
+            className="glass-panel p-5 sm:p-6 mb-8"
+            style={{ borderLeft: '4px solid #4F6EF7' }}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2">
+                <DollarSign size={16} style={{ color: '#4F6EF7' }} />
+                <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#4F6EF7' }}>
+                  Рыночные данные
+                </h2>
+              </div>
+              <span className="text-caption" style={{ color: market.stale ? '#EAB308' : '#8A8A93' }}>
+                {market.stale ? 'данные могут быть неактуальны' : 'данные с задержкой ~15 мин'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4 mt-3">
+              <div>
+                <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Рыночная цена</p>
+                <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                  ${market.price.toFixed(2)} {market.currency}
+                </p>
+              </div>
+              {market.myMarketValue != null && (
+                <>
+                  <div>
+                    <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Рыночная стоимость</p>
+                    <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
+                      {formatCurrency(market.myMarketValue)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Рыночный P&amp;L</p>
+                    <p className="text-mono-m" style={{ color: (market.myMarketPnl ?? 0) >= 0 ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
+                      {(market.myMarketPnl ?? 0) >= 0 ? '+' : ''}{formatCurrency(market.myMarketPnl ?? 0)}
+                    </p>
+                    <p className="text-caption" style={{ color: (market.myMarketPnl ?? 0) >= 0 ? '#10B981' : '#EF4444' }}>
+                      {formatPercent(market.myMarketPnlPercent ?? 0)}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              {(['1M', '6M', '1Y'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setMarketPeriod(p)}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
+                  style={marketPeriod === p
+                    ? { background: 'rgba(79,110,247,0.2)', color: '#4F6EF7' }
+                    : { background: 'rgba(255,255,255,0.04)', color: '#8A8A93' }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            {marketCandles && marketCandles.length > 0 ? (
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={marketCandles.map((cd) => ({
+                  date: new Date(cd.t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+                  price: cd.c,
+                }))}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fill: '#8A8A93', fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={40} />
+                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#8A8A93', fontSize: 10 }} axisLine={false} tickLine={false} width={56} />
+                  <Tooltip
+                    contentStyle={{ background: 'rgba(26,26,36,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
+                    labelStyle={{ color: '#8A8A93', fontSize: 11 }}
+                    formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Close']}
+                  />
+                  <Line type="monotone" dataKey="price" stroke="#4F6EF7" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-caption" style={{ color: '#55555E' }}>График недоступен для выбранного периода</p>
+            )}
+            <p className="text-caption mt-3" style={{ color: '#55555E' }}>
+              Рыночная оценка по котировкам с задержкой; официальная доходность позиции — из подтверждённых цен.
+            </p>
+          </motion.div>
+        )}
 
         {/* Deal Overview Metrics */}
         <motion.div

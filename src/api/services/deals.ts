@@ -9,6 +9,23 @@ import type {
 } from '../types';
 import { apiFetch } from '../http';
 
+// ТЗ-14: рыночные данные (провайдер за интерфейсом, ключ только на сервере)
+export interface DealMarketResponse {
+  price: number;
+  currency: string;
+  fetchedAt: string;
+  stale: boolean;
+  /** Персональные поля — только если у запрашивающего есть investment */
+  myMarketValue: number | null;
+  myMarketPnl: number | null;
+  myMarketPnlPercent: number | null;
+}
+
+export interface DealMarketChartResponse {
+  candles: Array<{ t: number; c: number }>;
+  stale: boolean;
+}
+
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const res = await apiFetch(endpoint, options);
   if (!res.ok) {
@@ -36,6 +53,17 @@ export const dealsApi = {
   getById: async (id: string): Promise<DealResponse> => {
     const res = await fetchWithAuth(`/deals/${id}`);
     return unwrap<DealResponse>(res);
+  },
+
+  // ТЗ-14: рыночные данные. 404 MARKET_DATA_UNAVAILABLE → throw, фронт скрывает блок
+  getMarket: async (id: string): Promise<DealMarketResponse> => {
+    const res = await fetchWithAuth(`/deals/${id}/market`);
+    return unwrap<DealMarketResponse>(res);
+  },
+
+  getMarketChart: async (id: string, period: '1M' | '6M' | '1Y'): Promise<DealMarketChartResponse> => {
+    const res = await fetchWithAuth(`/deals/${id}/market-chart?period=${period}`);
+    return unwrap<DealMarketChartResponse>(res);
   },
 
   create: async (data: CreateDealPayload): Promise<{ id: string }> => {
