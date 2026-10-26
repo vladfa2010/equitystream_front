@@ -347,7 +347,7 @@ export default function ClientDealView() {
               <div>
                 <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Рыночная цена</p>
                 <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
-                  ${market.price.toFixed(2)} {market.currency}
+                  {market.price.toFixed(2)} {market.currency}
                 </p>
               </div>
               {market.myMarketValue != null && (

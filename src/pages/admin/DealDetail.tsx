@@ -536,7 +536,7 @@ export default function DealDetail() {
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#4F6EF7' }}>Рыночные данные</h3>
               <span className="text-xs" style={{ color: market.stale ? '#EAB308' : '#8A8A93' }}>
-                ${market.price.toFixed(2)} {market.currency} · {market.stale ? 'данные могут быть неактуальны' : 'данные с задержкой ~15 мин'}
+                {market.price.toFixed(2)} {market.currency} · {market.stale ? 'данные могут быть неактуальны' : 'данные с задержкой ~15 мин'}
               </span>
             </div>
             <div className="flex items-center gap-2 mb-3">
