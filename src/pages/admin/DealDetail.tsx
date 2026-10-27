@@ -685,6 +685,14 @@ export default function DealDetail() {
                     labelStyle={{ color: '#8A8A93', fontSize: 11 }}
                     formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Close']}
                   />
+                  {/* Горизонталь цены входа сделки — только когда живой рыночный блок */}
+                  <ReferenceLine
+                    y={Number(deal.entryPrice)}
+                    stroke="#B8A14E"
+                    strokeDasharray="5 4"
+                    strokeOpacity={0.7}
+                    label={{ value: `Entry $${Number(deal.entryPrice).toFixed(2)}`, position: 'insideTopLeft', fill: '#B8A14E', fontSize: 10 }}
+                  />
                   <Line type="monotone" dataKey="price" stroke="#4F6EF7" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
