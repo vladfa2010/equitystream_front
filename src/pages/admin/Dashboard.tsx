@@ -31,6 +31,7 @@ import { formatCurrency, formatPercent, timeAgo } from '@/data/mockData';
 import { dealsApi, clientsApi, dashboardApi } from '@/api';
 import type { DealResponse, ClientResponse, ActivityItem, Reservation } from '@/api';
 import Layout from '@/components/Layout';
+import Avatar from '@/components/Avatar';
 
 const Globe = lazy(() => import('@/components/Globe'));
 
@@ -408,7 +409,7 @@ function ClientSnapshotRow({ client, index }: { client: ClientResponse; index: n
       className="flex items-center justify-between py-3 px-1 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] rounded-lg transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-3">
-        <img src={client.avatarUrl || '/default-avatar.png'} alt={getClientName(client)} className="w-9 h-9 rounded-full" />
+        <Avatar name={getClientName(client)} src={client.avatarUrl} size={36} />
         <div>
           <p className="text-[14px] font-semibold" style={{ color: '#F5F5F0' }}>{getClientName(client)}</p>
           <p className="text-caption tabular-nums" style={{ color: '#55555E' }}>

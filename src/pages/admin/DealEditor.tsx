@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import Avatar from '@/components/Avatar';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -622,7 +623,7 @@ function AddClientModal({ isOpen, onClose, onAdd, existingClientIds, sharePrice,
             id: c.id,
             name: c.name || '',
             email: c.email,
-            avatar: c.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
+            avatar: c.avatarUrl || '',
             totalInvested: c.totalInvested || 0,
             totalPnl: c.totalPnl || 0,
             pnlPercent: 0,
@@ -745,7 +746,7 @@ function AddClientModal({ isOpen, onClose, onAdd, existingClientIds, sharePrice,
                   onMouseEnter={e => { if (selectedClientId !== client.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
                   onMouseLeave={e => { if (selectedClientId !== client.id) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <img src={client.avatar} alt="" className="w-8 h-8 rounded-full" />
+                  <Avatar name={client.name} src={client.avatar} size={32} />
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium truncate" style={{ color: '#F5F5F0' }}>{client.name}</p>
                     <p className="text-[11px] truncate" style={{ color: '#55555E' }}>{client.email}</p>
@@ -1059,7 +1060,7 @@ function Step2ClientAllocations({ allocations, setAllocations, totalVolume, shar
                   borderLeft: alloc.isLead ? '3px solid #B8A14E' : '1px solid rgba(255,255,255,0.08)',
                 }}
               >
-                <img src={client.avatar} alt="" className="w-10 h-10 rounded-full flex-shrink-0" />
+                <Avatar name={client.name} src={client.avatar} size={40} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-semibold truncate" style={{ color: '#F5F5F0' }}>{client.name}</span>
@@ -1638,7 +1639,7 @@ export default function DealEditor() {
           id: c.id,
           name: c.name || '',
           email: c.email,
-          avatar: c.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
+          avatar: c.avatarUrl || '',
           totalInvested: c.totalInvested || 0,
           totalPnl: c.totalPnl || 0,
           pnlPercent: 0,

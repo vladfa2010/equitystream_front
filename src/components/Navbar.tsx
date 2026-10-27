@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Avatar from '@/components/Avatar';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -158,11 +159,8 @@ export default function Navbar({ role = 'admin' }: NavbarProps) {
             className="w-9 h-9 rounded-full overflow-hidden"
             style={{ border: '2px solid rgba(255, 255, 255, 0.1)' }}
           >
-            <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${effectiveRole}`}
-              alt="User"
-              className="w-full h-full object-cover"
-            />
+            {/* автономный аватар: инициалы при недоступности внешних сервисов */}
+            <Avatar name={effectiveRole} size={32} />
           </div>
 
           <button

@@ -41,7 +41,7 @@ export default function AddClientModal({ isOpen, onClose, onAdd }: AddClientModa
       name: name.trim(),
       email: email.trim(),
       role: 'client',
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`,
+      avatarUrl: null,
       phone: phone.trim() || null,
       notes: notes.trim() || null,
       status: 'active',
