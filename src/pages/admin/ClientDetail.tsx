@@ -42,7 +42,7 @@ import Layout from '@/components/Layout';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import type { PricePoint } from '@/data/mockData';
 import { clientsApi, dealsApi, materialsApi } from '@/api';
-import type { ClientResponse, MaterialResponse, BalanceOperationItem } from '@/api';
+import type { ClientResponse, MaterialResponse, BalanceOperationItem, BalanceSummary } from '@/api';
 import EditClientModal from '@/components/clients/EditClientModal';
 
 const easeExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -151,6 +151,7 @@ export default function ClientDetail() {
   const [documents, setDocuments] = useState<MaterialResponse[]>([]);
   // ТЗ-17: свободные средства клиента (ledger)
   const [balanceOps, setBalanceOps] = useState<BalanceOperationItem[]>([]);
+  const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [balanceOpType, setBalanceOpType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [balanceAmount, setBalanceAmount] = useState('');
@@ -170,8 +171,9 @@ export default function ClientDetail() {
       clientsApi.getById(id),
       dealsApi.getAll(),
       materialsApi.getAll({ clientId: id }).catch(() => [] as MaterialResponse[]),
-      clientsApi.getBalanceOperations(id, { limit: 50 }).catch(() => null),
-    ]).then(([clientData, allDeals, docs, ops]) => {
+      clientsApi.getBalanceOperations(id, { limit: 100 }).catch(() => null),
+      clientsApi.getBalanceSummary(id).catch(() => null),
+    ]).then(([clientData, allDeals, docs, ops, summary]) => {
       setClient(clientData);
       // Filter deals where this client has investments
       const dealsWithClient = (allDeals || []).filter((d: any) =>
@@ -180,6 +182,7 @@ export default function ClientDetail() {
       setClientDeals(dealsWithClient);
       setDocuments(docs || []);
       setBalanceOps(ops?.data || []);
+      setBalanceSummary(summary || null);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [id]);
@@ -205,12 +208,14 @@ export default function ClientDetail() {
         requestId: balanceRequestId,
       });
       setShowBalanceModal(false);
-      const [c, ops] = await Promise.all([
+      const [c, ops, summary] = await Promise.all([
         clientsApi.getById(id),
-        clientsApi.getBalanceOperations(id, { limit: 50 }),
+        clientsApi.getBalanceOperations(id, { limit: 100 }),
+        clientsApi.getBalanceSummary(id),
       ]);
       setClient(c);
       setBalanceOps(ops.data || []);
+      setBalanceSummary(summary || null);
     } catch (err: any) {
       setBalanceMsg(err?.message || 'Operation failed.');
     } finally {
@@ -784,6 +789,44 @@ export default function ClientDetail() {
               ${((client as any)?.availableBalance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
           </div>
+          {/* Сводка: сколько заведено / выведено / вложено / возвращено / с выходов */}
+          {balanceSummary && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+              {[
+                { label: 'Deposited', v: balanceSummary.totals.deposited, color: '#10B981' },
+                { label: 'Withdrawn', v: -balanceSummary.totals.withdrawn, color: '#EF4444' },
+                { label: 'Invested in deals', v: -balanceSummary.totals.invested, color: '#EF4444' },
+                { label: 'Refunds from deals', v: balanceSummary.totals.refunded, color: '#10B981' },
+                { label: 'From exits', v: balanceSummary.totals.exits, color: '#10B981' },
+                { label: 'Available balance', v: balanceSummary.totals.availableBalance, color: '#B8A14E' },
+              ].map((m) => (
+                <div key={m.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px' }}>
+                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#55555E', margin: 0 }}>{m.label}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: m.color, margin: '2px 0 0' }}>
+                    {m.v < 0 ? '−' : '+'}${Math.abs(m.v).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Разбивка по сделкам */}
+          {balanceSummary && balanceSummary.byDeal.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#55555E', margin: '0 0 6px' }}>By deal</p>
+              <div style={{ borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                {balanceSummary.byDeal.map((d) => (
+                  <div key={d.dealId} className="flex items-center justify-between" style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 12 }}>
+                    <span style={{ color: '#F5F5F0' }}>{d.ticker} <span style={{ color: '#55555E' }}>· {d.companyName}</span></span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      {d.invested > 0 && <span style={{ color: '#EF4444' }}>−${d.invested.toLocaleString('en-US', { minimumFractionDigits: 2 })} in</span>}
+                      {d.exits > 0 && <span style={{ color: '#10B981', marginLeft: 10 }}>+${d.exits.toLocaleString('en-US', { minimumFractionDigits: 2 })} exit</span>}
+                      {d.refunded > 0 && <span style={{ color: '#10B981', marginLeft: 10 }}>+$ refunded</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {balanceOps.length === 0 ? (
             <p style={{ fontSize: 12, color: '#8A8A93' }}>No operations yet.</p>
           ) : (

@@ -114,6 +114,11 @@ export const clientsApi = {
     return unwrap<BalanceOperationItem>(res);
   },
 
+  getBalanceSummary: async (clientId: string): Promise<BalanceSummary> => {
+    const res = await fetchWithAuth(`/users/clients/${clientId}/balance-summary`);
+    return unwrap<BalanceSummary>(res);
+  },
+
   getBalanceOperations: async (
     clientId: string,
     params?: { page?: number; limit?: number },
@@ -201,6 +206,25 @@ export interface BalanceOperationList {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface BalanceSummary {
+  totals: {
+    deposited: number;
+    withdrawn: number;
+    invested: number;
+    refunded: number;
+    exits: number;
+    availableBalance: number;
+  };
+  byDeal: Array<{
+    dealId: string;
+    ticker: string;
+    companyName: string;
+    invested: number;
+    refunded: number;
+    exits: number;
+  }>;
 }
 
 export interface CreateBalanceOperationPayload {
