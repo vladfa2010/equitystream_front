@@ -187,8 +187,8 @@ export default function AvailableDeals() {
                     <ChevronRight size={16} style={{ color: '#55555E' }} />
                   </div>
 
-                  {/* Company name */}
-                  <h3 className="text-h4 mb-1" style={{ color: '#F5F5F0' }}>{deal.companyName}</h3>
+                  {/* Company name + дата (ТЗ-19: различитель раундов при одинаковом тикере) */}
+                  <h3 className="text-h4 mb-1" style={{ color: '#F5F5F0' }}>{deal.companyName} <span className="text-[11px] font-normal" style={{ color: '#55555E' }}>{new Date(deal.dealDate || deal.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span></h3>
 
                   {/* Metrics row */}
                   <div className="flex items-center gap-4 mb-4 text-[12px]">

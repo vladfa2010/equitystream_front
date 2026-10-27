@@ -262,7 +262,7 @@ export default function DealsList() {
                     </div>
                     <div>
                       <p className="text-sm font-medium" style={{ color: '#F5F5F0' }}>{deal.companyName}</p>
-                      <p className="text-xs" style={{ color: '#8A8A93' }}>{deal.ticker} &middot; {allocated.toFixed(0)}% allocated</p>
+                      <p className="text-xs" style={{ color: '#8A8A93' }}>{deal.ticker} &middot; {new Date(deal.dealDate || deal.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} &middot; {allocated.toFixed(0)}% allocated</p>
                     </div>
                   </div>
 

@@ -1627,6 +1627,9 @@ export default function DealEditor() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [sendEmail, setSendEmail] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  // ТЗ-19: после успешного create форма блокируется до перехода на сделку —
+  // повторный клик не создаст дубль (тикер больше не уникален, 409-страховки нет)
+  const [createDone, setCreateDone] = useState(false);
   const [allClients, setAllClients] = useState<Client[]>([]);
   // ТЗ-18: свободные средства клиентов (availableBalance из getAll)
   const [clientBalances, setClientBalances] = useState<Record<string, number>>({});
@@ -1794,6 +1797,7 @@ export default function DealEditor() {
         }
       }
 
+      setCreateDone(true);
       if (allocErrors.length > 0) {
         setToast({
           message: `Deal created, but ${allocErrors.length} allocation(s) failed — ${allocErrors.slice(0, 2).join('; ')}${allocErrors.length > 2 ? ` (+${allocErrors.length - 2} more)` : ''}`,
@@ -1984,7 +1988,7 @@ export default function DealEditor() {
                   {/* ТЗ-12 (Задача 2): две кнопки создания — черновик или публикация */}
                   <button
                     onClick={() => handleCreate(false)}
-                    disabled={isCreating}
+                    disabled={isCreating || createDone}
                     className="px-6 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ color: '#8A8A93', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
@@ -1993,7 +1997,7 @@ export default function DealEditor() {
 
                   <button
                     onClick={() => handleCreate(true)}
-                    disabled={isCreating}
+                    disabled={isCreating || createDone}
                     className="px-6 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ background: 'linear-gradient(135deg, #B8A14E, #C9B25F)', color: '#0A0A0F' }}
                   >
