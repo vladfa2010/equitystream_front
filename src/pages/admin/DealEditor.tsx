@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, TrendingUp, Globe, Users, Crown, Pencil, Trash2,
@@ -859,11 +860,35 @@ interface Step2Props {
   sharePrice: number;
   allClients: Client[];
   clientBalances: Record<string, number>;
+  onBalanceChange: (clientId: string, newBalance: number) => void;
 }
 
-function Step2ClientAllocations({ allocations, setAllocations, totalVolume, sharePrice, allClients, clientBalances }: Step2Props) {
+function Step2ClientAllocations({ allocations, setAllocations, totalVolume, sharePrice, allClients, clientBalances, onBalanceChange }: Step2Props) {
   const [showModal, setShowModal] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  // ТЗ-17: пополнение баланса прямо из аллокации, без ухода к карточке клиента
+  const { user } = useAuth();
+  const [topUpBusy, setTopUpBusy] = useState<string | null>(null);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+
+  const handleTopUp = async (clientId: string, missing: number) => {
+    if (!user?.id || !(missing > 0)) return;
+    setTopUpBusy(clientId);
+    setTopUpError(null);
+    try {
+      await clientsApi.createBalanceOperation(clientId, {
+        type: 'deposit',
+        amount: missing,
+        note: 'Top up from deal editor',
+        requestId: crypto.randomUUID(),
+      });
+      onBalanceChange(clientId, (clientBalances[clientId] ?? 0) + missing);
+    } catch (err) {
+      setTopUpError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTopUpBusy(null);
+    }
+  };
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const totalAllocated = useMemo(() =>
@@ -1058,7 +1083,22 @@ function Step2ClientAllocations({ allocations, setAllocations, totalVolume, shar
                     >
                       avail {fmtCur(clientBalances[alloc.clientId] ?? 0)}
                     </span>
+                    {amt > (clientBalances[alloc.clientId] ?? 0) && (
+                      <button
+                        type="button"
+                        onClick={() => handleTopUp(alloc.clientId, amt - (clientBalances[alloc.clientId] ?? 0))}
+                        disabled={topUpBusy === alloc.clientId}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-semibold transition-opacity"
+                        style={{ background: 'rgba(184,161,78,0.15)', color: '#B8A14E', border: '1px solid rgba(184,161,78,0.35)', opacity: topUpBusy === alloc.clientId ? 0.5 : 1 }}
+                        title="Deposit the missing amount to the client balance (ledger entry, TZ-17)"
+                      >
+                        {topUpBusy === alloc.clientId ? '…' : `Top up $${(amt - (clientBalances[alloc.clientId] ?? 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                      </button>
+                    )}
                   </div>
+                  {topUpError && (
+                    <p className="text-[10px] mt-1" style={{ color: '#EF4444' }}>{topUpError}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {!alloc.isLead && (
@@ -1857,7 +1897,7 @@ export default function DealEditor() {
                   setAllocations={setAllocations}
                   totalVolume={totalVolumeNum}
                   sharePrice={sharePriceNum}
-                  allClients={allClients} clientBalances={clientBalances}
+                  allClients={allClients} clientBalances={clientBalances} onBalanceChange={(id, b) => setClientBalances(prev => ({ ...prev, [id]: b }))}
                 />
               )}
               {step === 2 && (
