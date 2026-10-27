@@ -13,9 +13,9 @@ import {
   LineChart, Line,
 } from 'recharts';
 import Layout from '@/components/Layout';
-import { dealsApi, clientsApi, authApi } from '@/api';
-import type { DealMarketResponse, DealExitItem } from '@/api';
-import type { DealResponse, ClientResponse, PriceHistoryItem } from '@/api';
+import { dealsApi, authApi } from '@/api';
+import type { DealMarketResponse, DealExitItem, AuthUser } from '@/api';
+import type { DealResponse, PriceHistoryItem } from '@/api';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import MaterialMiniCard from '@/components/client/MaterialMiniCard';
 
@@ -33,7 +33,9 @@ export default function ClientDealView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [deal, setDeal] = useState<DealResponse | null>(null);
-  const [client, setClient] = useState<ClientResponse | null>(null);
+  // Личность — из authApi.me() (self). НЕ clientsApi.getAll() — тот эндпоинт
+  // только для админа (403 у клиента убирал всю панель позиции, ТЗ-13-паттерн).
+  const [me, setMe] = useState<AuthUser | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   // ТЗ-14: рыночные данные (404 → блок скрыт)
@@ -67,27 +69,21 @@ export default function ClientDealView() {
       .then(([dealData, user]) => {
         if (dealData) {
           setDeal(dealData);
+          setMe(user);
           // priceHistory already comes inside deal detail; backend has no separate GET endpoint
           setPriceHistory(dealData.priceHistory || []);
-          // Find client by matching email or use first investment client
-          clientsApi.getAll().then(envelope => {
-            const allClients = envelope.data || [];
-            const matched = allClients.find(
-              (c: ClientResponse) => c.email === user?.email || dealData.investments?.some((i: any) => i.userId === c.id)
-            );
-            setClient(matched || allClients[0] || null);
-          });
         }
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [id]);
 
-  // Find client's investment in this deal
+  // Find own investment in this deal (инвестиции уже скоуплены бэкендом —
+  // для клиента в ответе только его; ищем по своему id)
   const myInvestment = useMemo(() => {
-    if (!deal || !client) return null;
-    return deal.investments?.find((i: any) => i.userId === client.id);
-  }, [deal, client]);
+    if (!deal || !me) return null;
+    return deal.investments?.find((i: any) => i.userId === me.id);
+  }, [deal, me]);
 
   // Chart data from price history (sorted oldest first for chart)
   const chartData = useMemo(() => {
