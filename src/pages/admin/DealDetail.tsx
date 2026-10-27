@@ -69,7 +69,9 @@ export default function DealDetail() {
   const [exits, setExits] = useState<DealExitItem[]>([]);
   const [totalExitPercent, setTotalExitPercent] = useState(0);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [exitMode, setExitMode] = useState<'percent' | 'amount'>('percent');
   const [exitPercent, setExitPercent] = useState<string>('10');
+  const [exitAmount, setExitAmount] = useState<string>('');
   const [exitPrice, setExitPrice] = useState<string>('');
   const [exitNote, setExitNote] = useState('');
   const [exitRequestId, setExitRequestId] = useState('');
@@ -353,7 +355,9 @@ export default function DealDetail() {
     // requestId генерируется ОДИН раз на открытие формы — повторная отправка
     // с тем же ключом идемпотентна (ТЗ-16)
     setExitRequestId(crypto.randomUUID());
+    setExitMode('percent');
     setExitPercent('10');
+    setExitAmount('');
     setExitPrice(String(Number(deal.currentPrice) || ''));
     setExitNote('');
     setExitWarning(null);
@@ -361,18 +365,28 @@ export default function DealDetail() {
   };
 
   const exitPctNum = parseFloat(exitPercent) || 0;
+  const exitAmtNum = parseFloat(exitAmount) || 0;
   const exitPriceNum = parseFloat(exitPrice) || 0;
+  // v3: общая стоимость позиций и эффективный процент (для обоих режимов)
+  const exitTotalShares = (deal?.investments || []).reduce(
+    (sum, inv: any) => sum + (Number(inv.entryPrice) ? Number(inv.amount) / Number(inv.entryPrice) : 0), 0);
+  const exitTotalValue = exitTotalShares * exitPriceNum;
+  const exitEffPct = exitMode === 'percent'
+    ? exitPctNum
+    : exitTotalValue > 0 ? (exitAmtNum / exitTotalValue) * 100 : 0;
   // предпросмотр: суммарно по всем инвестициям по введённой цене
   const exitPreview = (() => {
-    if (!deal || exitPctNum <= 0 || exitPriceNum <= 0) return null;
-    let cash = 0;
+    if (!deal || exitPriceNum <= 0) return null;
+    if (exitMode === 'percent' && exitPctNum <= 0) return null;
+    if (exitMode === 'amount' && exitAmtNum <= 0) return null;
     let clients = 0;
     for (const inv of deal.investments || []) {
-      const entry = Number(inv.entryPrice);
-      if (!entry) continue;
-      cash += (Number(inv.amount) / entry) * (exitPctNum / 100) * exitPriceNum;
-      clients += 1;
+      if (Number(inv.entryPrice)) clients += 1;
     }
+    // v3: в $-режиме Y = введённая сумма; в %-режиме — расчёт
+    const cash = exitMode === 'amount'
+      ? exitAmtNum
+      : exitTotalValue * (exitPctNum / 100);
     return { cash, clients };
   })();
   const confirmedPrice = deal ? Number(deal.currentPrice) || 0 : 0;
@@ -387,7 +401,9 @@ export default function DealDetail() {
     setExitWarning(null);
     try {
       const r = await dealsApi.createExit(id, {
-        percent: exitPctNum,
+        mode: exitMode,
+        percent: exitMode === 'percent' ? exitPctNum : undefined,
+        amount: exitMode === 'amount' ? exitAmtNum : undefined,
         pricePerShare: exitPriceNum,
         note: exitNote.trim() || undefined,
         requestId: exitRequestId,
@@ -698,6 +714,7 @@ export default function DealDetail() {
                   </span>
                   <span className="font-semibold" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>
                     {e.totalCash != null ? `+$${e.totalCash.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
+                    {e.mode === 'amount' && e.targetAmount != null ? ` (задано $${e.targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })})` : ''}
                     {e.clientsCount != null ? ` · ${e.clientsCount} клиент.` : ''}
                   </span>
                 </div>
@@ -965,11 +982,41 @@ export default function DealDetail() {
               </p>
 
               <div className="flex flex-col gap-4">
+                {/* ТЗ-16 v3: переключатель режима «% / $» */}
+                <div className="flex gap-2">
+                  {(['percent', 'amount'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setExitMode(m)}
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold transition-colors"
+                      style={{
+                        background: exitMode === m ? 'rgba(184,161,78,0.15)' : 'rgba(255,255,255,0.04)',
+                        color: exitMode === m ? '#B8A14E' : '#8A8A93',
+                        border: `1px solid ${exitMode === m ? 'rgba(184,161,78,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                      }}
+                    >
+                      {m === 'percent' ? 'В процентах (%)' : 'В деньгах ($)'}
+                    </button>
+                  ))}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Процент выхода, %</label>
-                    <input type="number" min={0.01} max={100} step={0.01} value={exitPercent} onChange={(e) => setExitPercent(e.target.value)} style={inpBase} {...inpFocus} />
-                  </div>
+                  {exitMode === 'percent' ? (
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Процент выхода, %</label>
+                      <input type="number" min={0.01} max={100} step={0.01} value={exitPercent} onChange={(e) => setExitPercent(e.target.value)} style={inpBase} {...inpFocus} />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Сумма вывода, $</label>
+                      <input type="number" min={0.01} step={0.01} value={exitAmount} onChange={(e) => setExitAmount(e.target.value)} style={inpBase} {...inpFocus} />
+                      {exitAmtNum > 0 && exitTotalValue > 0 && (
+                        <p className="text-[10px] mt-1" style={{ color: '#8A8A93' }}>
+                          это ≈ {exitEffPct.toFixed(2)}% позиций по цене выхода
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Цена выхода (за акцию)</label>
                     <input type="number" min={0.0001} step={0.0001} value={exitPrice} onChange={(e) => setExitPrice(e.target.value)} style={inpBase} {...inpFocus} />
@@ -994,7 +1041,12 @@ export default function DealDetail() {
                     <p style={{ color: '#F5F5F0' }}>
                       Выйдет: {exitPctNum}% позиции ≈ <span style={{ color: '#10B981', fontWeight: 600 }}>${exitPreview.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> суммарно по {exitPreview.clients} клиентам
                     </p>
-                    {exitPctNum + totalExitPercent > 100 && (
+                    {exitMode === 'amount' && exitAmtNum > exitTotalValue && exitTotalValue > 0 && (
+                      <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+                        Сумма превышает стоимость позиций: максимум ${exitTotalValue.toFixed(2)}
+                      </p>
+                    )}
+                    {exitEffPct + totalExitPercent > 100 && (
                       <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
                         Суммарный выход превысит 100% (уже {totalExitPercent}%)
                       </p>
@@ -1004,7 +1056,9 @@ export default function DealDetail() {
 
                 <button
                   onClick={handleCreateExit}
-                  disabled={exitSaving || exitPctNum <= 0 || exitPctNum > 100 || exitPriceNum <= 0 || exitPctNum + totalExitPercent > 100}
+                  disabled={exitSaving || exitPriceNum <= 0 || exitEffPct <= 0 || exitEffPct > 100
+                    || exitEffPct + totalExitPercent > 100
+                    || (exitMode === 'amount' && exitTotalValue > 0 && exitAmtNum > exitTotalValue)}
                   className="py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40"
                   style={{ background: 'linear-gradient(135deg, #10B981, #34D399)', color: '#0A0A0F' }}
                 >

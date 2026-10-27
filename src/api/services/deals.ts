@@ -263,7 +263,11 @@ export interface ExitAllocation {
 
 export interface DealExitItem {
   id: string;
+  /** v3: 'percent' | 'amount' */
+  mode: 'percent' | 'amount';
   percent: number;
+  /** v3: заданная сумма вывода (только amount-режим) */
+  targetAmount: number | null;
   pricePerShare: number;
   note: string | null;
   createdAt: string;
@@ -286,7 +290,9 @@ export interface DealExitListResponse {
 }
 
 export interface CreateExitPayload {
-  percent: number;
+  mode: 'percent' | 'amount';
+  percent?: number;
+  amount?: number;
   pricePerShare: number;
   note?: string;
   requestId: string;
