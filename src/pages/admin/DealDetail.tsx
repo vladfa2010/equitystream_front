@@ -3,13 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, TrendingUp, TrendingDown, Users, Loader2,
-  Pencil, Trash2, X, Plus, CheckCircle2, Crown, ShieldCheck, ShieldOff,
+  Pencil, Trash2, X, Plus, CheckCircle2, Crown, ShieldCheck, ShieldOff, ChevronRight,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import InstrumentSearchInput from '@/components/admin/InstrumentSearchInput';
 import { formatCurrency, formatPercent } from '@/data/mockData';
 import { dealsApi, clientsApi, authApi } from '@/api';
-import type { DealResponse, ClientResponse, PriceHistoryItem, DealMarketResponse, DealExitItem } from '@/api';
+import type { DealResponse, ClientResponse, PriceHistoryItem, DealMarketResponse, DealExitItem, ExitAllocationDetail } from '@/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
@@ -77,6 +77,10 @@ export default function DealDetail() {
   const [exitRequestId, setExitRequestId] = useState('');
   const [exitSaving, setExitSaving] = useState(false);
   const [exitWarning, setExitWarning] = useState<string | null>(null);
+  // раскрытие выхода: кому сколько улетело
+  const [expandedExitId, setExpandedExitId] = useState<string | null>(null);
+  const [exitAllocations, setExitAllocations] = useState<ExitAllocationDetail[]>([]);
+  const [exitAllocLoading, setExitAllocLoading] = useState(false);
   const [allClients, setAllClients] = useState<ClientResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -425,6 +429,24 @@ export default function DealDetail() {
     }
   };
 
+  /* ────────── ТЗ-16: раскрыть allocations выхода ────────── */
+  const toggleExitAllocations = async (exitId: string) => {
+    if (expandedExitId === exitId) {
+      setExpandedExitId(null);
+      return;
+    }
+    setExpandedExitId(exitId);
+    setExitAllocLoading(true);
+    setExitAllocations([]);
+    try {
+      if (id) setExitAllocations(await dealsApi.getExitAllocations(id, exitId));
+    } catch {
+      setExitAllocations([]);
+    } finally {
+      setExitAllocLoading(false);
+    }
+  };
+
   /* ────────── delete deal ────────── */
   const handleDeleteDeal = async () => {
     if (!deal || confirmDealName !== deal.companyName) return;
@@ -714,17 +736,61 @@ export default function DealDetail() {
             </div>
             <div className="space-y-2">
               {exits.map((e) => (
-                <div key={e.id} className="flex items-center justify-between text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <span style={{ color: '#F5F5F0' }}>
-                    {new Date(e.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    {' · '}{e.percent}% по ${e.pricePerShare.toFixed(2)}
-                    {e.note ? ` · ${e.note}` : ''}
-                  </span>
-                  <span className="font-semibold" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>
-                    {e.totalCash != null ? `+$${e.totalCash.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
-                    {e.mode === 'amount' && e.targetAmount != null ? ` (target $${e.targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })})` : ''}
-                    {e.clientsCount != null ? ` · ${e.clientsCount} client(s)` : ''}
-                  </span>
+                <div key={e.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <button
+                    onClick={() => toggleExitAllocations(e.id)}
+                    className="w-full flex items-center justify-between text-sm py-2 text-left transition-colors hover:bg-white/[0.02]"
+                    title="Click to see per-client allocations"
+                  >
+                    <span style={{ color: '#F5F5F0' }}>
+                      <ChevronRight
+                        size={13}
+                        style={{
+                          display: 'inline', marginRight: 6, color: '#8A8A93',
+                          transform: expandedExitId === e.id ? 'rotate(90deg)' : 'none',
+                          transition: 'transform 0.15s',
+                        }}
+                      />
+                      {new Date(e.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {' · '}{e.percent}% at ${e.pricePerShare.toFixed(2)}
+                      {e.note ? ` · ${e.note}` : ''}
+                    </span>
+                    <span className="font-semibold" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>
+                      {e.totalCash != null ? `+$${e.totalCash.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
+                      {e.mode === 'amount' && e.targetAmount != null ? ` (target $${e.targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })})` : ''}
+                      {e.clientsCount != null ? ` · ${e.clientsCount} client(s)` : ''}
+                    </span>
+                  </button>
+                  {expandedExitId === e.id && (
+                    <div className="pb-3 pl-6">
+                      {exitAllocLoading ? (
+                        <p className="text-xs py-1" style={{ color: '#8A8A93' }}>Loading…</p>
+                      ) : (
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr style={{ color: '#55555E', textAlign: 'left' }}>
+                              <th className="py-1 font-medium">Client</th>
+                              <th className="py-1 font-medium text-right">Shares sold</th>
+                              <th className="py-1 font-medium text-right">Cash</th>
+                              <th className="py-1 font-medium text-right">Realized P&L</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {exitAllocations.map((a) => (
+                              <tr key={a.investmentId} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                <td className="py-1.5" style={{ color: '#F5F5F0' }}>{a.name}</td>
+                                <td className="py-1.5 text-right" style={{ color: '#8A8A93', fontFamily: "'JetBrains Mono', monospace" }}>{a.sharesSold.toLocaleString('en-US')}</td>
+                                <td className="py-1.5 text-right" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>+${a.cashAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                <td className="py-1.5 text-right" style={{ color: a.realizedPnl >= 0 ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
+                                  {a.realizedPnl >= 0 ? '+' : ''}${a.realizedPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

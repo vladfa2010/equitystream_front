@@ -201,6 +201,12 @@ export const dealsApi = {
     return unwrap<DealExitListResponse>(res);
   },
 
+  /** ТЗ-16: per-client allocations выхода (только admin) */
+  getExitAllocations: async (dealId: string, exitId: string): Promise<ExitAllocationDetail[]> => {
+    const res = await fetchWithAuth(`/deals/${dealId}/exits/${exitId}/allocations`);
+    return unwrap<ExitAllocationDetail[]>(res);
+  },
+
   getPendingReservations: async (): Promise<Reservation[]> => {
     // TODO: implement reservations endpoint
     return [];
@@ -287,6 +293,10 @@ export interface DealExitCreateResponse {
 export interface DealExitListResponse {
   data: DealExitItem[];
   totalPercent: number;
+}
+
+export interface ExitAllocationDetail extends ExitAllocation {
+  name: string;
 }
 
 export interface CreateExitPayload {
