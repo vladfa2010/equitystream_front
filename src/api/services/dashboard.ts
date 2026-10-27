@@ -1,11 +1,11 @@
 import type { AdminDashboardResponse, ActivityItem, DealSummary } from '../types';
-import { apiFetch } from '../http';
+import { apiFetch, extractErrorMessage } from '../http';
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const res = await apiFetch(endpoint, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || err.message || `HTTP ${res.status}`);
+    throw new Error(extractErrorMessage(err, res.status));
   }
   return res.json();
 }

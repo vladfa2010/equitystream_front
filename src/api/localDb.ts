@@ -273,6 +273,7 @@ export function createClientLocal(data: CreateClientRequest): ClientResponse {
     status: data.status || 'active',
     totalInvested: 0,
     totalPnl: 0,
+    availableBalance: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

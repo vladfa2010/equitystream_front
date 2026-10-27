@@ -858,9 +858,10 @@ interface Step2Props {
   totalVolume: number;
   sharePrice: number;
   allClients: Client[];
+  clientBalances: Record<string, number>;
 }
 
-function Step2ClientAllocations({ allocations, setAllocations, totalVolume, sharePrice, allClients }: Step2Props) {
+function Step2ClientAllocations({ allocations, setAllocations, totalVolume, sharePrice, allClients, clientBalances }: Step2Props) {
   const [showModal, setShowModal] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -1049,6 +1050,14 @@ function Step2ClientAllocations({ allocations, setAllocations, totalVolume, shar
                     </span>
                     <span className="text-[11px]" style={{ color: '#55555E' }}>{pct.toFixed(1)}%</span>
                     <span className="text-[11px]" style={{ color: '#55555E' }}>{shares} sh @ ${parseNum(alloc.entryPrice).toFixed(2)}</span>
+                    {/* ТЗ-18: доступный баланс клиента; подсветка при превышении */}
+                    <span
+                      className="text-[11px] font-medium"
+                      style={{ color: amt > (clientBalances[alloc.clientId] ?? 0) ? '#EAB308' : '#55555E' }}
+                      title="Client available balance (TZ-18: entry requires funds)"
+                    >
+                      avail {fmtCur(clientBalances[alloc.clientId] ?? 0)}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -1578,6 +1587,8 @@ export default function DealEditor() {
   const [sendEmail, setSendEmail] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [allClients, setAllClients] = useState<Client[]>([]);
+  // ТЗ-18: свободные средства клиентов (availableBalance из getAll)
+  const [clientBalances, setClientBalances] = useState<Record<string, number>>({});
 
   // Load clients from API on mount
   useEffect(() => {
@@ -1596,6 +1607,9 @@ export default function DealEditor() {
           joinDate: c.createdAt ? c.createdAt.split('T')[0] : '',
         }));
         setAllClients(mapped);
+        const balances: Record<string, number> = {};
+        for (const c of envelope.data) balances[c.id] = Number(c.availableBalance) || 0;
+        setClientBalances(balances);
       })
       .catch(() => setAllClients([]));
   }, []);
@@ -1720,25 +1734,38 @@ export default function DealEditor() {
       const dealId = (response as unknown as { id: string }).id;
 
       // Add client investments separately via the dedicated endpoint.
+      // ТЗ-18: провалы собираются поштучно — админ видит КТО и ПОЧЕМУ
+      // (типично: недостаток свободных средств клиента).
+      const allocErrors: string[] = [];
       if (allocations.length > 0 && dealId) {
-        await Promise.all(
-          allocations.map(a =>
-            dealsApi.addInvestment(dealId, {
+        for (const a of allocations) {
+          try {
+            await dealsApi.addInvestment(dealId, {
               clientId: a.clientId,
               amount: parseNum(a.amount),
               isLead: a.isLead,
               customEntryPrice: parseNum(a.entryPrice) !== entryPrice ? parseNum(a.entryPrice) : undefined,
-            })
-          )
-        );
+            });
+          } catch (err) {
+            const name = allClients.find(c => c.id === a.clientId)?.name || a.clientId;
+            allocErrors.push(`${name}: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
       }
 
-      setToast({
-        message: publish
-          ? `Deal created with status: ${form.status === 'draft' ? 'Pipeline' : form.status}`
-          : 'Draft saved',
-        type: 'success',
-      });
+      if (allocErrors.length > 0) {
+        setToast({
+          message: `Deal created, but ${allocErrors.length} allocation(s) failed — ${allocErrors.slice(0, 2).join('; ')}${allocErrors.length > 2 ? ` (+${allocErrors.length - 2} more)` : ''}`,
+          type: 'error',
+        });
+      } else {
+        setToast({
+          message: publish
+            ? `Deal created with status: ${form.status === 'draft' ? 'Pipeline' : form.status}`
+            : 'Draft saved',
+          type: 'success',
+        });
+      }
 
       setTimeout(() => {
         navigate(`/admin/deals/${dealId}`);
@@ -1830,7 +1857,7 @@ export default function DealEditor() {
                   setAllocations={setAllocations}
                   totalVolume={totalVolumeNum}
                   sharePrice={sharePriceNum}
-                  allClients={allClients}
+                  allClients={allClients} clientBalances={clientBalances}
                 />
               )}
               {step === 2 && (

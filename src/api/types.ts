@@ -167,6 +167,7 @@ export interface ClientResponse {
   status: 'active' | 'inactive' | 'pending';
   totalInvested: number;
   totalPnl: number;
+  availableBalance: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -47,6 +47,7 @@ export default function AddClientModal({ isOpen, onClose, onAdd }: AddClientModa
       status: 'active',
       totalInvested: 0,
       totalPnl: 0,
+      availableBalance: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

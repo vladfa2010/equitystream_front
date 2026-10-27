@@ -1,11 +1,11 @@
 import type { MaterialResponse, CreateMaterialRequest } from '../types';
-import { apiFetch, API_URL } from '../http';
+import { apiFetch, API_URL, extractErrorMessage } from '../http';
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const res = await apiFetch(endpoint, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || err.message || `HTTP ${res.status}`);
+    throw new Error(extractErrorMessage(err, res.status));
   }
   return res.json();
 }

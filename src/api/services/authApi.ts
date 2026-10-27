@@ -1,5 +1,5 @@
 import type { LoginRequest, LoginResponse, UserDto } from '../types';
-import { apiFetch } from '../http';
+import { apiFetch, extractErrorMessage } from '../http';
 
 function unwrap<T>(res: any): T {
   if (res && res.data !== undefined) return res.data as T;
@@ -12,7 +12,7 @@ async function api(endpoint: string, options: RequestInit = {}) {
   const data = await res.json().catch(() => ({ error: 'Network error' }));
 
   if (!res.ok) {
-    throw new Error(data.error || data.message || `HTTP ${res.status}`);
+    throw new Error(extractErrorMessage(data, res.status));
   }
 
   return data;
