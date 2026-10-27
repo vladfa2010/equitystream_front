@@ -457,7 +457,9 @@ export default function ClientDealView() {
           {[
             { label: 'Entry Price', value: `$${(deal.entryPrice || 0).toFixed(2)}`, color: '#8A8A93' },
             { label: 'Share Price', value: `$${(deal.currentPrice || 0).toFixed(2)}`, color: '#F5F5F0' },
-            { label: 'Shares', value: `${(deal.shareQuantity || 0).toLocaleString()}`, color: '#B8A14E' },
+            // НЕ позиция клиента — общий пакет сделки (totalPackageAmount/entryPrice).
+            // Позиция клиента — в панели «My Position» выше (скоуплено бэкендом, ТЗ-5).
+            { label: 'Total Shares', value: `${(deal.shareQuantity || 0).toLocaleString()}`, color: '#B8A14E' },
           ].map((m, i) => (
             <motion.div
               key={m.label}
