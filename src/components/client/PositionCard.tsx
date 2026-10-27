@@ -49,10 +49,10 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
   let lockupLine: string | null = null;
   if (deal.pipelineStatus === 'Lock-up' && lockupHasData) {
     lockupLine = isLockupExpired
-      ? 'Позиция разблокирована'
-      : `Разблокировка: ${fmtDate(deal.lockupEndDate!)}`;
+      ? 'Position unlocked'
+      : `Unlock: ${fmtDate(deal.lockupEndDate!)}`;
   } else if (deal.pipelineStatus === 'Wait IPO' && deal.ipoDate) {
-    lockupLine = `Ожидаемое IPO: ${fmtDate(deal.ipoDate)}`;
+    lockupLine = `Expected IPO: ${fmtDate(deal.ipoDate)}`;
   }
 
   return (
@@ -116,7 +116,7 @@ export default function PositionCard({ deal, investment, index = 0 }: PositionCa
             <>
               <span style={{ opacity: 0.4 }}>|</span>
               <Lock size={10} />
-              {isLockupExpired ? 'истёк' : `${deal.lockupDaysRemaining} дн.`}
+              {isLockupExpired ? 'expired' : `${deal.lockupDaysRemaining} days`}
             </>
           )}
           {deal.pipelineStatus === 'Wait IPO' && deal.ipoDate && (

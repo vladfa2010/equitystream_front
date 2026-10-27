@@ -212,7 +212,7 @@ export default function ClientDetail() {
       setClient(c);
       setBalanceOps(ops.data || []);
     } catch (err: any) {
-      setBalanceMsg(err?.message || 'Операция не выполнена.');
+      setBalanceMsg(err?.message || 'Operation failed.');
     } finally {
       setBalanceSaving(false);
     }
@@ -675,7 +675,7 @@ export default function ClientDetail() {
               }}
             >
               <DollarSign size={14} />
-              Добавить деньги
+              Add Funds
             </button>
             <button
               onClick={() => openBalanceModal('withdrawal')}
@@ -692,7 +692,7 @@ export default function ClientDetail() {
               }}
             >
               <DollarSign size={14} />
-              Вывести деньги
+              Withdraw Funds
             </button>
             <button
               onClick={() => setIsSetPasswordModalOpen(true)}
@@ -778,21 +778,21 @@ export default function ClientDetail() {
         <section style={{ marginTop: 24 }}>
           <div className="flex items-center justify-between mb-3">
             <h3 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#B8A14E' }}>
-              Свободные средства
+              Available Balance
             </h3>
             <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: '#10B981' }}>
               ${((client as any)?.availableBalance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
           </div>
           {balanceOps.length === 0 ? (
-            <p style={{ fontSize: 12, color: '#8A8A93' }}>Операций пока не было.</p>
+            <p style={{ fontSize: 12, color: '#8A8A93' }}>No operations yet.</p>
           ) : (
             <div style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
               {balanceOps.map((op) => {
                 const positive = op.type === 'deposit' || op.type === 'investment_refund' || op.type === 'exit_credit';
                 const labels: Record<string, string> = {
-                  deposit: 'Пополнение', withdrawal: 'Вывод', investment: 'Вход в сделку',
-                  investment_refund: 'Возврат из сделки', exit_credit: 'Частичный выход',
+                  deposit: 'Deposit', withdrawal: 'Withdrawal', investment: 'Deal Entry',
+                  investment_refund: 'Refund from Deal', exit_credit: 'Partial Exit',
                 };
                 return (
                   <div key={op.id} className="flex items-center justify-between" style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 13 }}>
@@ -816,12 +816,12 @@ export default function ClientDetail() {
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={() => setShowBalanceModal(false)}>
             <div onClick={(e) => e.stopPropagation()} style={{ width: 420, background: '#14141C', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, color: '#F5F5F0', marginBottom: 4 }}>
-                {balanceOpType === 'deposit' ? 'Добавить деньги' : 'Вывести деньги'}
+                {balanceOpType === 'deposit' ? 'Add Funds' : 'Withdraw Funds'}
               </h3>
               <p style={{ fontSize: 12, color: '#8A8A93', marginBottom: 16 }}>
-                Клиент: {client?.name}
+                Client: {client?.name}
                 {balanceOpType === 'withdrawal' && (
-                  <> · доступно: <span style={{ color: '#EAB308' }}>${((client as any)?.availableBalance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></>
+                  <> · available: <span style={{ color: '#EAB308' }}>${((client as any)?.availableBalance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></>
                 )}
               </p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -832,20 +832,20 @@ export default function ClientDetail() {
                     color: balanceOpType === t ? '#B8A14E' : '#8A8A93',
                     border: `1px solid ${balanceOpType === t ? 'rgba(184,161,78,0.4)' : 'rgba(255,255,255,0.08)'}`,
                   }}>
-                    {t === 'deposit' ? 'Пополнение' : 'Вывод'}
+                    {t === 'deposit' ? 'Deposit' : 'Withdrawal'}
                   </button>
                 ))}
               </div>
               <input type="number" min={0.0001} step={0.01} value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)}
-                placeholder="Сумма" style={{ width: '100%', marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0', fontSize: 14 }} />
+                placeholder="Amount" style={{ width: '100%', marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0', fontSize: 14 }} />
               <input type="text" value={balanceNote} onChange={(e) => setBalanceNote(e.target.value)} maxLength={255}
-                placeholder="Причина (обязательно)" style={{ width: '100%', marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0', fontSize: 14 }} />
+                placeholder="Reason (required)" style={{ width: '100%', marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0', fontSize: 14 }} />
               {balanceMsg && <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 8 }}>{balanceMsg}</p>}
               <button onClick={handleBalanceOp} disabled={balanceSaving || !(parseFloat(balanceAmount) > 0) || !balanceNote.trim()
                   || (balanceOpType === 'withdrawal' && parseFloat(balanceAmount) > ((client as any)?.availableBalance ?? 0))}
                 style={{ width: '100%', padding: '10px 0', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
                   background: balanceOpType === 'deposit' ? '#10B981' : '#EAB308', color: '#0A0A0F', opacity: balanceSaving ? 0.5 : 1 }}>
-                {balanceSaving ? 'Проводим…' : 'Подтвердить'}
+                {balanceSaving ? 'Processing…' : 'Confirm'}
               </button>
             </div>
           </div>

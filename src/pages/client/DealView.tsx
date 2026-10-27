@@ -271,7 +271,7 @@ export default function ClientDealView() {
           </div>
         </motion.div>
 
-        {/* ТЗ-15: Локап позиции — только при полных данных (оба поля).
+        {/* ТЗ-15: Position Lock-up — только при полных данных (оба поля).
             Дни/истёкшее берём с сервера, локально не вычисляем. */}
         {deal.ipoDate && deal.lockupMonths != null && deal.lockupEndDate && (() => {
           const fmtD = (d: string) => new Date(`${d.split('T')[0]}T00:00:00Z`).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -290,7 +290,7 @@ export default function ClientDealView() {
               <div className="flex items-center gap-2 mb-4">
                 <Lock size={16} style={{ color: deal.lockupExpired ? '#10B981' : '#EAB308' }} />
                 <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: deal.lockupExpired ? '#10B981' : '#EAB308' }}>
-                  Локап позиции
+                  Position Lock-up
                 </h2>
                 <span
                   className="text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1"
@@ -298,23 +298,23 @@ export default function ClientDealView() {
                     ? { background: 'rgba(16,185,129,0.15)', color: '#10B981' }
                     : { background: 'rgba(234,179,8,0.15)', color: '#EAB308' }}
                 >
-                  Lock-up · {deal.lockupExpired ? 'истёк' : `${deal.lockupDaysRemaining ?? 0} дн.`}
+                  Lock-up · {deal.lockupExpired ? 'expired' : `${deal.lockupDaysRemaining ?? 0} days`}
                 </span>
               </div>
               {deal.lockupExpired ? (
                 <p className="text-body" style={{ color: '#F5F5F0' }}>
-                  Локап завершён, ожидайте информации от управляющего.
+                  Lock-up completed — please wait for your manager's update.
                 </p>
               ) : (
                 <>
                   <p className="text-mono-l mb-3" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
-                    {deal.lockupDaysRemaining ?? 0} дн.
+                    {deal.lockupDaysRemaining ?? 0} days
                   </p>
                   <div className="h-2 rounded-full overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
                     <div className="h-full rounded-full" style={{ width: `${(passed * 100).toFixed(1)}%`, background: '#EAB308' }} />
                   </div>
                   <p className="text-caption" style={{ color: '#8A8A93' }}>
-                    IPO: {fmtD(deal.ipoDate!)} · Разблокировка: {fmtD(deal.lockupEndDate)} · До этой даты продажа позиции недоступна
+                    IPO: {fmtD(deal.ipoDate!)} · Unlock: {fmtD(deal.lockupEndDate)} · Position cannot be sold before this date
                   </p>
                 </>
               )}
@@ -335,16 +335,16 @@ export default function ClientDealView() {
               <div className="flex items-center gap-2">
                 <DollarSign size={16} style={{ color: '#4F6EF7' }} />
                 <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#4F6EF7' }}>
-                  Рыночные данные
+                  Market Data
                 </h2>
               </div>
               <span className="text-caption" style={{ color: market.stale ? '#EAB308' : '#8A8A93' }}>
-                {market.stale ? 'данные могут быть неактуальны' : 'данные с задержкой ~15 мин'}
+                {market.stale ? 'data may be outdated' : 'data delayed ~15 min'}
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4 mt-3">
               <div>
-                <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Рыночная цена</p>
+                <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Market Price</p>
                 <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
                   {market.price.toFixed(2)} {market.currency}
                 </p>
@@ -352,13 +352,13 @@ export default function ClientDealView() {
               {market.myMarketValue != null && (
                 <>
                   <div>
-                    <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Рыночная стоимость</p>
+                    <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Market Value</p>
                     <p className="text-mono-m" style={{ color: '#F5F5F0', fontFamily: "'JetBrains Mono', monospace" }}>
                       {formatCurrency(market.myMarketValue)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Рыночный P&amp;L</p>
+                    <p className="text-caption mb-1" style={{ color: '#55555E', textTransform: 'uppercase' }}>Market P&amp;L</p>
                     <p className="text-mono-m" style={{ color: (market.myMarketPnl ?? 0) >= 0 ? '#10B981' : '#EF4444', fontFamily: "'JetBrains Mono', monospace" }}>
                       {(market.myMarketPnl ?? 0) >= 0 ? '+' : ''}{formatCurrency(market.myMarketPnl ?? 0)}
                     </p>
@@ -401,10 +401,10 @@ export default function ClientDealView() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-caption" style={{ color: '#55555E' }}>График недоступен для выбранного периода</p>
+              <p className="text-caption" style={{ color: '#55555E' }}>Chart unavailable for the selected period</p>
             )}
             <p className="text-caption mt-3" style={{ color: '#55555E' }}>
-              Рыночная оценка по котировкам с задержкой; официальная доходность позиции — из подтверждённых цен.
+              Market estimate from delayed quotes; official position performance comes from confirmed prices.
             </p>
           </motion.div>
         )}
@@ -420,7 +420,7 @@ export default function ClientDealView() {
           >
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp size={16} style={{ color: '#10B981' }} />
-              <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#10B981' }}>Выходы</h2>
+              <h2 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#10B981' }}>Exits</h2>
             </div>
             <div className="space-y-2">
               {exits.map((e) => (
@@ -515,9 +515,9 @@ export default function ClientDealView() {
                     <span
                       className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
                       style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}
-                      title="Цена-слух, не подтверждена и не влияет на доходность"
+                      title="Rumor price — unconfirmed, does not affect performance"
                     >
-                      слух ${newestRumor.price.toFixed(2)} — не подтверждено
+                      rumor ${newestRumor.price.toFixed(2)} — unconfirmed
                     </span>
                   )}
                 </div>
@@ -633,9 +633,9 @@ export default function ClientDealView() {
                             <span
                               className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
                               style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}
-                              title="Не подтверждено: цена-слух, не влияет на вашу доходность"
+                              title="Unconfirmed: rumor price, does not affect your performance"
                             >
-                              не подтверждено
+                              unconfirmed
                             </span>
                           )}
                           ${item.price.toFixed(2)}

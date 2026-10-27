@@ -53,7 +53,7 @@ function computeLockupPreview(ipoDate: string | null | undefined, months: number
   if (d.getUTCDate() < day) d.setUTCDate(0); // кламп: 31 янв + 1 мес = последний день февраля
   const end = d.toISOString().split('T')[0];
   const days = Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86400000));
-  return `Позиция раскрывается: ${end} (через ${days} дн.)`;
+  return `Position unlocks: ${end} (in ${days} days)`;
 }
 
 export default function DealDetail() {
@@ -302,7 +302,7 @@ export default function DealDetail() {
     delete payload.shareQuantity;
     // ТЗ-15: парность полей локапа дублирует серверную валидацию
     if ((payload.ipoDate == null) !== (payload.lockupMonths == null)) {
-      alert('Укажите и дату IPO, и срок локапа — или оставьте оба поля пустыми.');
+      alert('Provide both IPO date and lock-up period — or leave both empty.');
       setSaving(false);
       return;
     }
@@ -415,7 +415,7 @@ export default function DealDetail() {
       load(); // инвестиции/метрики изменились
       if (r.priceDeviationWarning) {
         setExitWarning(
-          `Выход создан. Внимание: цена ${exitPriceNum} отклоняется от подтверждённой (${confirmedPrice}) более чем на 20%.`,
+          `Exit created. Warning: price ${exitPriceNum} deviates from confirmed (${confirmedPrice}) by more than 20%.`,
         );
       }
     } catch (err: any) {
@@ -553,11 +553,11 @@ export default function DealDetail() {
             <button
               onClick={openExitModal}
               disabled={!canExit}
-              title={canExit ? 'Частичный выход' : 'Выход доступен со статусов Deal done / Lock-up / Exit'}
+              title={canExit ? 'Partial Exit' : 'Exit allowed from Deal done / Lock-up / Exit'}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
               style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}
             >
-              <TrendingUp size={14} /> Частичный выход
+              <TrendingUp size={14} /> Partial Exit
             </button>
             <button onClick={openEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>
               <Pencil size={14} /> Edit
@@ -617,17 +617,17 @@ export default function DealDetail() {
         {deal.ipoDate && deal.lockupMonths != null && deal.lockupEndDate && (
           <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.15)', backdropFilter: 'blur(24px)' }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#EAB308' }}>Локап</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#EAB308' }}>Lock-up</h3>
               {deal.lockupExpired && (
                 <span className="px-2 py-1 rounded text-xs font-medium" style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}>
-                  Локап истёк — пора решать об Exit
+                  Lock-up expired — consider Exit
                 </span>
               )}
             </div>
             <div className="grid grid-cols-3 gap-6 text-center mb-4">
               <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>IPO</p><p className="text-lg font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{new Date(deal.ipoDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p></div>
-              <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Окончание локапа</p><p className="text-lg font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{new Date(deal.lockupEndDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p></div>
-              <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Осталось дней</p><p className="text-lg font-bold" style={{ color: deal.lockupExpired ? '#10B981' : '#EAB308', fontFamily: 'JetBrains Mono' }}>{deal.lockupExpired ? '0' : deal.lockupDaysRemaining}</p></div>
+              <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Lock-up End</p><p className="text-lg font-bold" style={{ color: '#F5F5F0', fontFamily: 'JetBrains Mono' }}>{new Date(deal.lockupEndDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p></div>
+              <div><p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#8A8A93' }}>Days Left</p><p className="text-lg font-bold" style={{ color: deal.lockupExpired ? '#10B981' : '#EAB308', fontFamily: 'JetBrains Mono' }}>{deal.lockupExpired ? '0' : deal.lockupDaysRemaining}</p></div>
             </div>
             {(() => {
               const start = new Date(`${deal.ipoDate!.split('T')[0]}T00:00:00Z`).getTime();
@@ -640,7 +640,7 @@ export default function DealDetail() {
                     <div className="h-full rounded-full" style={{ width: `${(passed * 100).toFixed(1)}%`, background: deal.lockupExpired ? '#10B981' : '#EAB308' }} />
                   </div>
                   <p className="text-xs mt-2 text-center" style={{ color: '#8A8A93' }}>
-                    {deal.lockupMonths} мес. · прошло {(passed * 100).toFixed(0)}%
+                    {deal.lockupMonths} mo · {(passed * 100).toFixed(0)}% elapsed
                   </p>
                 </div>
               );
@@ -652,9 +652,9 @@ export default function DealDetail() {
         {market && (
           <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(79,110,247,0.04)', border: '1px solid rgba(79,110,247,0.15)', backdropFilter: 'blur(24px)' }}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#4F6EF7' }}>Рыночные данные</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#4F6EF7' }}>Market Data</h3>
               <span className="text-xs" style={{ color: market.stale ? '#EAB308' : '#8A8A93' }}>
-                {market.price.toFixed(2)} {market.currency} · {market.stale ? 'данные могут быть неактуальны' : 'данные с задержкой ~15 мин'}
+                {market.price.toFixed(2)} {market.currency} · {market.stale ? 'data may be outdated' : 'data delayed ~15 min'}
               </span>
             </div>
             <div className="flex items-center gap-2 mb-3">
@@ -689,10 +689,10 @@ export default function DealDetail() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-xs" style={{ color: '#55555E' }}>График недоступен для выбранного периода</p>
+              <p className="text-xs" style={{ color: '#55555E' }}>Chart unavailable for the selected period</p>
             )}
             <p className="text-xs mt-3" style={{ color: '#55555E' }}>
-              Рыночная оценка не влияет на официальный current_price и доходность клиентов.
+              Market estimate does not affect the official current_price or client performance.
             </p>
           </div>
         )}
@@ -701,8 +701,8 @@ export default function DealDetail() {
         {exits.length > 0 && (
           <div className="p-6 rounded-2xl mb-8" style={{ background: 'rgba(16,185,129,0.03)', border: '1px solid rgba(16,185,129,0.12)', backdropFilter: 'blur(24px)' }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#10B981' }}>Выходы</h3>
-              <span className="text-xs" style={{ color: '#8A8A93' }}>суммарно {totalExitPercent}%</span>
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#10B981' }}>Exits</h3>
+              <span className="text-xs" style={{ color: '#8A8A93' }}>{totalExitPercent}% total</span>
             </div>
             <div className="space-y-2">
               {exits.map((e) => (
@@ -714,8 +714,8 @@ export default function DealDetail() {
                   </span>
                   <span className="font-semibold" style={{ color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>
                     {e.totalCash != null ? `+$${e.totalCash.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
-                    {e.mode === 'amount' && e.targetAmount != null ? ` (задано $${e.targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })})` : ''}
-                    {e.clientsCount != null ? ` · ${e.clientsCount} клиент.` : ''}
+                    {e.mode === 'amount' && e.targetAmount != null ? ` (target $${e.targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })})` : ''}
+                    {e.clientsCount != null ? ` · ${e.clientsCount} client(s)` : ''}
                   </span>
                 </div>
               ))}
@@ -911,7 +911,7 @@ export default function DealDetail() {
                                   style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)' }}
                                   title="Rumor: not applied to the deal price or P&L"
                                 >
-                                  Слух
+                                  Rumor
                                 </span>
                               )}
                               <span className="text-sm font-medium" style={{ color: item.confirmed === false ? '#8A8A93' : '#F5F5F0' }}>${item.price.toFixed(2)}</span>
@@ -976,9 +976,9 @@ export default function DealDetail() {
             <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={() => setShowExitModal(false)} />
             <motion.div className="relative w-full max-w-[480px] rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(24px) saturate(140%)', border: '1px solid rgba(255,255,255,0.08)' }} initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}>
               <button onClick={() => setShowExitModal(false)} className="absolute top-4 right-4 p-2" style={{ color: '#8A8A93' }}><X size={18} /></button>
-              <h2 className="text-2xl font-bold mb-1" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>Частичный выход</h2>
+              <h2 className="text-2xl font-bold mb-1" style={{ color: '#F5F5F0', fontFamily: 'Clash Display, sans-serif' }}>Partial Exit</h2>
               <p className="text-sm mb-5" style={{ color: '#8A8A93' }}>
-                {deal.companyName} · уже выведено {totalExitPercent}%
+                {deal.companyName} · {totalExitPercent}% already exited
               </p>
 
               <div className="flex flex-col gap-4">
@@ -996,59 +996,59 @@ export default function DealDetail() {
                         border: `1px solid ${exitMode === m ? 'rgba(184,161,78,0.4)' : 'rgba(255,255,255,0.08)'}`,
                       }}
                     >
-                      {m === 'percent' ? 'В процентах (%)' : 'В деньгах ($)'}
+                      {m === 'percent' ? 'Percent (%)' : 'Amount ($)'}
                     </button>
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {exitMode === 'percent' ? (
                     <div>
-                      <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Процент выхода, %</label>
+                      <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Exit percent, %</label>
                       <input type="number" min={0.01} max={100} step={0.01} value={exitPercent} onChange={(e) => setExitPercent(e.target.value)} style={inpBase} {...inpFocus} />
                     </div>
                   ) : (
                     <div>
-                      <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Сумма вывода, $</label>
+                      <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Exit amount, $</label>
                       <input type="number" min={0.01} step={0.01} value={exitAmount} onChange={(e) => setExitAmount(e.target.value)} style={inpBase} {...inpFocus} />
                       {exitAmtNum > 0 && exitTotalValue > 0 && (
                         <p className="text-[10px] mt-1" style={{ color: '#8A8A93' }}>
-                          это ≈ {exitEffPct.toFixed(2)}% позиций по цене выхода
+                          ≈ {exitEffPct.toFixed(2)}% of positions at exit price
                         </p>
                       )}
                     </div>
                   )}
                   <div>
-                    <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Цена выхода (за акцию)</label>
+                    <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Exit price (per share)</label>
                     <input type="number" min={0.0001} step={0.0001} value={exitPrice} onChange={(e) => setExitPrice(e.target.value)} style={inpBase} {...inpFocus} />
                     {confirmedPrice > 0 && (
-                      <p className="text-[10px] mt-1" style={{ color: '#55555E' }}>подтверждённая: ${confirmedPrice.toFixed(2)}</p>
+                      <p className="text-[10px] mt-1" style={{ color: '#55555E' }}>confirmed: ${confirmedPrice.toFixed(2)}</p>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Заметка</label>
-                  <input type="text" value={exitNote} onChange={(e) => setExitNote(e.target.value)} maxLength={255} placeholder="Необязательно" style={inpBase} {...inpFocus} />
+                  <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Note</label>
+                  <input type="text" value={exitNote} onChange={(e) => setExitNote(e.target.value)} maxLength={255} placeholder="Optional" style={inpBase} {...inpFocus} />
                 </div>
 
                 {frontDeviationWarning && (
                   <p className="text-xs rounded-lg px-3 py-2" style={{ background: 'rgba(234,179,8,0.1)', color: '#EAB308', border: '1px solid rgba(234,179,8,0.25)' }}>
-                    Цена отличается от подтверждённой ({confirmedPrice.toFixed(2)}) более чем на 20% — проверьте ввод.
+                    Price differs from confirmed ({confirmedPrice.toFixed(2)}) by more than 20% — please verify.
                   </p>
                 )}
 
                 {exitPreview && (
                   <div className="rounded-xl px-4 py-3 text-sm" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
                     <p style={{ color: '#F5F5F0' }}>
-                      Выйдет: {exitPctNum}% позиции ≈ <span style={{ color: '#10B981', fontWeight: 600 }}>${exitPreview.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> суммарно по {exitPreview.clients} клиентам
+                      Exiting: {exitPctNum}% of position ≈ <span style={{ color: '#10B981', fontWeight: 600 }}>${exitPreview.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> total across {exitPreview.clients} client(s)
                     </p>
                     {exitMode === 'amount' && exitAmtNum > exitTotalValue && exitTotalValue > 0 && (
                       <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
-                        Сумма превышает стоимость позиций: максимум ${exitTotalValue.toFixed(2)}
+                        Amount exceeds positions value: maximum ${exitTotalValue.toFixed(2)}
                       </p>
                     )}
                     {exitEffPct + totalExitPercent > 100 && (
                       <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
-                        Суммарный выход превысит 100% (уже {totalExitPercent}%)
+                        Total exit exceeds 100% (already {totalExitPercent}%)
                       </p>
                     )}
                   </div>
@@ -1062,7 +1062,7 @@ export default function DealDetail() {
                   className="py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40"
                   style={{ background: 'linear-gradient(135deg, #10B981, #34D399)', color: '#0A0A0F' }}
                 >
-                  {exitSaving ? 'Создаём…' : 'Подтвердить выход'}
+                  {exitSaving ? 'Creating…' : 'Confirm Exit'}
                 </button>
               </div>
             </motion.div>
@@ -1135,10 +1135,10 @@ export default function DealDetail() {
                       <div><label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>Lock-up Period (months)</label><input type="number" min={1} max={120} value={editForm.lockupMonths || ''} onChange={e => setEditForm({ ...editForm, lockupMonths: e.target.value ? parseInt(e.target.value, 10) : null })} style={inpBase} {...inpFocus} /></div>
                     </div>
                     {(!!editForm.ipoDate) !== (editForm.lockupMonths != null) && (
-                      <p className="text-xs mt-2" style={{ color: '#EAB308' }}>Укажите оба поля — дату IPO и срок локапа — или оставьте оба пустыми.</p>
+                      <p className="text-xs mt-2" style={{ color: '#EAB308' }}>Provide both — IPO date and lock-up period — or leave both empty.</p>
                     )}
                     {editForm.pipelineStatus === 'Lock-up' && !editForm.ipoDate && editForm.lockupMonths == null && (
-                      <p className="text-xs mt-2" style={{ color: '#8A8A93' }}>Без даты IPO и срока локапа клиенты не увидят отсчёт дней.</p>
+                      <p className="text-xs mt-2" style={{ color: '#8A8A93' }}>Without IPO date and lock-up period clients will not see the day countdown.</p>
                     )}
                     {computeLockupPreview(editForm.ipoDate, editForm.lockupMonths) && (
                       <p className="text-xs mt-2" style={{ color: '#10B981' }}>{computeLockupPreview(editForm.ipoDate, editForm.lockupMonths)}</p>
@@ -1316,7 +1316,7 @@ export default function DealDetail() {
                   <label className="text-xs mb-1 block" style={{ color: '#8A8A93' }}>
                     Label / Source {addPriceConfirmed ? '(optional)' : '*'}
                   </label>
-                  <input type="text" value={addPriceNote} onChange={e => setAddPriceNote(e.target.value)} placeholder="e.g. Цена от БКС" maxLength={255} style={inpBase} {...inpFocus} />
+                  <input type="text" value={addPriceNote} onChange={e => setAddPriceNote(e.target.value)} placeholder="e.g. Quote source" maxLength={255} style={inpBase} {...inpFocus} />
                 </div>
                 {/* ТЗ-11: переключатель «подтверждённая / слух» */}
                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -1332,7 +1332,7 @@ export default function DealDetail() {
                 {addPriceConfirmed ? (
                   <p className="text-xs" style={{ color: '#8A8A93' }}>The price is recorded in the history and applied to the deal: current price and client P&amp;L are recalculated automatically.</p>
                 ) : (
-                  <p className="text-xs" style={{ color: '#F59E0B' }}>Will be saved as a rumor: it appears in the history with a «Слух» badge, but does NOT change the deal price, client P&amp;L and is not broadcast. A source note is required.</p>
+                  <p className="text-xs" style={{ color: '#F59E0B' }}>Will be saved as a rumor: it appears in the history with a «Rumor» badge, but does NOT change the deal price, client P&amp;L and is not broadcast. A source note is required.</p>
                 )}
                 <div className="flex gap-3 pt-2">
                   <button onClick={() => setShowAddPrice(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#F5F5F0', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
@@ -1372,9 +1372,9 @@ export default function DealDetail() {
                       const bal = Number(c?.availableBalance) || 0;
                       return (
                         <p className="text-[11px] mt-1" style={{ color: bal > 0 ? '#8A8A93' : '#EAB308' }}>
-                          Свободные средства: <span style={{ color: '#B8A14E' }}>${bal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                          Available balance: <span style={{ color: '#B8A14E' }}>${bal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                           {bal <= 0 && (
-                            <> — сначала <a href={`/admin/clients/${selectedClientId}`} style={{ color: '#4F6EF7', textDecoration: 'underline' }}>пополните счёт клиента</a></>
+                            <> — please <a href={`/admin/clients/${selectedClientId}`} style={{ color: '#4F6EF7', textDecoration: 'underline' }}>top up the client account</a></>
                           )}
                         </p>
                       );
@@ -1386,7 +1386,7 @@ export default function DealDetail() {
                     {/* ТЗ-18: клиентская блокировка при превышении баланса */}
                     {selectedClientId && parseFloat(addAmount) > (Number((availableClients.find(x => x.id === selectedClientId) as any)?.availableBalance) || 0) && (
                       <p className="text-[11px] mt-1" style={{ color: '#EF4444' }}>
-                        Сумма превышает свободные средства клиента — пополните счёт.
+                        Amount exceeds the client available balance — please top up.
                       </p>
                     )}
                   </div>

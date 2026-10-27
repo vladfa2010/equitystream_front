@@ -361,9 +361,9 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
           />
           {/* ТЗ-16: свободные средства (выходы из сделок) */}
           <PortfolioMetricCard
-            label="Свободные средства"
+            label="Available Balance"
             value={formatCurrency(serverTotals?.availableBalance ?? 0)}
-            subValue="доступно к реинвестированию"
+            subValue="available for reinvestment"
             isPositive={(serverTotals?.availableBalance ?? 0) > 0}
             accentColor="gold"
             index={3}
@@ -374,15 +374,15 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
         {recentOps.length > 0 && (
           <section className="mb-10">
             <div className="mb-3">
-              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Свободные средства — операции</h3>
-              <p className="text-body" style={{ color: '#8A8A93' }}>Пополнения, выводы, входы и выходы из сделок</p>
+              <h3 className="text-h3" style={{ color: '#F5F5F0', marginBottom: 4 }}>Available Balance — Activity</h3>
+              <p className="text-body" style={{ color: '#8A8A93' }}>Deposits, withdrawals, deal entries and exits</p>
             </div>
             <div className="glass-panel" style={{ padding: '8px 20px' }}>
               {recentOps.map((op) => {
                 const positive = op.type === 'deposit' || op.type === 'investment_refund' || op.type === 'exit_credit';
                 const labels: Record<string, string> = {
-                  deposit: 'Пополнение', withdrawal: 'Вывод', investment: 'Вход в сделку',
-                  investment_refund: 'Возврат из сделки', exit_credit: 'Частичный выход',
+                  deposit: 'Deposit', withdrawal: 'Withdrawal', investment: 'Deal Entry',
+                  investment_refund: 'Refund from Deal', exit_credit: 'Partial Exit',
                 };
                 return (
                   <div key={op.id} className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>

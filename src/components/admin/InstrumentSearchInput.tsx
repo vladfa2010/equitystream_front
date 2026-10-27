@@ -137,7 +137,7 @@ export default function InstrumentSearchInput({
           inputFocusHandlers.onBlur(e as any);
           blurRef.current = setTimeout(() => setOpen(false), BLUR_CLOSE_MS);
         }}
-        placeholder={exchangesReady ? 'Тикер / название / ISIN…' : 'Загружаем справочник бирж…'}
+        placeholder={exchangesReady ? 'Ticker / name / ISIN…' : 'Loading exchanges…'}
         style={{ ...inputStyle, textTransform: 'uppercase' }}
         onFocusCapture={inputFocusHandlers.onFocus as any}
         autoComplete="off"
@@ -146,7 +146,7 @@ export default function InstrumentSearchInput({
       {selection.finamSymbol && (
         <p className="text-[10px] mt-1" style={{ color: '#10B981' }}>
           ✓ {selection.finamSymbol}
-          {selection.isin ? ` · ISIN ${selection.isin}` : ''} — маркет-данные по Finam
+          {selection.isin ? ` · ISIN ${selection.isin}` : ''} — market data via Finam
         </p>
       )}
 
@@ -162,12 +162,12 @@ export default function InstrumentSearchInput({
           }}
         >
           {loading && (
-            <p className="px-3 py-2 text-xs" style={{ color: '#8A8A93' }}>Поиск…</p>
+            <p className="px-3 py-2 text-xs" style={{ color: '#8A8A93' }}>Searching…</p>
           )}
           {!loading && matches.length === 0 && (
             <p className="px-3 py-2 text-xs" style={{ color: '#8A8A93' }}>
-              В справочнике Finam не найдено — можно сохранить как есть, маркет-данных не будет.
-              Индексы в справочнике отсутствуют — это нормально.
+              Not found in the Finam catalog — you can save as is, market data will be unavailable.
+              Indices are not in the catalog — this is normal.
             </p>
           )}
           {!loading &&

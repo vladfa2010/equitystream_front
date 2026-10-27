@@ -74,12 +74,12 @@ export const marketDataApi = {
 
 /** Человекочитаемые бейджи типа инструмента (ТЗ-199 §3.5) */
 export const INSTRUMENT_TYPE_LABELS: Record<string, string> = {
-  EQUITIES: 'акция',
-  BONDS: 'облигация',
-  FUTURES: 'фьючерс',
-  OPTIONS: 'опцион',
-  CURRENCIES: 'валюта',
-  INDICES: 'индекс',
+  EQUITIES: 'Stock',
+  BONDS: 'Bond',
+  FUTURES: 'Futures',
+  OPTIONS: 'Option',
+  CURRENCIES: 'Currency',
+  INDICES: 'Index',
   ETF: 'ETF',
 };
 
