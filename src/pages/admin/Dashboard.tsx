@@ -294,14 +294,14 @@ function DealCard({ deal, index, allClients, onDeleted }: { deal: DealResponse; 
       <div className="flex items-center">
         <div className="flex -space-x-2">
           {cardClients.map((client) => (
-            <img
+            <div
               key={client.id}
-              src={client.avatarUrl || '/default-avatar.png'}
-              alt={getClientName(client)}
-              className="w-7 h-7 rounded-full border-2"
+              className="rounded-full border-2"
               style={{ borderColor: '#111118' }}
               title={getClientName(client)}
-            />
+            >
+              <Avatar name={getClientName(client)} src={client.avatarUrl} size={28} />
+            </div>
           ))}
         </div>
         {dealInvestments.length > 5 && (

@@ -1233,7 +1233,7 @@ function EditAllocationModal({ allocation, client, onSave, onClose, totalVolume,
           </div>
 
           <div className="flex items-center gap-3 mb-5 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-            <img src={client.avatar} alt="" className="w-10 h-10 rounded-full" />
+            <Avatar name={client.name} src={client.avatar} size={40} />
             <div>
               <p className="text-[14px] font-semibold" style={{ color: '#F5F5F0' }}>{client.name}</p>
               <p className="text-[11px]" style={{ color: '#55555E' }}>{client.email}</p>
@@ -1484,7 +1484,7 @@ function Step3Review({ form, allocations, totalVolume, sharePrice, allClients }:
                     style={{ background: 'rgba(184,161,78,0.06)', border: '1px solid rgba(184,161,78,0.2)' }}
                   >
                     <div className="relative">
-                      <img src={client.avatar} alt="" className="w-12 h-12 rounded-full" style={{ border: '2px solid #B8A14E' }} />
+                      <div className="rounded-full" style={{ border: '2px solid #B8A14E' }}><Avatar name={client.name} src={client.avatar} size={48} /></div>
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#B8A14E' }}>
                         <Crown size={11} color="#0A0A0F" />
                       </div>
@@ -1513,7 +1513,7 @@ function Step3Review({ form, allocations, totalVolume, sharePrice, allClients }:
                 const shares = sharePrice > 0 ? (amt / sharePrice).toFixed(4) : '0.0000';
                 return (
                   <div key={client.id} className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <img src={client.avatar} alt="" className="w-10 h-10 rounded-full" />
+                    <Avatar name={client.name} src={client.avatar} size={40} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold" style={{ color: '#F5F5F0' }}>{client.name}</p>
                       <div className="flex flex-wrap items-center gap-3 mt-0.5">

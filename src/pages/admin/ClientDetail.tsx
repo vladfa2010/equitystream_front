@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import Avatar from '@/components/Avatar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -601,12 +602,9 @@ export default function ClientDetail() {
             }}
           >
             {client.avatarUrl ? (
-              <img
-                src={client.avatarUrl}
-                alt={getClientName(client)}
-                className="w-16 h-16 rounded-full object-cover"
-                style={{ border: '3px solid rgba(184,161,78,0.2)' }}
-              />
+              <div className="rounded-full" style={{ border: '3px solid rgba(184,161,78,0.2)' }}>
+                <Avatar name={getClientName(client)} src={client.avatarUrl} size={64} />
+              </div>
             ) : (
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center"

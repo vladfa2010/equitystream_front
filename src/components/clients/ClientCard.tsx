@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import Avatar from '@/components/Avatar';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import type { ClientResponse } from '@/api';
@@ -62,12 +63,9 @@ export default function ClientCard({ client, index }: ClientCardProps) {
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           {getAvatar(client) ? (
-            <img
-              src={getAvatar(client)!}
-              alt={getName(client)}
-              className="w-12 h-12 rounded-full object-cover"
-              style={{ border: '2px solid rgba(255,255,255,0.06)' }}
-            />
+            <div className="rounded-full" style={{ border: '2px solid rgba(255,255,255,0.06)' }}>
+              <Avatar name={getName(client)} src={getAvatar(client)!} size={48} />
+            </div>
           ) : (
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center"
