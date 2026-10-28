@@ -152,6 +152,10 @@ export default function ClientDetail() {
   // ТЗ-17: свободные средства клиента (ledger)
   const [balanceOps, setBalanceOps] = useState<BalanceOperationItem[]>([]);
   const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
+  // ТЗ-17: удаление записи ledger (причина обязательна, след в audit_log)
+  const [deletingOpId, setDeletingOpId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [balanceOpType, setBalanceOpType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [balanceAmount, setBalanceAmount] = useState('');
@@ -220,6 +224,33 @@ export default function ClientDetail() {
       setBalanceMsg(err?.message || 'Operation failed.');
     } finally {
       setBalanceSaving(false);
+    }
+  };
+
+  const refreshBalanceData = async () => {
+    if (!id) return;
+    const [c, ops, summary] = await Promise.all([
+      clientsApi.getById(id),
+      clientsApi.getBalanceOperations(id, { limit: 100 }),
+      clientsApi.getBalanceSummary(id),
+    ]);
+    setClient(c);
+    setBalanceOps(ops.data || []);
+    setBalanceSummary(summary || null);
+  };
+
+  const handleDeleteOperation = async () => {
+    if (!id || !deletingOpId || !deleteReason.trim()) return;
+    setDeleteBusy(true);
+    try {
+      await clientsApi.deleteBalanceOperation(id, deletingOpId, deleteReason.trim());
+      setDeletingOpId(null);
+      setDeleteReason('');
+      await refreshBalanceData();
+    } catch (err: any) {
+      alert(err?.message || 'Delete failed.');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -827,6 +858,36 @@ export default function ClientDetail() {
               </div>
             </div>
           )}
+          {deletingOpId && (
+            <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <p style={{ fontSize: 11, color: '#EF4444', margin: '0 0 6px' }}>
+                Delete this record? The balance will be reverted; the deletion is written to the audit log.
+              </p>
+              <input
+                type="text"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                maxLength={255}
+                placeholder="Reason (required)"
+                style={{ width: '100%', marginBottom: 6, padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F5F5F0', fontSize: 13 }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleDeleteOperation}
+                  disabled={deleteBusy || !deleteReason.trim()}
+                  style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: '#EF4444', color: '#fff', opacity: deleteBusy || !deleteReason.trim() ? 0.5 : 1, border: 'none' }}
+                >
+                  {deleteBusy ? 'Deleting…' : 'Delete record'}
+                </button>
+                <button
+                  onClick={() => { setDeletingOpId(null); setDeleteReason(''); }}
+                  style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: '#8A8A93', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           {balanceOps.length === 0 ? (
             <p style={{ fontSize: 12, color: '#8A8A93' }}>No operations yet.</p>
           ) : (
@@ -847,6 +908,17 @@ export default function ClientDetail() {
                       {positive ? '+' : '−'}${op.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       <span style={{ color: '#55555E', fontWeight: 400, fontSize: 11 }}> → ${op.balanceAfter.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </span>
+                    {(op.type === 'deposit' || op.type === 'withdrawal') && (
+                      <button
+                        onClick={() => { setDeletingOpId(deletingOpId === op.id ? null : op.id); setDeleteReason(''); }}
+                        title="Delete record (reason → audit log)"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#55555E', padding: '2px 4px', marginLeft: 6 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = '#55555E'; }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 );
               })}

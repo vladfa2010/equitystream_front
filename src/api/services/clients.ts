@@ -119,6 +119,19 @@ export const clientsApi = {
     return unwrap<BalanceSummary>(res);
   },
 
+  /** ТЗ-17: ручное удаление записи ledger (admin, причина → audit_log) */
+  deleteBalanceOperation: async (
+    clientId: string,
+    operationId: string,
+    reason: string,
+  ): Promise<{ deleted: true; balanceAfter: number }> => {
+    const res = await fetchWithAuth(`/users/clients/${clientId}/balance-operations/${operationId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ reason }),
+    });
+    return unwrap<{ deleted: true; balanceAfter: number }>(res);
+  },
+
   getBalanceOperations: async (
     clientId: string,
     params?: { page?: number; limit?: number },
